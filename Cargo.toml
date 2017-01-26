@@ -1,0 +1,7 @@
+[package]
+name = "Gust"
+version = "0.1.0"
+authors = [
+    "Saksham Sharma <saksham0808@gmail.com>",
+    "Pallav Agarwal <pallavagarwal07@gmail.com"
+]
