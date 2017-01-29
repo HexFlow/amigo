@@ -6,10 +6,10 @@ extern "C" int yylex();
 extern "C" int yyparse();
 extern "C" FILE *yyin;
 extern "C" void exit(int);
- 
+
 void yyerror(const char *s);
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
 	// open a file handle to a particular file:
 	FILE *myfile = fopen(argv[1], "r");
 	// make sure it's valid:
@@ -24,7 +24,6 @@ int main(int argc, char** argv) {
 	do {
 		yyparse();
 	} while (!feof(yyin));
-	
 }
 
 void yyerror(const char *s) {

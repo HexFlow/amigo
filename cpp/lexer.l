@@ -4,17 +4,24 @@
 using namespace std;
 #define YY_DECL extern "C" int yylex()
 %}
+NEWLINE [\n]
+UNICHAR [^\n]
+UNILETR [A-Za-z]
+UNIDIGT [0-9]
+LETTER  [A-Za-z_]
+DECDIGT [0-9]
+OCTDIGT [0-7]
+HEXDIGT [0-9A-Fa-f]
+DECIMAL [0-9]+
+EXP     (e|E)(\+|\-)?{DECIMAL}
 %%
 [ \t\n] ;
-sNaZZle        { return SNAZZLE; }
-type           { return TYPE; }
-end            { return END; }
-[0-9]+\.[0-9]+ { yylval.fval = atof(yytext); return FLOAT; }
-[0-9]+         { yylval.ival = atoi(yytext); return INT; }
-[a-zA-Z0-9]+   {
-	// we have to copy because we can't rely on yytext not changing underneath us:
-	yylval.sval = strdup(yytext);
-	return STRING;
-}
+{LETTER}({LETTER}|{UNIDIGT})+ { yylval.sval = strdup(yytext); return IDENT; }
+0{OCTDIGT}*                   { yylval.lval = strtol(yytext, NULL, 8); return INT; }
+0(x|X){HEXDIGT}+              { yylval.lval = strtol(yytext, NULL, 16); return INT; }
+[1-9]{DECDIGT}*               { yylval.lval = strtol(yytext, NULL, 10); return INT; }
+{DECIMAL}\.{DECIMAL}?{EXP}?   { yylval.fval = atof(yytext); return FLOAT; }
+{DECIMAL}{EXP}                { yylval.fval = atof(yytext); return FLOAT; }
+\.{DECIMAL}{EXP}?             { yylval.fval = atof(yytext); return FLOAT; }
 .              ;
 %%

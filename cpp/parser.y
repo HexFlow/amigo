@@ -10,60 +10,30 @@ extern "C" FILE *yyin;
  
 void yyerror(const char *s);
 %}
-
-// Bison fundamentally works by asking flex to get the next token, which it
-// returns as an object of type "yystype".  But tokens could be of any
-// arbitrary data type!  So we deal with that in Bison by defining a C union
-// holding each of the types of tokens that Flex could return, and have Bison
-// use that union instead of "int" for the definition of "yystype":
 %union {
 	int ival;
 	float fval;
 	char *sval;
+	long long lval;
 }
 
-// define the constant-string tokens:
 %token SNAZZLE TYPE
 %token END
-
-// define the "terminal symbol" token types I'm going to use (in CAPS
-// by convention), and associate each with a field of the union:
 %token <ival> INT
 %token <fval> FLOAT
-%token <sval> STRING
+%token <sval> IDENT
 
 %%
-
-// the first rule defined is the highest-level rule, which in our
-// case is just the concept of a whole "snazzle file":
-snazzle:
-	header template body_section footer { cout << "done with a snazzle file!" << endl; }
-	;
-header:
-	SNAZZLE FLOAT { cout << "reading a snazzle file version " << $2 << endl; }
-	;
-template:
-	typelines
-	;
-typelines:
-	typelines typeline
-	| typeline
-	;
-typeline:
-	TYPE STRING { cout << "new defined snazzle type: " << $2 << endl; }
-	;
-body_section:
-	body_lines
-	;
-body_lines:
-	body_lines body_line
-	| body_line
-	;
-body_line:
-	INT INT INT INT STRING { cout << "new snazzle: " << $1 << $2 << $3 << $4 << $5 << endl; }
-	;
-footer:
-	END
-	;
-
+program:
+       int program
+       | float program
+       | int
+       | float
+       ;
+int:
+   INT { cout << "Int found: " << $1 << endl; }
+   ;
+float:
+	 FLOAT { cout << "Float found: " << $1 << endl; }
+	 ;
 %%
