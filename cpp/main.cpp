@@ -11,7 +11,7 @@ extern "C" int yydebug;
 void yyerror(const char *s);
 
 int main(int argc, char **argv) {
-    // yydebug = 1;
+    yydebug = 1;
     // open a file handle to a particular file:
     FILE *myfile = fopen(argv[1], "r");
     // make sure it's valid:

@@ -100,12 +100,26 @@ void printTop(node* n) {
 }
 
 %token <sval> INT FLOAT IDENT BIN_OP DUAL_OP REL_OP MUL_OP ADD_OP UN_OP
-%token <sval> RAW_ST INR_ST
-%type <nt> Program Expression UnaryExpr PrimaryExpr Selector Index Slice
-%type <nt> TypeAssertion Arguments IdentifierList ExpressionList Conversion
-%type <nt> Type TypeName TypeLit ArrayType ArrayLength ElementType Operand
-%type <nt> Literal BasicLit OperandName QualifiedIdent PackageName MethodExpr
-%type <nt> RecieverType MethodName InterfaceTypeName BinaryOp UnaryOp String
+%token <sval> RAW_ST INR_ST ASN_OP
+%type <nt> Program Expression Block StatementList Statement SimpleStmt
+%type <nt> EmptyStmt ExpressionStmt SendStmt Channel IncDecStmt
+%type <nt> Assignment ShortVarDecl Declaration ConstDecl ConstSpecList
+%type <nt> Signature Result Parameters ParameterList ParameterDecl
+%type <nt> ConstSpec MethodDecl Receiver TopLevelDecl LabeledStmt
+%type <nt> GoStmt ReturnStmt BreakStmt ContinueStmt GotoStmt
+%type <nt> FallthroughStmt IfStmt SwitchStmt ExprSwitchStmt
+%type <nt> ExprCaseClauseList ExprCaseClause ExprSwitchCase SelectStmt
+%type <nt> CommClauseList CommClause CommCase RecvStmt RecvExpr
+%type <nt> FunctionDecl FunctionName TypeSwitchStmt TypeCaseClauseList
+%type <nt> TypeSwitchGuard TypeCaseClause TypeSwitchCase TypeList
+%type <nt> Function FunctionBody ForStmt ForClause RangeClause InitStmt
+%type <nt> PostStmt Condition DeferStmt Label UnaryExpr PrimaryExpr
+%type <nt> Selector Index Slice TypeDecl TypeSpecList TypeSpec VarDecl
+%type <nt> VarSpec VarSpecList TypeAssertion Arguments IdentifierList
+%type <nt> ExpressionList Conversion Type TypeName TypeLit ArrayType
+%type <nt> ArrayLength ElementType Operand Literal BasicLit OperandName
+%type <nt> QualifiedIdent PackageName MethodExpr RecieverType
+%type <nt> MethodName InterfaceTypeName UnaryOp BinaryOp String
 %%
 Program:
     ExpressionList { $$ = &(init() << $1 >> "Program"); printTop($$);}
@@ -116,16 +130,333 @@ Expression:
     | Expression BinaryOp UnaryExpr {$$ = &(init() << $1 << $2 << $3 >> "Expression");}
     ;
 
+Block:
+    '{' StatementList '}'
+    ;
+
+StatementList:
+    StatementList Statement ';'
+    | Statement ';'
+    ;
+
+Statement:
+    Declaration
+    | LabeledStmt
+    | SimpleStmt
+    | GoStmt
+    | ReturnStmt
+    | BreakStmt
+    | ContinueStmt
+    | GotoStmt
+    | FallthroughStmt
+    | Block
+    | IfStmt
+    | SwitchStmt
+    | SelectStmt
+    | ForStmt
+    | DeferStmt
+    ;
+
+SimpleStmt:
+    EmptyStmt
+    | ExpressionStmt
+    | SendStmt
+    | IncDecStmt
+    | Assignment
+    | ShortVarDecl
+    ;
+
+EmptyStmt:
+    | /* blank */
+    ;
+
+ExpressionStmt:
+    Expression
+    ;
+
+SendStmt:
+    Channel "<-" Expression
+    ;
+
+Channel:
+    Expression
+    ;
+
+IncDecStmt:
+    Expression "++"
+    Expression "--"
+    ;
+
+Assignment:
+    ExpressionList ASN_OP ExpressionList
+    ;
+
+ShortVarDecl:
+    IdentifierList ":=" ExpressionList
+    ;
+
+
+Declaration:
+    ConstDecl
+    | TypeDecl
+    | VarDecl
+    ;
+
+ConstDecl:
+    "const" ConstSpec
+    "const" "(" ConstSpecList ")"
+    ;
+
+ConstSpecList:
+    ConstSpecList ConstSpec ';'
+    | ConstSpec ';'
+    ;
+
+Signature:
+    Parameters 
+    Parameters Result
+    ;
+
+Result:
+    Parameters
+    | Type
+    ;
+
+Parameters:
+    "("  ")"
+    "(" ParameterList  ")"
+    "(" ParameterList "," ")"
+    ;
+
+ParameterList:
+    ParameterDecl
+    | ParameterList "," ParameterDecl
+    ;
+
+ParameterDecl:
+    Type
+    "..." Type
+    IdentifierList Type
+    IdentifierList "..." Type
+    ;
+
+ConstSpec:
+	IdentifierList 
+	| IdentifierList "=" ExpressionList
+	| IdentifierList Type "=" ExpressionList
+	;
+
+MethodDecl:
+    "func" Receiver MethodName Signature
+    "func" Receiver MethodName Function
+    ;
+
+Receiver:
+    Parameters
+    ;
+
+TopLevelDecl:
+    Declaration
+    | FunctionDecl
+    | MethodDecl
+    ;
+
+LabeledStmt:
+    Label ":" Statement
+    ;
+
+GoStmt:
+    "go" Expression
+    ;
+
+ReturnStmt:
+    "return"
+    | "return" ExpressionList
+    ;
+
+BreakStmt:
+    "break"
+    | "break" Label
+    ;
+
+ContinueStmt:
+    "continue"
+    | "continue" Label
+    ;
+
+GotoStmt:
+    "goto" Label
+    ;
+
+FallthroughStmt:
+    "fallthrough"
+    ;
+
+IfStmt:
+    "if" Expression Block
+    | "if" SimpleStmt ";" Expression Block
+    | "if" Expression Block "else" Block
+    | "if" Expression Block "else" IfStmt
+    | "if" SimpleStmt ";" Expression Block "else" IfStmt
+    | "if" SimpleStmt ";" Expression Block "else" Block
+    ;
+
+SwitchStmt:
+    ExprSwitchStmt
+    | TypeSwitchStmt
+    ;
+
+ExprSwitchStmt:
+    "switch" "{" ExprCaseClauseList "}"
+    "switch" Expression "{" ExprCaseClauseList "}"
+    "switch" SimpleStmt ";" "{" ExprCaseClauseList "}"
+    "switch" SimpleStmt ";" Expression "{" ExprCaseClauseList "}"
+    ;
+
+ExprCaseClauseList:
+    ExprCaseClauseList ExprCaseClause
+    ;
+
+ExprCaseClause:
+    ExprSwitchCase ":" StatementList
+    ;
+
+ExprSwitchCase:
+    "case" ExpressionList
+    | "default"
+    ;
+
+SelectStmt:
+    "select" "{" CommClauseList "}"
+    ;
+
+CommClauseList:
+    CommClauseList CommClause
+    ;
+
+CommClause:
+    CommCase ":" StatementList
+    ;
+
+CommCase:
+    "case" SendStmt
+    | "case" RecvStmt
+    | "default"
+    ;
+
+RecvStmt:
+    RecvExpr
+    | ExpressionList "=" RecvExpr
+    | IdentifierList ":=" RecvExpr
+    ;
+
+RecvExpr:
+    Expression
+    ;
+
+FunctionDecl:
+    "func" FunctionName Signature
+    | "func" FunctionName Function
+    ;
+
+FunctionName:
+    IDENT
+    ;
+
+TypeSwitchStmt:
+    "switch" SimpleStmt ';' TypeSwitchGuard '{' TypeCaseClauseList '}'
+    | "switch"  TypeSwitchGuard '{' TypeCaseClauseList '}'
+    ;
+
+TypeCaseClauseList:
+    TypeCaseClauseList TypeCaseClause
+    | TypeCaseClause
+    ;
+
+TypeSwitchGuard:
+    PrimaryExpr '.' '(' "type" ')'
+    IDENT "::" PrimaryExpr '.' '(' "type" ')'
+    ;
+
+TypeCaseClause:
+    TypeSwitchCase ':' StatementList
+    ;
+
+TypeSwitchCase:
+    "case" TypeList
+    | "default"
+    ;
+
+TypeList:
+    TypeList "," Type
+    | Type
+    ;
+
+
+Function:
+    Signature FunctionBody
+    ;
+
+FunctionBody:
+    Block
+    ;
+
+ForStmt:
+    "for" Block
+    | "for" Condition Block
+    | "for" ForClause Block
+    | "for" RangeClause Block
+    ;
+
+ForClause:
+    ";" ";"
+    ";" ";" PostStmt
+    ";" Condition ";"
+    ";" Condition ";" PostStmt
+    InitStmt ";"  ";"
+    InitStmt ";"  ";" PostStmt
+    InitStmt ";" Condition ";"
+    InitStmt ";" Condition ";" PostStmt
+    ;
+
+RangeClause:
+    "range" Expression
+    | IdentifierList ":=" "range" Expression
+    | ExpressionList "=" "range" Expression
+    ;
+
+InitStmt:
+    SimpleStmt
+    ;
+
+PostStmt:
+    SimpleStmt
+    ;
+
+Condition:
+    Expression
+    ;
+
+DeferStmt:
+    "defer" Expression
+    ;
+
+Label:
+    IDENT
+    ;
+
+
 UnaryExpr:
     PrimaryExpr { $$ = &(init() << $1 >> "UnaryExpr"); }
     | UnaryOp UnaryExpr { $$ = &(init() << $1 << $2 >> "UnaryExpr"); }
+    ;
 
 PrimaryExpr:
     Operand { $$ = &(init() << $1 >> "PrimaryExpr"); }
     | Conversion
     | PrimaryExpr Selector
     | PrimaryExpr Index
-/*  | PrimaryExpr Slice */
+    | PrimaryExpr Slice 
     | PrimaryExpr TypeAssertion
     | PrimaryExpr Arguments
     ;
@@ -137,12 +468,47 @@ Selector:
 Index:
     '[' Expression ']'
     ;
-/*
+
 Slice:
-    '[' (Expression?) ':' (Expression?) ']'
-    | '[' (Expression?) ':' Expression ':' Expression ']'
+    '[' ':' ']'
+    | '[' ':' Expression ']'
+    | '[' Expression ':' ']'
+    | '[' Expression ':' Expression ']'
+    | '[' ':' Expression ':' Expression ']'
+    | '[' Expression ':' Expression ':' Expression ']'
     ;
-*/
+
+TypeDecl:
+    "type" TypeSpec
+    "type" "(" TypeSpecList ")"
+    ;
+
+TypeSpecList:
+    TypeSpecList TypeSpec ';'
+    | TypeSpec ';'
+    ;
+
+TypeSpec:
+    IDENT Type
+    ;
+
+VarDecl: 
+    "var" "(" VarSpecList ")"
+    | "var" VarSpec
+    ;
+
+VarSpec: 
+    IdentifierList Type 
+    | IdentifierList Type ':' ExpressionList
+    | IdentifierList ':' ExpressionList
+    ;
+
+VarSpecList:
+    VarSpecList VarSpec ';'
+    | VarSpec ';'
+    ;
+
+
 TypeAssertion:
     '.' '(' Type ')'
     ;

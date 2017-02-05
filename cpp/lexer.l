@@ -39,6 +39,7 @@ MUL_OP (\*|\/|%|{LS}|{RS}|&|{AO})
 RAW_ST (`([^`]|{NEWLINE})*`)
 INR_ST (\"({UNI_VAL}|{BYT_VAL})*\")
 COMMNT (\/\*((\*[^\/])|{NEWLINE}|[^*])*\*\/)
+ASN_OP (({ADD_OP}|{MUL_OP})=)
 %%
 [ \t\n] ;
 {LETTER}({LETTER}|{UNIDIGT})+ { yylval.sval = strdup(yytext); return IDENT; }
@@ -51,7 +52,9 @@ COMMNT (\/\*((\*[^\/])|{NEWLINE}|[^*])*\*\/)
 \+|-|\^|\*|&                  { yylval.sval = strdup(yytext); return DUAL_OP; }
 \+|-|!|\^|\*|&|{LA}           { yylval.sval = strdup(yytext); return UN_OP; }
 {OR}|{AND}|{REL_OP}|{ADD_OP}|{MUL_OP} { yylval.sval = strdup(yytext); return BIN_OP; }
+{ASN_OP}                              { yylval.sval = strdup(yytext); return ASN_OP; }
 {RAW_ST}                              { yylval.sval = strdup(yytext); return RAW_ST; }
 {INR_ST}                              { yylval.sval = strdup(yytext); return INR_ST; }
 {COMMNT}                              { ; }
+.                                     { return yytext[0]; }
 %%

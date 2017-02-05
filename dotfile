@@ -1,62 +1,18 @@
-graph {
-_11[label="\"abc\""]
-_10 -- _11
-_10[label="String"]
-_9 -- _10
-_9[label="BasicLit"]
-_8 -- _9
-_8[label="Literal"]
-_7 -- _8
-_7[label="Operand"]
+{=graph {
+_7[label="hello"]
 _6 -- _7
-_6[label="PrimaryExpr"]
+_6[label="OperandName"]
 _5 -- _6
-_5[label="UnaryExpr"]
+_5[label="Operand"]
 _4 -- _5
-_4[label="Expression"]
+_4[label="PrimaryExpr"]
 _3 -- _4
-_13[label="+"]
-_12 -- _13
-_12[label="BinaryOp"]
-_3 -- _12
-_20[label="\"jdsh\""]
-_19 -- _20
-_19[label="String"]
-_18 -- _19
-_18[label="BasicLit"]
-_17 -- _18
-_17[label="Literal"]
-_16 -- _17
-_16[label="Operand"]
-_15 -- _16
-_15[label="PrimaryExpr"]
-_14 -- _15
-_14[label="UnaryExpr"]
-_3 -- _14
-_3[label="Expression"]
+_3[label="UnaryExpr"]
 _2 -- _3
-_22[label="+"]
-_21 -- _22
-_21[label="BinaryOp"]
-_2 -- _21
-_29[label="`hkh\nfdjh\nvk\" fsd\"`"]
-_28 -- _29
-_28[label="String"]
-_27 -- _28
-_27[label="BasicLit"]
-_26 -- _27
-_26[label="Literal"]
-_25 -- _26
-_25[label="Operand"]
-_24 -- _25
-_24[label="PrimaryExpr"]
-_23 -- _24
-_23[label="UnaryExpr"]
-_2 -- _23
 _2[label="Expression"]
 _1 -- _2
 _1[label="ExpressionList"]
 _0 -- _1
 _0[label="Program"]
 
-}
+}Parse error!  Message: syntax error
