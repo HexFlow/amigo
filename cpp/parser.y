@@ -1,5 +1,7 @@
 %{
 #include <cstdio>
+#include <sstream>
+#include <iomanip>
 #include <iostream>
 #include <vector>
 #include <string>
@@ -17,7 +19,7 @@ void yyerror(const char *s);
 int id = 0;
 
 struct node {
-    char name[100];
+    char name[100] = {0};
     vector<node *> children_nt;
     vector<char *> children_t;
 };
@@ -42,6 +44,29 @@ node &init() {
     return *n;
 }
 
+string escape_json(const string &s) {
+    ostringstream o;
+    for (auto c = s.cbegin(); c != s.cend(); c++) {
+        switch (*c) {
+        case '"': o << "\\\""; break;
+        case '\\': o << "\\\\"; break;
+        case '\b': o << "\\b"; break;
+        case '\f': o << "\\f"; break;
+        case '\n': o << "\\n"; break;
+        case '\r': o << "\\r"; break;
+        case '\t': o << "\\t"; break;
+        default:
+            if ('\x00' <= *c && *c <= '\x1f') {
+                o << "\\u"
+                  << hex << setw(4) << setfill('0') << (int)*c;
+            } else {
+                o << *c;
+            }
+        }
+    }
+    return o.str();
+}
+
 string print(node* n) {
     int id1=0, id2=0;
     string name = "_" + to_string(id++);
@@ -50,9 +75,10 @@ string print(node* n) {
             string child = print(n->children_nt[id1++]);
             cout << name << " -- " << child << endl;
         }
+
         if(id2 < n->children_t.size()) {
             cout << "_" + to_string(id) <<
-              "[label=\"" << n->children_t[id2++] << "\"]" << endl;
+              "[label=\"" << escape_json(n->children_t[id2++]) << "\"]" << endl;
             cout << name << " -- " << "_" + to_string(id++) << endl;
         }
     }
@@ -73,21 +99,13 @@ void printTop(node* n) {
     char *sval;
 }
 
-%token <sval> INT
-%token <sval> FLOAT
-%token <sval> IDENT
-%token <sval> BIN_OP
-%token <sval> DUAL_OP
-%token <sval> REL_OP
-%token <sval> MUL_OP
-%token <sval> ADD_OP
-%token <sval> UN_OP
-%token <sval> LITERAL
+%token <sval> INT FLOAT IDENT BIN_OP DUAL_OP REL_OP MUL_OP ADD_OP UN_OP
+%token <sval> RAW_ST INR_ST
 %type <nt> Program Expression UnaryExpr PrimaryExpr Selector Index Slice
 %type <nt> TypeAssertion Arguments IdentifierList ExpressionList Conversion
 %type <nt> Type TypeName TypeLit ArrayType ArrayLength ElementType Operand
 %type <nt> Literal BasicLit OperandName QualifiedIdent PackageName MethodExpr
-%type <nt> RecieverType MethodName InterfaceTypeName BinaryOp UnaryOp
+%type <nt> RecieverType MethodName InterfaceTypeName BinaryOp UnaryOp String
 %%
 Program:
     ExpressionList { $$ = &(init() << $1 >> "Program"); printTop($$);}
@@ -95,7 +113,7 @@ Program:
 
 Expression:
     UnaryExpr { $$ = &(init() << $1 >> "Expression"); }
-    | Expression BinaryOp Expression {$$ = &(init() << $1 << $2 << $3 >> "Expression");}
+    | Expression BinaryOp UnaryExpr {$$ = &(init() << $1 << $2 << $3 >> "Expression");}
     ;
 
 UnaryExpr:
@@ -185,14 +203,14 @@ ElementType:
     ;
 
 Operand:
-    Literal
+    Literal { $$ = &(init() << $1 >> "Operand"); }
     | OperandName { $$ = &(init() << $1 >> "Operand"); }
     | MethodExpr
     | '(' Expression ')'
     ;
 
 Literal:
-    | BasicLit
+    | BasicLit { $$ = &(init() << $1 >> "Literal"); }
 /*  | CompositeLit
     | FunctionLit */
     ;
@@ -201,8 +219,8 @@ BasicLit:
     INT { $$ = &(init() << $1 >> "BasicLit"); }
     | FLOAT { $$ = &(init() << $1 >> "BasicLit"); }
 /*  | IMAGINARY
-    | RUNE
-    | STRING */
+    | RUNE */
+    | String { $$ = &(init() << $1 >> "BasicLit"); }
     ;
 
 OperandName:
@@ -229,20 +247,25 @@ RecieverType:
     ;
 
 MethodName:
-    IDENT
+    IDENT { $$ = &(init() << $1 >> "MethodName"); }
     ;
 
 InterfaceTypeName:
-    TypeName
+    TypeName { $$ = &(init() << $1 >> "InterfaceTypeName"); }
     ;
 
 UnaryOp:
-    UN_OP
-    | DUAL_OP
+    UN_OP { $$ = &(init() << $1 >> "UnaryOp"); }
+    | DUAL_OP { $$ = &(init() << $1 >> "UnaryOp"); }
     ;
 
 BinaryOp:
-    BIN_OP
-    | DUAL_OP
+    BIN_OP { $$ = &(init() << $1 >> "BinaryOp"); }
+    | DUAL_OP { $$ = &(init() << $1 >> "BinaryOp"); }
+    ;
+
+String:
+    RAW_ST { $$ = &(init() << $1 >> "String"); }
+    | INR_ST { $$ = &(init() << $1 >> "String"); }
     ;
 %%

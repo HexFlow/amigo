@@ -14,6 +14,13 @@ DECDIGT [0-9]
 OCTDIGT [0-7]
 HEXDIGT [0-9A-Fa-f]
 DECIMAL [0-9]+
+UNI_VAL ([^"]|{LITUVAL}|{BIGUVAL}|{ESCCHAR})
+BYT_VAL ({OCTBVAL}|{HEXBVAL})
+OCTBVAL (\\{OCTDIGT}{OCTDIGT}{OCTDIGT})
+HEXBVAL (\\x{HEXDIGT}{HEXDIGT})
+LITUVAL (\\u{HEXDIGT}{HEXDIGT}{HEXDIGT}{HEXDIGT})
+BIGUVAL (\\U{HEXDIGT}{HEXDIGT}{HEXDIGT}{HEXDIGT}{HEXDIGT}{HEXDIGT}{HEXDIGT}{HEXDIGT})
+ESCCHAR (\\(a|b|f|n|r|t|v|\\|\'|\"))
 EXP     (e|E)(\+|\-)?{DECIMAL}
 NL  (\n)
 OR  (\|\|)
@@ -29,6 +36,9 @@ LA  (<-)
 REL_OP ({EQ}|{NE}|<|>|{GE}|{LE})
 ADD_OP (\+|\-|\||\^)
 MUL_OP (\*|\/|%|{LS}|{RS}|&|{AO})
+RAW_ST (`([^`]|{NEWLINE})*`)
+INR_ST (\"({UNI_VAL}|{BYT_VAL})*\")
+COMMNT (\/\*((\*[^\/])|{NEWLINE}|[^*])*\*\/)
 %%
 [ \t\n] ;
 {LETTER}({LETTER}|{UNIDIGT})+ { yylval.sval = strdup(yytext); return IDENT; }
@@ -41,5 +51,7 @@ MUL_OP (\*|\/|%|{LS}|{RS}|&|{AO})
 \+|-|\^|\*|&                  { yylval.sval = strdup(yytext); return DUAL_OP; }
 \+|-|!|\^|\*|&|{LA}           { yylval.sval = strdup(yytext); return UN_OP; }
 {OR}|{AND}|{REL_OP}|{ADD_OP}|{MUL_OP} { yylval.sval = strdup(yytext); return BIN_OP; }
-.                                     { yylval.sval = strdup(yytext); return LITERAL; }
+{RAW_ST}                              { yylval.sval = strdup(yytext); return RAW_ST; }
+{INR_ST}                              { yylval.sval = strdup(yytext); return INR_ST; }
+{COMMNT}                              { ; }
 %%
