@@ -3,6 +3,7 @@ FLAGS=-g
 CPP=./cpp
 
 all:
+	make clean
 	mkdir -p $(BUILD)
 	make gust
 
@@ -13,11 +14,11 @@ $(BUILD)/gust.yy.c: $(CPP)/lexer.l
 	flex -o $(BUILD)/gust.yy.c $(CPP)/lexer.l
 
 $(BUILD)/gust.tab.c $(BUILD)/gust.tab.h: $(CPP)/parser.y
-	bison -o $(BUILD)/gust.tab.c -d $(CPP)/parser.y
+	bison -v -o $(BUILD)/gust.tab.c --report=all -d $(CPP)/parser.y
 
 $(BUILD)/main.o: $(CPP)/main.cpp
 	g++ -c $(FLAGS) $(CPP)/main.cpp -o $(BUILD)/main.o
 
 clean:
 	rm -rf $(BUILD)
-	rm gust
+	rm -f gust
