@@ -508,19 +508,19 @@ TypeSpec:
 
 VarDecl:
     VAR '(' VarSpecList ')' { $$ = &(init() << $3 >> "VarDecl"); }
-    | VAR VarSpec  { $$ = &(init() << $2 >> "VarDecl"); }
+    | VAR VarSpec           { $$ = &(init() << $2 >> "VarDecl"); }
     ;
 
 VarSpec:
-    IdentifierList Type  { $$ = &(init() << $1 << $2 >> "VarSpec"); }
-    | IdentifierList Type ':' ExpressionList  { $$ = &(init() << $1 << $2 << $4 >> "VarSpec"); }
-    | IdentifierList ':' ExpressionList  { $$ = &(init() << $1 << $3 >> "VarSpec"); }
+    IdentifierList Type                      { $$ = &(init() << $1 << $2 >> "VarSpec"); }
+    | IdentifierList Type ':' ExpressionList { $$ = &(init() << $1 << $2 << $4 >> "VarSpec"); }
+    | IdentifierList ':' ExpressionList      { $$ = &(init() << $1 << $3 >> "VarSpec"); }
     ;
 
 VarSpecList:
-    /* empty */  { $$ = &(init() >> "VarSpecList"); }
-    | VarSpecList VarSpec ';'  { $$ = &(init() << $1 << $2 >> "VarSpecList"); }
-    | VarSpec ';'  { $$ = &(init() << $1 >> "VarSpecList"); }
+    /* empty */               { $$ = &(init() >> "VarSpecList"); }
+    | VarSpecList VarSpec ';' { $$ = &(init() << $1 << $2 >> "VarSpecList"); }
+    | VarSpec ';'             { $$ = &(init() << $1 >> "VarSpecList"); }
     ;
 
 
@@ -529,35 +529,35 @@ TypeAssertion:
     ;
 
 Arguments:
-    '(' ')'  { $$ = &(init() >> "Arguments"); }
-    | '(' ExpressionList ')'  { $$ = &(init() << $2 >> "Arguments"); }
-    | '(' ExpressionList DOTS ')'  { $$ = &(init() << $2 << $3 >> "Arguments"); }
+    '(' ')'                       { $$ = &(init() >> "Arguments"); }
+    | '(' ExpressionList ')'      { $$ = &(init() << $2 >> "Arguments"); }
+    | '(' ExpressionList DOTS ')' { $$ = &(init() << $2 << $3 >> "Arguments"); }
     ;
 
 IdentifierList:
-    IDENT  { $$ = &(init() << $1 >> "IdentifierList"); }
-    | IdentifierList ',' IDENT  { $$ = &(init() << $1 >> "IdentifierList"); }
+    IDENT                         { $$ = &(init() << $1 >> "IdentifierList"); }
+    | IdentifierList ',' IDENT    { $$ = &(init() << $1 >> "IdentifierList"); }
     ;
 
 ExpressionList:
-    Expression { $$ = &(init() << $1 >> "ExpressionList"); }
+    Expression                      { $$ = &(init() << $1 >> "ExpressionList"); }
     | ExpressionList ',' Expression { $$ = &(init() << $1 << $3 >> "ExpressionList"); }
     ;
 
 Conversion:
-    Type '(' Expression ')' { $$ = &(init() << $1 << $3 >> "Conversion"); }
+    Type '(' Expression ')'       { $$ = &(init() << $1 << $3 >> "Conversion"); }
     | Type '(' Expression ',' ')' { $$ = &(init() << $1 << $3 >> "Conversion"); }
     ;
 
 Type:
-    TypeName  { $$ = &(init() << $1 >> "Type"); }
-    | TypeLit  { $$ = &(init() << $1 >> "Type"); }
-    | '(' Type ')'  { $$ = &(init() << $2 >> "Type"); }
+    TypeName       { $$ = &(init() << $1 >> "Type"); }
+    | TypeLit      { $$ = &(init() << $1 >> "Type"); }
+    | '(' Type ')' { $$ = &(init() << $2 >> "Type"); }
     ;
 
 TypeName:
-    IDENT  { $$ = &(init() << $1 >> "TypeName"); }
-    | QualifiedIdent  { $$ = &(init() << $1 >> "TypeName"); }
+    IDENT            { $$ = &(init() << $1 >> "TypeName"); }
+    | QualifiedIdent { $$ = &(init() << $1 >> "TypeName"); }
     ;
 
 TypeLit:
@@ -584,10 +584,10 @@ ElementType:
     ;
 
 Operand:
-    Literal { $$ = &(init() << $1 >> "Operand"); }
-    | OperandName { $$ = &(init() << $1 >> "Operand"); }
-    | MethodExpr  { $$ = &(init() << $1 >> "Operand"); }
-    | '(' Expression ')'  { $$ = &(init() << $2 >> "Operand"); }
+    Literal              { $$ = &(init() << $1 >> "Operand"); }
+    | OperandName        { $$ = &(init() << $1 >> "Operand"); }
+    | MethodExpr         { $$ = &(init() << $1 >> "Operand"); }
+    | '(' Expression ')' { $$ = &(init() << $2 >> "Operand"); }
     ;
 
 Literal:
@@ -597,15 +597,15 @@ Literal:
     ;
 
 BasicLit:
-    INT { $$ = &(init() << $1 >> "BasicLit"); }
-    | FLOAT { $$ = &(init() << $1 >> "BasicLit"); }
+    INT         { $$ = &(init() << $1 >> "BasicLit"); }
+    | FLOAT     { $$ = &(init() << $1 >> "BasicLit"); }
 /*  | IMAGINARY
     | RUNE */
-    | String { $$ = &(init() << $1 >> "BasicLit"); }
+    | String    { $$ = &(init() << $1 >> "BasicLit"); }
     ;
 
 OperandName:
-    IDENT { $$ = &(init() << $1 >> "OperandName"); }
+    IDENT            { $$ = &(init() << $1 >> "OperandName"); }
     | QualifiedIdent { $$ = &(init() << $1 >> "OperandName"); }
     ;
 
@@ -618,32 +618,32 @@ MethodExpr:
     ;
 
 RecieverType:
-    TypeName  { $$ = &(init() << $1 >> "RecieverType"); }
-    | '(' '*' TypeName ')'  { $$ = &(init() << "*" << $3 >> "RecieverType"); }
-    | '(' RecieverType ')'  { $$ = &(init() << $2 >> "RecieverType"); }
+    TypeName               { $$ = &(init() << $1 >> "RecieverType"); }
+    | '(' '*' TypeName ')' { $$ = &(init() << "*" << $3 >> "RecieverType"); }
+    | '(' RecieverType ')' { $$ = &(init() << $2 >> "RecieverType"); }
     ;
 
 MethodName:
-    IDENT { $$ = &(init() << $1 >> "MethodName"); }
+    IDENT          { $$ = &(init() << $1 >> "MethodName"); }
     ;
 
 InterfaceTypeName:
-    TypeName { $$ = &(init() << $1 >> "InterfaceTypeName"); }
+    TypeName       { $$ = &(init() << $1 >> "InterfaceTypeName"); }
     ;
 
 UnaryOp:
-    UN_OP { $$ = &(init() << $1 >> "UnaryOp"); }
-    | DUAL_OP { $$ = &(init() << $1 >> "UnaryOp"); }
+    UN_OP          { $$ = &(init() << $1 >> "UnaryOp"); }
+    | DUAL_OP      { $$ = &(init() << $1 >> "UnaryOp"); }
     ;
 
 BinaryOp:
-    BIN_OP { $$ = &(init() << $1 >> "BinaryOp"); }
-    | DUAL_OP { $$ = &(init() << $1 >> "BinaryOp"); }
+    BIN_OP         { $$ = &(init() << $1 >> "BinaryOp"); }
+    | DUAL_OP      { $$ = &(init() << $1 >> "BinaryOp"); }
     ;
 
 String:
-    RAW_ST { $$ = &(init() << $1 >> "String"); }
-    | INR_ST { $$ = &(init() << $1 >> "String"); }
+    RAW_ST         { $$ = &(init() << $1 >> "String"); }
+    | INR_ST       { $$ = &(init() << $1 >> "String"); }
     ;
 
 PackageClause:
@@ -674,6 +674,7 @@ ImportSpecList:
 ImportSpec:
     PackageName ImportPath { $$ = &(init() << $1 << $2 >> "ImportSpec"); }
     | '.' ImportPath { $$ = &(init() << $2 >> "ImportSpec"); }
+    | ImportPath { $$ = &(init() << $1 >> "ImportSpec"); }
     ;
 
 ImportPath:

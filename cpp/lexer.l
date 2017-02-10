@@ -109,6 +109,6 @@ VAR    (var)
 {RAW_ST}                      { yylval.sval = strdup(yytext); return RAW_ST; }
 {INR_ST}                      { yylval.sval = strdup(yytext); return INR_ST; }
 {COMMNT}                      { ; }
+(\/\/.*)                        { ; }
 .                                     { return yytext[0]; }
-<<EOF>>     return 1272535465;
 %%

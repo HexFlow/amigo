@@ -1,8 +1,23 @@
+// _Channels_ are the pipes that connect concurrent
+// goroutines. You can send values into channels from one
+// goroutine and receive those values into another
+// goroutine.
+
 package main;
 
+import "fmt";
+
 func main() {
-    hello = 43 / 76 / sdds + 43 - ghjg;
-    l := func() {
-        testThis();
-    };
+    a = 5 + 4/5;
+    a = 5 + 4/5;
+    a = 5 + 4/5;
+    a = 5 + 4/5;
+    a = 5 + 4/5;
+    a = 5 + 4/5;
+    a = 5 + 4/5;
+    a = 5 + 4/5;
+    a = 5 + 4/5;
+    a = 5 + 4/5;
+    a = 5 + 4/5;
+    a = 5 + 4/5;
 };

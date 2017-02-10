@@ -7,15 +7,11 @@ extern "C" int yyparse();
 extern "C" FILE *yyin;
 extern "C" void exit(int);
 extern "C" int yydebug;
-extern "C" int yy_flex_debug;
-extern "C" char *yytext;
-#define END 1272535465
 
 void yyerror(const char *s);
 
 int main(int argc, char **argv) {
     yydebug = 1;
-    yy_flex_debug = 1;
     // open a file handle to a particular file:
     FILE *myfile = fopen(argv[1], "r");
     // make sure it's valid:
@@ -27,10 +23,9 @@ int main(int argc, char **argv) {
     yyin = myfile;
 
     // parse through the input until there is no more:
-    int k;
     do {
         yyparse();
-    } while (k != END);
+    } while (!feof(yyin));
 }
 
 void yyerror(const char *s) {

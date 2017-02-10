@@ -1,3 +1,5 @@
+.PHONY: try
+
 BUILD=./target/cpp
 FLAGS=-g
 CPP=./cpp
@@ -22,3 +24,8 @@ $(BUILD)/main.o: $(CPP)/main.cpp
 clean:
 	rm -rf $(BUILD)
 	rm -f gust
+
+try:
+	./gust test/snazzle > dotfile
+	dot -Tps dotfile -o dot.ps
+	zathura dot.ps
