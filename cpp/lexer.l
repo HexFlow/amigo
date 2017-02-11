@@ -66,49 +66,80 @@ FOR    (for)
 RANGE  (range)
 DEFER  (defer)
 VAR    (var)
+
+%x SEMIMODE
+
 %%
-[ \t\n] ;
-{LEFT}                        { yylval.sval = strdup(yytext); return LEFT; }
-{INC}                         { yylval.sval = strdup(yytext); return INC; }
-{DEC}                         { yylval.sval = strdup(yytext); return DEC; }
-{DECL}                        { yylval.sval = strdup(yytext); return DECL; }
-{CONST}                       { yylval.sval = strdup(yytext); return CONST; }
-{DOTS}                        { yylval.sval = strdup(yytext); return DOTS; }
-{FUNC}                        { yylval.sval = strdup(yytext); return FUNC; }
-{GO}                          { yylval.sval = strdup(yytext); return GO; }
-{RETURN}                      { yylval.sval = strdup(yytext); return RETURN; }
-{BREAK}                       { yylval.sval = strdup(yytext); return BREAK; }
-{CONT}                        { yylval.sval = strdup(yytext); return CONT; }
-{GOTO}                        { yylval.sval = strdup(yytext); return GOTO; }
-{FALL}                        { yylval.sval = strdup(yytext); return FALL; }
-{IF}                          { yylval.sval = strdup(yytext); return IF; }
-{ELSE}                        { yylval.sval = strdup(yytext); return ELSE; }
-{SWITCH}                      { yylval.sval = strdup(yytext); return SWITCH; }
-{PACKGE}                      { yylval.sval = strdup(yytext); return PACKGE; }
-{IMPORT}                      { yylval.sval = strdup(yytext); return IMPORT; }
-{CASE}                        { yylval.sval = strdup(yytext); return CASE; }
-{DEFLT}                       { yylval.sval = strdup(yytext); return DEFLT; }
-{SELECT}                      { yylval.sval = strdup(yytext); return SELECT; }
-{TYPE}                        { yylval.sval = strdup(yytext); return TYPE; }
-{ISOF}                        { yylval.sval = strdup(yytext); return ISOF; }
-{FOR}                         { yylval.sval = strdup(yytext); return FOR; }
-{RANGE}                       { yylval.sval = strdup(yytext); return RANGE; }
-{DEFER}                       { yylval.sval = strdup(yytext); return DEFER; }
-{VAR}                         { yylval.sval = strdup(yytext); return VAR; }
-{LETTER}({LETTER}|{UNIDIGT})* { yylval.sval = strdup(yytext); return IDENT; }
-0{OCTDIGT}*                   { yylval.sval = strdup(yytext); return INT; }
-0(x|X){HEXDIGT}+              { yylval.sval = strdup(yytext); return INT; }
-[1-9]{DECDIGT}*               { yylval.sval = strdup(yytext); return INT; }
-{DECIMAL}\.{DECIMAL}?{EXP}?   { yylval.sval = strdup(yytext); return FLOAT; }
-{DECIMAL}{EXP}                { yylval.sval = strdup(yytext); return FLOAT; }
-\.{DECIMAL}{EXP}?             { yylval.sval = strdup(yytext); return FLOAT; }
-\+|-|\^|\*|&                  { yylval.sval = strdup(yytext); return DUAL_OP; }
-\+|-|!|\^|\*|&|{LEFT}         { yylval.sval = strdup(yytext); return UN_OP; }
-{OR}|{AND}|{REL_OP}|{ADD_OP}|{MUL_OP} { yylval.sval = strdup(yytext); return BIN_OP; }
-{ASN_OP}                      { yylval.sval = strdup(yytext); return ASN_OP; }
-{RAW_ST}                      { yylval.sval = strdup(yytext); return RAW_ST; }
-{INR_ST}                      { yylval.sval = strdup(yytext); return INR_ST; }
-{COMMNT}                      { ; }
-(\/\/.*)                        { ; }
-.                                     { return yytext[0]; }
+<SEMIMODE>{NEWLINE}                    { BEGIN(INITIAL); return ';'; }
+[}]/[\n]                               { BEGIN(SEMIMODE); return '}'; }
+[)]/[\n]                               { BEGIN(SEMIMODE); return ')'; }
+
+{INC}/[\n]                             { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return INC; }
+{DEC}/[\n]                             { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return DEC; }
+{INC}                                  { yylval.sval = strdup(yytext); return INC; }
+{DEC}                                  { yylval.sval = strdup(yytext); return DEC; }
+
+{LEFT}                                 { yylval.sval = strdup(yytext); return LEFT; }
+{DECL}                                 { yylval.sval = strdup(yytext); return DECL; }
+{CONST}                                { yylval.sval = strdup(yytext); return CONST; }
+{DOTS}                                 { yylval.sval = strdup(yytext); return DOTS; }
+{FUNC}                                 { yylval.sval = strdup(yytext); return FUNC; }
+{GO}                                   { yylval.sval = strdup(yytext); return GO; }
+
+{RETURN}/[\n]                          { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return RETURN; }
+{BREAK}/[\n]                           { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return BREAK; }
+{CONT}/[\n]                            { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return CONT; }
+{FALL}/[\n]                            { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return FALL; }
+
+{RETURN}                               { yylval.sval = strdup(yytext); return RETURN; }
+{BREAK}                                { yylval.sval = strdup(yytext); return BREAK; }
+{CONT}                                 { yylval.sval = strdup(yytext); return CONT; }
+{FALL}                                 { yylval.sval = strdup(yytext); return FALL; }
+
+{GOTO}                                 { yylval.sval = strdup(yytext); return GOTO; }
+{IF}                                   { yylval.sval = strdup(yytext); return IF; }
+{ELSE}                                 { yylval.sval = strdup(yytext); return ELSE; }
+{SWITCH}                               { yylval.sval = strdup(yytext); return SWITCH; }
+{PACKGE}                               { yylval.sval = strdup(yytext); return PACKGE; }
+{IMPORT}                               { yylval.sval = strdup(yytext); return IMPORT; }
+{CASE}                                 { yylval.sval = strdup(yytext); return CASE; }
+{DEFLT}                                { yylval.sval = strdup(yytext); return DEFLT; }
+{SELECT}                               { yylval.sval = strdup(yytext); return SELECT; }
+{TYPE}                                 { yylval.sval = strdup(yytext); return TYPE; }
+{ISOF}                                 { yylval.sval = strdup(yytext); return ISOF; }
+{FOR}                                  { yylval.sval = strdup(yytext); return FOR; }
+{RANGE}                                { yylval.sval = strdup(yytext); return RANGE; }
+{DEFER}                                { yylval.sval = strdup(yytext); return DEFER; }
+{VAR}                                  { yylval.sval = strdup(yytext); return VAR; }
+
+{LETTER}({LETTER}|{UNIDIGT})*/[\n]     { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return IDENT; }
+0{OCTDIGT}*/[\n]                       { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return INT; }
+0(x|X){HEXDIGT}+/[\n]                  { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return INT; }
+[1-9]{DECDIGT}*/[\n]                   { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return INT; }
+{DECIMAL}\.{DECIMAL}?{EXP}?/[\n]       { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return FLOAT; }
+{DECIMAL}{EXP}/[\n]                    { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return FLOAT; }
+\.{DECIMAL}{EXP}?/[\n]                 { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return FLOAT; }
+
+{LETTER}({LETTER}|{UNIDIGT})*          { yylval.sval = strdup(yytext); return IDENT; }
+0{OCTDIGT}*                            { yylval.sval = strdup(yytext); return INT; }
+0(x|X){HEXDIGT}+                       { yylval.sval = strdup(yytext); return INT; }
+[1-9]{DECDIGT}*                        { yylval.sval = strdup(yytext); return INT; }
+{DECIMAL}\.{DECIMAL}?{EXP}?            { yylval.sval = strdup(yytext); return FLOAT; }
+{DECIMAL}{EXP}                         { yylval.sval = strdup(yytext); return FLOAT; }
+\.{DECIMAL}{EXP}?                      { yylval.sval = strdup(yytext); return FLOAT; }
+
+\+|-|\^|\*|&                           { yylval.sval = strdup(yytext); return DUAL_OP; }
+\+|-|!|\^|\*|&|{LEFT}                  { yylval.sval = strdup(yytext); return UN_OP; }
+{OR}|{AND}|{REL_OP}|{ADD_OP}|{MUL_OP}  { yylval.sval = strdup(yytext); return BIN_OP; }
+{ASN_OP}                               { yylval.sval = strdup(yytext); return ASN_OP; }
+
+{RAW_ST}/[\n]                          { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return RAW_ST; }
+{INR_ST}/[\n]                          { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return INR_ST; }
+{RAW_ST}                               { yylval.sval = strdup(yytext); return RAW_ST; }
+{INR_ST}                               { yylval.sval = strdup(yytext); return INR_ST; }
+
+{COMMNT}                               { ; }
+(\/\/.*)                               { ; }
+[ \t\n]                                { ; }
+.                                      { return yytext[0]; }
 %%
