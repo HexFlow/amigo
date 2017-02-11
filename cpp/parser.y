@@ -422,13 +422,7 @@ ForStmt:
     ;
 
 ForClause:
-    ';' ';'
-    | ';' ';' PostStmt  { $$ = &(init() << $3 >> "ForClause"); }
-    | ';' Condition ';'  { $$ = &(init() << $2 >> "ForClause"); }
-    | ';' Condition ';' PostStmt  { $$ = &(init() << $2 << $4 >> "ForClause"); }
-    | InitStmt ';'  ';'  { $$ = &(init() << $1 >> "ForClause"); }
-    | InitStmt ';'  ';' PostStmt  { $$ = &(init() << $1 << $4 >> "ForClause"); }
-    | InitStmt ';' Condition ';'  { $$ = &(init() << $1 << $3 >> "ForClause"); }
+    InitStmt ';'  ';' PostStmt  { $$ = &(init() << $1 << $4 >> "ForClause"); }
     | InitStmt ';' Condition ';' PostStmt  { $$ = &(init() << $1 << $3  << $5 >> "ForClause"); }
     ;
 
@@ -466,12 +460,12 @@ UnaryExpr:
 
 PrimaryExpr:
     Operand { $$ = &(init() << $1 >> "PrimaryExpr"); }
-    | Conversion { $$ = &(init() << $1 >> "PrimaryExpr"); }
     | PrimaryExpr Selector { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr Index { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr Slice  { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr TypeAssertion { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr Arguments { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
+    /*| Conversion { $$ = &(init() << $1 >> "PrimaryExpr"); }*/
     ;
 
 Selector:
@@ -544,10 +538,10 @@ ExpressionList:
     | ExpressionList ',' Expression { $$ = &(init() << $1 << $3 >> "ExpressionList"); }
     ;
 
-Conversion:
-    Type '(' Expression ')'       { $$ = &(init() << $1 << $3 >> "Conversion"); }
-    | Type '(' Expression ',' ')' { $$ = &(init() << $1 << $3 >> "Conversion"); }
-    ;
+/*Conversion:*/
+    /*Type '(' Expression ')'       { $$ = &(init() << $1 << $3 >> "Conversion"); }*/
+    /*| Type '(' Expression ',' ')' { $$ = &(init() << $1 << $3 >> "Conversion"); }*/
+    /*;*/
 
 Type:
     TypeName       { $$ = &(init() << $1 >> "Type"); }
@@ -591,7 +585,7 @@ Operand:
     ;
 
 Literal:
-    | BasicLit { $$ = &(init() << $1 >> "Literal"); }
+    BasicLit { $$ = &(init() << $1 >> "Literal"); }
 /*  | CompositeLit
     | FunctionLit */
     ;
@@ -627,9 +621,9 @@ MethodName:
     IDENT          { $$ = &(init() << $1 >> "MethodName"); }
     ;
 
-InterfaceTypeName:
-    TypeName       { $$ = &(init() << $1 >> "InterfaceTypeName"); }
-    ;
+/*InterfaceTypeName:*/
+    /*TypeName       { $$ = &(init() << $1 >> "InterfaceTypeName"); }*/
+    /*;*/
 
 UnaryOp:
     UN_OP          { $$ = &(init() << $1 >> "UnaryOp"); }

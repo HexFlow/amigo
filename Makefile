@@ -1,7 +1,7 @@
 .PHONY: try
 
 BUILD=./target/cpp
-FLAGS=-g -std=c++14
+FLAGS=-g -std=c++14 -Wno-write-strings
 CPP=./cpp
 
 all:
