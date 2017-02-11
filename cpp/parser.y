@@ -118,11 +118,12 @@ void printTop(node* n) {
 %type <nt> PostStmt Condition DeferStmt Label UnaryExpr PrimaryExpr
 %type <nt> Selector Index Slice TypeDecl TypeSpecList TypeSpec VarDecl
 %type <nt> VarSpec VarSpecList TypeAssertion Arguments IdentifierList
-%type <nt> ExpressionList Conversion Type TypeName TypeLit ArrayType
+%type <nt> ExpressionList Conversion Type TypeLit ArrayType
 %type <nt> ArrayLength ElementType Operand Literal BasicLit OperandName
-%type <nt> QualifiedIdent PackageName MethodExpr RecieverType ImportSpec
-%type <nt> MethodName InterfaceTypeName UnaryOp BinaryOp String ImportPath
+%type <nt> PackageName MethodExpr RecieverType ImportSpec
+%type <nt> MethodName  UnaryOp BinaryOp String ImportPath
 %type <nt> PackageClause ImportDeclList ImportDecl ImportSpecList TopLevelDeclList
+/*%type <nt> TypeName InterfaceTypeName*/
 %%
 SourceFile:
     PackageClause ';' ImportDeclList TopLevelDeclList { $$ = &(init() << $1 << $3 << $4 >> "SourceFile"); printTop($$); }
@@ -544,14 +545,9 @@ ExpressionList:
     /*;*/
 
 Type:
-    TypeName       { $$ = &(init() << $1 >> "Type"); }
+    OperandName       { $$ = &(init() << $1 >> "Type"); }
     | TypeLit      { $$ = &(init() << $1 >> "Type"); }
     | '(' Type ')' { $$ = &(init() << $2 >> "Type"); }
-    ;
-
-TypeName:
-    IDENT            { $$ = &(init() << $1 >> "TypeName"); }
-    | QualifiedIdent { $$ = &(init() << $1 >> "TypeName"); }
     ;
 
 TypeLit:
@@ -600,11 +596,7 @@ BasicLit:
 
 OperandName:
     IDENT            { $$ = &(init() << $1 >> "OperandName"); }
-    | QualifiedIdent { $$ = &(init() << $1 >> "OperandName"); }
-    ;
-
-QualifiedIdent:
-    PackageName '.' IDENT { $$ = &(init() << $1 << $3 >> "QualifiedIdent"); }
+    | OperandName '.' IDENT { $$ = &(init() << $1 >> "OperandName"); }
     ;
 
 MethodExpr:
@@ -612,8 +604,8 @@ MethodExpr:
     ;
 
 RecieverType:
-    TypeName               { $$ = &(init() << $1 >> "RecieverType"); }
-    | '(' '*' TypeName ')' { $$ = &(init() << "*" << $3 >> "RecieverType"); }
+    OperandName               { $$ = &(init() << $1 >> "RecieverType"); }
+    | '(' '*' OperandName ')' { $$ = &(init() << "*" << $3 >> "RecieverType"); }
     | '(' RecieverType ')' { $$ = &(init() << $2 >> "RecieverType"); }
     ;
 
