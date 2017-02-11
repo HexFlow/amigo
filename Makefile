@@ -1,7 +1,7 @@
 .PHONY: try
 
 BUILD=./target/cpp
-FLAGS=-g
+FLAGS=-g -std=c++14
 CPP=./cpp
 
 all:
