@@ -1,94 +1,65 @@
-package main
+package generator
 
 import (
-	"flag"
-	"fmt"
-	"log"
-	"os"
-	"sort"
-	"strconv"
-	"strings"
+	"testing"
 
-	"github.com/schachmat/ingo"
-	_ "github.com/schachmat/wego/backends"
-	_ "github.com/schachmat/wego/frontends"
-	"github.com/schachmat/wego/iface"
+	"golang.org/x/tools/go/loader"
 )
 
-func pluginLists() {
-	bEnds := make([]string, 0, len(iface.AllBackends))
-	for name := range iface.AllBackends {
-		bEnds = append(bEnds, name)
-	}
-	sort.Strings(bEnds)
+func TestImport(t *testing.T) {
+	cfg := loader.Config{}
+	cfg.Import("fmt")
+	cfg.Import("log")
 
-	fEnds := make([]string, 0, len(iface.AllFrontends))
-	for name := range iface.AllFrontends {
-		fEnds = append(fEnds, name)
+	prog, err := cfg.Load()
+	if err != nil {
+		t.Fatal(err)
 	}
-	sort.Strings(fEnds)
 
-	fmt.Fprintln(os.Stderr, "Available backends:", strings.Join(bEnds, ", "))
-	fmt.Fprintln(os.Stderr, "Available frontends:", strings.Join(fEnds, ", "))
+	g := New(prog)
+	path, selector := g.Import("fmt")
+	if path != "fmt" {
+		t.Errorf("expected: \"fmt\", got: %s", path)
+	}
+
+	if selector != "fmt" {
+		t.Errorf("expected: \"fmt\", got: %s", selector)
+	}
+
+	g = New(prog)
+	logPath, err := g.ImportWithAlias("log", "fmt")
+	if err != nil {
+		t.Errorf("expected nil, got: %v", err)
+	}
+	if logPath != "log" {
+		t.Errorf("expected: \"log\", got: %s", logPath)
+	}
+
+	fmtPath, fmtSelector := g.Import("fmt")
+	if path != "fmt" {
+		t.Errorf("expected: \"fmt\", got: %s", fmtPath)
+	}
+
+	if fmtSelector != "fmt2" {
+		t.Errorf("expected: \"fmt2\", got: %s", fmtSelector)
+	}
 }
 
-func main() {
-	// initialize backends and frontends (flags and default config)
-	for _, be := range iface.AllBackends {
-		be.Setup()
-	}
-	for _, fe := range iface.AllFrontends {
-		fe.Setup()
-	}
+func TestImportWithAlias(t *testing.T) {
+	cfg := loader.Config{}
+	cfg.Import("fmt")
 
-	// initialize global flags and default config
-	location := flag.String("location", "40.748,-73.985", "`LOCATION` to be queried")
-	flag.StringVar(location, "l", "40.748,-73.985", "`LOCATION` to be queried (shorthand)")
-	numdays := flag.Int("days", 3, "`NUMBER` of days of weather forecast to be displayed")
-	flag.IntVar(numdays, "d", 3, "`NUMBER` of days of weather forecast to be displayed (shorthand)")
-	unitSystem := flag.String("units", "metric", "`UNITSYSTEM` to use for output.\n    \tChoices are: metric, imperial, si")
-	flag.StringVar(unitSystem, "u", "metric", "`UNITSYSTEM` to use for output. (shorthand)\n    \tChoices are: metric, imperial, si")
-	selectedBackend := flag.String("backend", "forecast.io", "`BACKEND` to be used")
-	flag.StringVar(selectedBackend, "b", "forecast.io", "`BACKEND` to be used (shorthand)")
-	selectedFrontend := flag.String("frontend", "ascii-art-table", "`FRONTEND` to be used")
-	flag.StringVar(selectedFrontend, "f", "ascii-art-table", "`FRONTEND` to be used (shorthand)")
-
-	// print out a list of all backends and frontends in the usage
-	tmpUsage := flag.Usage
-
-	// read/write config and parse flags
-	if err := ingo.Parse("wego"); err != nil {
-		log.Fatalf("Error parsing config: %v", err)
+	prog, err := cfg.Load()
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	// non-flag shortcut arguments overwrite possible flag arguments
-	for _, arg := range flag.Args() {
-		if v, err := strconv.Atoi(arg); err == nil && len(arg) == 1 {
-			*numdays = v
-		} else {
-			*location = arg
-		}
+	g := New(prog)
+	path, err := g.ImportWithAlias("fmt", "f")
+	if err != nil {
+		t.Errorf("expected nil, got: %s", err)
 	}
-
-	// get selected backend and fetch the weather data from it
-	be, ok := iface.AllBackends[*selectedBackend]
-	if !ok {
-		log.Fatalf("Could not find selected backend \"%s\"", *selectedBackend)
+	if path != "fmt" {
+		t.Errorf("expected: \"fmt\", got: %s", path)
 	}
-	r := be.Fetch(*location, *numdays)
-
-	// set unit system
-	unit := iface.UnitsMetric
-	if *unitSystem == "imperial" {
-		unit = iface.UnitsImperial
-	} else if *unitSystem == "si" {
-		unit = iface.UnitsSi
-	}
-
-	// get selected frontend and render the weather data with it
-	fe, ok := iface.AllFrontends[*selectedFrontend]
-	if !ok {
-		log.Fatalf("Could not find selected frontend \"%s\"", *selectedFrontend)
-	}
-	fe.Render(r, unit)
 }

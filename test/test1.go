@@ -1,21 +1,37 @@
 package main
 
-import "fmt"
-
 func main() {
-	var a [5]int
-	fmt.Println("emp:", a)
-	a[4] = 100
-	fmt.Println("set:", a)
-	fmt.Println("get:", a[4])
-	fmt.Println("len:", len(a))
-	b := [5]int{1, 2, 3, 4, 5}
-	fmt.Println("dcl:", b)
-	var twoD [2][3]int
+	b := [5]int{
+		1,
+		2,
+		3,
+		4,
+		5,
+	}
 	for i := 0; i < 2; i++ {
-		for j := 0; j < 3; j++ {
-			twoD[i][j] = i + j
+		k = 0
+	}
+
+	if k := 0; k != 1 {
+		d = 0
+	}
+
+	for _, arg := range flag.Args() {
+		if v, err := strconv.Atoi(arg); err == nil && len(arg) == 1 {
+			numdays = v
+		} else {
+			location = arg
 		}
 	}
-	fmt.Println("2d: ", twoD)
+
+	switch os := runtime.GOOS; os {
+	case "darwin":
+		fmt.Println("OS X.")
+	case "linux":
+		fmt.Println("Linux.")
+	default:
+		// freebsd, openbsd,
+		// plan9, windows...
+		fmt.Printf("%s.", os)
+	}
 }
