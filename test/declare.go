@@ -3,7 +3,8 @@ package controllers
 import (
 	"log"
 
-	"github.com/pclubiitk"
+	"github.com/pclubiitk/puppy-love/db"
+	"github.com/pclubiitk/puppy-love/models"
 
 	"github.com/kataras/iris"
 
@@ -12,16 +13,21 @@ import (
 
 // @AUTH @Admin Create the entries in the declare table
 // ----------------------------------------------------
-func Serve(...int) {
+func Serve(ctx *iris.Context) {
 	id, err := SessionId(ctx)
 	if err != nil || id != "admin" {
 		ctx.EmitError(iris.StatusForbidden)
 		return
 	}
 
+	type typeIds struct {
+		Id string `json:"_id" bson:"_id"`
+	}
+
 	var people []typeIds
 
-	if err := m.Db.GetCollection("user").Find().All(&people); err != nil {
+	if err := m.Db.GetCollection("user").Find(bson.M{"dirty": false}).
+		All(&people); err != nil {
 		ctx.EmitError(iris.StatusInternalServerError)
 		return
 	}
@@ -39,4 +45,30 @@ func Serve(...int) {
 		return
 	}
 	ctx.JSON(iris.StatusOK, r)
+}
+
+func Serve(ctx *iris.Context) {
+	id, err := SessionId(ctx)
+	if err != nil {
+		ctx.EmitError(iris.StatusForbidden)
+		return
+	}
+
+	// Verify valid requested changes
+	info := new(models.Declare)
+	if err := ctx.ReadJSON(info); err != nil {
+		ctx.JSON(iris.StatusBadRequest, "Invalid JSON")
+		log.Println(err)
+		return
+	}
+
+	tmp := models.Declare{}
+
+	if _, err := m.Db.GetById("declare", id).
+		Apply(models.UpsertDeclareTable(info), &tmp); err != nil {
+
+		ctx.EmitError(iris.StatusInternalServerError)
+		log.Println(err)
+		return
+	}
 }
