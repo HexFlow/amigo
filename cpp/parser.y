@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include "../../cpp/node.h"
+#include "node.h"
 #define YYDEBUG 1
 using namespace std;
 

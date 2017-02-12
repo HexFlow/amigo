@@ -1,23 +1,24 @@
 .PHONY: try
 
 BUILD=./target/cpp
+BIN=./bin
 DOTDIR=./target/dot
-FLAGS=-g -std=c++14 -Wno-write-strings
+FLAGS=-g -std=c++14 -Wno-write-strings -I./cpp
 CPP=./cpp
 
 all:
-	make clean
-	mkdir -p $(BUILD)
+	mkdir -p $(BUILD) $(BIN)
 	make lexer
 	make parser
 
 # Rule for lexer and parser binaries
-%: $(BUILD)/gust.yy.c $(BUILD)/gust.tab.c $(BUILD)/gust.tab.h $(BUILD)/%.o
-	g++ $(FLAGS) $(BUILD)/gust.tab.c $(BUILD)/gust.yy.c $(BUILD)/$@.o -lfl -o $@
+%: $(BUILD)/gust.yy.c $(BUILD)/gust.tab.c $(BUILD)/cli.o $(BUILD)/%.o
+	mkdir -p $(BIN)
+	g++ $(FLAGS) $^ -lfl -o bin/$@
 
-# Rule for lexer and parser .o files
+# Rule for creating .o files for files in /cpp
 $(BUILD)/%.o: $(CPP)/%.cpp
-	g++ -c $(FLAGS) $< -o $@
+	g++ -c $(FLAGS) $^ -o $@
 
 $(BUILD)/gust.yy.c: $(CPP)/lexer.l
 	flex -o $(BUILD)/gust.yy.c $(CPP)/lexer.l
@@ -26,14 +27,14 @@ $(BUILD)/gust.tab.c $(BUILD)/gust.tab.h: $(CPP)/parser.y
 	bison -v -o $(BUILD)/gust.tab.c --report=all -d $(CPP)/parser.y
 
 clean:
-	rm -rf $(BUILD) $(DOTDIR)
-	rm -f lexer parser dot*.ps 
+	rm -rf $(BUILD) $(DOTDIR) $(BIN)
+	rm -f dot*.ps
 
 # For running tests
 %: test/%.go
 	make parser
 	mkdir -p $(DOTDIR)
-	./parser test/$@.go > $(DOTDIR)/$@
+	./bin/parser test/$@.go -o $(DOTDIR)/$@
 	dot -Tps $(DOTDIR)/$@ -o dot-$@.ps
 
 # Run all tests
@@ -43,6 +44,6 @@ test:
 
 # Display test results instantly
 try:
-	./gust test/test2.go > dotfile
+	./bin/parser test/test2.go -o dotfile
 	dot -Tps dotfile -o dot.ps
 	zathura dot.ps
