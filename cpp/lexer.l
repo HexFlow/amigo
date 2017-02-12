@@ -49,6 +49,7 @@ FUNC   (func)
 GO     (go)
 MAP    (map)
 STRUCT (struct)
+MAKE   (make)
 RETURN (return)
 BREAK  (break)
 CONT   (continue)
@@ -93,6 +94,7 @@ ESEMI  (;)
 {GO}                                   { yylval.sval = strdup(yytext); return GO; }
 {MAP}                                  { yylval.sval = strdup(yytext); return MAP; }
 {STRUCT}                               { yylval.sval = strdup(yytext); return STRUCT; }
+{MAKE}                                 { yylval.sval = strdup(yytext); return MAKE; }
 
 {RETURN}/[\n]                          { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return RETURN; }
 {BREAK}/[\n]                           { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return BREAK; }

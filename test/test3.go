@@ -16,13 +16,13 @@ import (
 )
 
 func pluginLists() {
-	bEnds := make(string, 0, len(iface.AllBackends))
+	bEnds := make([]string, 0, len(iface.AllBackends))
 	for name := range iface.AllBackends {
 		bEnds = append(bEnds, name)
 	}
 	sort.Strings(bEnds)
 
-	fEnds := make(string, 0, len(iface.AllFrontends))
+	fEnds := make([]string, 0, len(iface.AllFrontends))
 	for name := range iface.AllFrontends {
 		fEnds = append(fEnds, name)
 	}
@@ -64,31 +64,31 @@ func main() {
 	// non-flag shortcut arguments overwrite possible flag arguments
 	for _, arg := range flag.Args() {
 		if v, err := strconv.Atoi(arg); err == nil && len(arg) == 1 {
-			numdays = v
+			*numdays = v
 		} else {
-			location = arg
+			*location = arg
 		}
 	}
 
 	// get selected backend and fetch the weather data from it
-	be, ok := iface.AllBackends[selectedBackend]
+	be, ok := iface.AllBackends[*selectedBackend]
 	if !ok {
-		log.Fatalf("Could not find selected backend \"%s\"", selectedBackend)
+		log.Fatalf("Could not find selected backend \"%s\"", *selectedBackend)
 	}
-	r := be.Fetch(location, numdays)
+	r := be.Fetch(*location, *numdays)
 
 	// set unit system
 	unit := iface.UnitsMetric
-	if unitSystem == "imperial" {
+	if *unitSystem == "imperial" {
 		unit = iface.UnitsImperial
-	} else if unitSystem == "si" {
+	} else if *unitSystem == "si" {
 		unit = iface.UnitsSi
 	}
 
 	// get selected frontend and render the weather data with it
-	fe, ok := iface.AllFrontends[selectedFrontend]
+	fe, ok := iface.AllFrontends[*selectedFrontend]
 	if !ok {
-		log.Fatalf("Could not find selected frontend \"%s\"", selectedFrontend)
+		log.Fatalf("Could not find selected frontend \"%s\"", *selectedFrontend)
 	}
 	fe.Render(r, unit)
 }

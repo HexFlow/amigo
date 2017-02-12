@@ -101,7 +101,7 @@ void printTop(node* n) {
 
 %token <sval> INT FLOAT IDENT BIN_OP DUAL_OP REL_OP MUL_OP ADD_OP UN_OP ESEMI
 %token <sval> RAW_ST INR_ST ASN_OP LEFT INC DEC DECL CONST DOTS FUNC MAP
-%token <sval> GO RETURN BREAK CONT GOTO FALL IF ELSE SWITCH CASE END STAR
+%token <sval> GO RETURN BREAK CONT GOTO FALL IF ELSE SWITCH CASE END STAR MAKE
 %token <sval> DEFLT SELECT TYPE ISOF FOR RANGE DEFER VAR IMPORT PACKGE STRUCT
 %type <nt> SourceFile Expression Block StatementList Statement SimpleStmt
 %type <nt> EmptyStmt ExpressionStmt SendStmt Channel IncDecStmt MapType
@@ -124,7 +124,7 @@ void printTop(node* n) {
 %type <nt> PackageName MethodExpr ReceiverType ImportSpec PointerType
 %type <nt> MethodName  UnaryOp BinaryOp String ImportPath SliceType KeyType
 %type <nt> PackageClause ImportDeclList ImportDecl ImportSpecList TopLevelDeclList
-%type <nt> FieldDeclList FieldDecl Tag AnonymousField BaseType ElementType
+%type <nt> FieldDeclList FieldDecl Tag AnonymousField BaseType ElementType MakeExpr
 /*%type <nt> TypeName InterfaceTypeName*/
 %%
 SourceFile:
@@ -292,6 +292,8 @@ LiteralValue:
 
 SliceType:
     '[' ']' ElementType  { $$ = &(init() << $3 >> "SliceType"); }
+    /* TODO: Fix this */
+    | '[' ']' OperandName  { $$ = &(init() << $3 >> "SliceType"); }
     ;
 
 ElementList:
@@ -509,12 +511,17 @@ UnaryExpr:
 
 PrimaryExpr:
     Operand { $$ = &(init() << $1 >> "PrimaryExpr"); }
+    | MakeExpr { $$ = &(init() << $1 >> "PrimaryExpr"); }
     | PrimaryExpr Selector { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr Index { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr Slice  { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr TypeAssertion { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr Arguments { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     /*| Conversion { $$ = &(init() << $1 >> "PrimaryExpr"); }*/
+    ;
+
+MakeExpr:
+    MAKE '(' LiteralType ',' ExpressionList ')' { $$ = &(init() << $3 << $5 >> "MakeExpr"); }
     ;
 
 Selector:
@@ -593,8 +600,8 @@ ExpressionList:
     /*;*/
 
 Type:
-    OperandName       { $$ = &(init() << $1 >> "Type"); }
-    | TypeLit      { $$ = &(init() << $1 >> "Type"); }
+    /*OperandName       { $$ = &(init() << $1 >> "Type"); }*/
+    TypeLit      { $$ = &(init() << $1 >> "Type"); }
     | '(' Type ')' { $$ = &(init() << $2 >> "Type"); }
     ;
 
@@ -628,7 +635,6 @@ FieldDecl:
     ;
 
 AnonymousField:
-    '*' OperandName { $$ = &(init() << $2 >> "AnonymousField"); }
     | OperandName { $$ = &(init() << $1 >> "AnonymousField"); }
     ;
 
@@ -686,6 +692,8 @@ BasicLit:
 
 OperandName:
     IDENT            { $$ = &(init() << $1 >> "OperandName"); }
+    | STAR OperandName { $$ = &(init() << $1 << $2 >> "OperandName"); }
+    /*| '[' ']' OperandName { $$ = &(init() << "[" << "]" << $3 >> "OperandName"); }*/
     | OperandName '.' IDENT { $$ = &(init() << $1 >> "OperandName"); }
     ;
 
