@@ -68,6 +68,7 @@ FOR    (for)
 RANGE  (range)
 DEFER  (defer)
 VAR    (var)
+ESEMI  (;)
 
 %x SEMIMODE
 
@@ -75,6 +76,8 @@ VAR    (var)
 <SEMIMODE>{NEWLINE}                    { BEGIN(INITIAL); return ';'; }
 [}]/[\n]                               { BEGIN(SEMIMODE); return '}'; }
 [)]/[\n]                               { BEGIN(SEMIMODE); return ')'; }
+
+[{]/[\n]                               { yylval.sval = strdup(yytext); return ESEMI; }
 
 {INC}/[\n]                             { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return INC; }
 {DEC}/[\n]                             { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return DEC; }

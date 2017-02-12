@@ -26,6 +26,6 @@ clean:
 	rm -f gust
 
 try:
-	./gust test/test1.go > dotfile
+	./gust test/test2.go > dotfile
 	dot -Tps dotfile -o dot.ps
 	zathura dot.ps

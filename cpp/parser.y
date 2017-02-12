@@ -99,7 +99,7 @@ void printTop(node* n) {
     char *sval;
 }
 
-%token <sval> INT FLOAT IDENT BIN_OP DUAL_OP REL_OP MUL_OP ADD_OP UN_OP
+%token <sval> INT FLOAT IDENT BIN_OP DUAL_OP REL_OP MUL_OP ADD_OP UN_OP ESEMI
 %token <sval> RAW_ST INR_ST ASN_OP LEFT INC DEC DECL CONST DOTS FUNC MAP
 %token <sval> GO RETURN BREAK CONT GOTO FALL IF ELSE SWITCH CASE END STAR
 %token <sval> DEFLT SELECT TYPE ISOF FOR RANGE DEFER VAR IMPORT PACKGE STRUCT
@@ -119,7 +119,7 @@ void printTop(node* n) {
 %type <nt> Selector Index Slice TypeDecl TypeSpecList TypeSpec VarDecl
 %type <nt> VarSpec VarSpecList TypeAssertion Arguments IdentifierList
 %type <nt> ExpressionList TypeLit ArrayType CompositeLit LiteralType
-%type <nt> LiteralValue ElementList KeyedElement Key FieldName Element
+%type <nt> LiteralValue ElementList KeyedElement Key Element TypeName
 %type <nt> ArrayLength Type Operand Literal BasicLit OperandName
 %type <nt> PackageName MethodExpr ReceiverType ImportSpec PointerType
 %type <nt> MethodName  UnaryOp BinaryOp String ImportPath SliceType KeyType
@@ -137,7 +137,7 @@ Expression:
     ;
 
 Block:
-    '{' StatementList '}' { $$ = &(init() << $2 >> "Block"); }
+    ESEMI StatementList '}' { $$ = &(init() << $2 >> "Block"); }
     ;
 
 StatementList:
@@ -189,8 +189,8 @@ Channel:
     ;
 
 IncDecStmt:
-    Expression INC   { $$ = &(init() << $1 >> "Channel"); }
-    | Expression DEC { $$ = &(init() << $1 >> "IncDecStmt"); }
+    Expression INC   { $$ = &(init() << $1 << $2 >> "IncDecStmt"); }
+    | Expression DEC { $$ = &(init() << $1 << $2 >> "IncDecStmt"); }
     ;
 
 Assignment:
@@ -278,13 +278,16 @@ LiteralType:
     | '[' DOTS ']' ElementType { $$ = &(init() << $2 << $4 >> "LiteralType"); }
     | SliceType                { $$ = &(init() << $1 >> "LiteralType"); }
     | MapType                  { $$ = &(init() << $1 >> "LiteralType"); }
-    | OperandName              { $$ = &(init() << $1 >> "LiteralType"); }
+    /*| OperandName              { $$ = &(init() << $1 >> "LiteralType"); }*/
     ;
 
 LiteralValue:
     '{' '}'                   { $$ = &(init() >> "LiteralValue"); }
+    | ESEMI '}'                   { $$ = &(init() >> "LiteralValue"); }
     | '{' ElementList '}'     { $$ = &(init() << $2 >> "LiteralValue"); }
+    | ESEMI ElementList '}'     { $$ = &(init() << $2 >> "LiteralValue"); }
     | '{' ElementList ',' '}' { $$ = &(init() << $2 >> "LiteralValue"); }
+    | ESEMI ElementList ',' '}' { $$ = &(init() << $2 >> "LiteralValue"); }
     ;
 
 SliceType:
@@ -302,13 +305,8 @@ KeyedElement:
     ;
 
 Key:
-    FieldName      { $$ = &(init() << $1 >> "Key"); }
-    | Expression   { $$ = &(init() << $1 >> "Key"); }
+    Expression   { $$ = &(init() << $1 >> "Key"); }
     | LiteralValue { $$ = &(init() << $1 >> "Key"); }
-    ;
-
-FieldName:
-    IDENT          { $$ = &(init() << $1 >> "FieldName"); }
     ;
 
 Element:
@@ -341,25 +339,25 @@ BreakStmt:
     ;
 
 ContinueStmt:
-    CONT { $$ = &(init() >> "ContinueStmt"); }
+    CONT         { $$ = &(init() >> "ContinueStmt"); }
     | CONT Label { $$ = &(init() << $2 >> "ContinueStmt"); }
     ;
 
 GotoStmt:
-    GOTO Label { $$ = &(init() << $2 >> "GotoStmt"); }
+    GOTO Label   { $$ = &(init() << $2 >> "GotoStmt"); }
     ;
 
 FallthroughStmt:
-    FALL { $$ = &(init() >> "FallthroughStmt"); }
+    FALL         { $$ = &(init() >> "FallthroughStmt"); }
     ;
 
 IfStmt:
     IF Expression Block { $$ = &(init() << $2 << $3 >> "IfStmt"); }
     | IF SimpleStmt ';' Expression Block { $$ = &(init() << $2 << $4 << $5 >> "IfStmt"); }
-    | IF Expression Block ELSE Block { $$ = &(init() << $2 << $3 << $5 >> "IfStmt"); }
-    | IF Expression Block ELSE IfStmt { $$ = &(init() << $2 << $3 << $5 >> "IfStmt"); }
+    | IF Expression Block ELSE Block     { $$ = &(init() << $2 << $3 << $5 >> "IfStmt"); }
+    | IF Expression Block ELSE IfStmt    { $$ = &(init() << $2 << $3 << $5 >> "IfStmt"); }
     | IF SimpleStmt ';' Expression Block ELSE IfStmt { $$ = &(init() << $2 << $4 << $5 << $7 >> "IfStmt"); }
-    | IF SimpleStmt ';' Expression Block ELSE Block { $$ = &(init() << $2 << $4 << $5 << $7 >> "IfStmt"); }
+    | IF SimpleStmt ';' Expression Block ELSE Block  { $$ = &(init() << $2 << $4 << $5 << $7 >> "IfStmt"); }
     ;
 
 SwitchStmt:
@@ -614,6 +612,7 @@ ElementType:
 
 StructType:
     STRUCT '{' FieldDeclList '}' { $$ = &(init() << $1 << $3 >> "StructType"); }
+    | STRUCT ESEMI FieldDeclList '}' { $$ = &(init() << $1 << $3 >> "StructType"); }
     ;
 
 FieldDeclList:
