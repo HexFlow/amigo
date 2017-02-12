@@ -101,7 +101,7 @@ void printTop(node* n) {
 
 %token <sval> INT FLOAT IDENT BIN_OP DUAL_OP REL_OP MUL_OP ADD_OP UN_OP
 %token <sval> RAW_ST INR_ST ASN_OP LEFT INC DEC DECL CONST DOTS FUNC
-%token <sval> GO RETURN BREAK CONT GOTO FALL IF ELSE SWITCH CASE END
+%token <sval> GO RETURN BREAK CONT GOTO FALL IF ELSE SWITCH CASE END STAR
 %token <sval> DEFLT SELECT TYPE ISOF FOR RANGE DEFER VAR IMPORT PACKGE
 %type <nt> SourceFile Expression Block StatementList Statement SimpleStmt
 %type <nt> EmptyStmt ExpressionStmt SendStmt Channel IncDecStmt
@@ -120,7 +120,7 @@ void printTop(node* n) {
 %type <nt> VarSpec VarSpecList TypeAssertion Arguments IdentifierList
 %type <nt> ExpressionList Conversion Type TypeLit ArrayType
 %type <nt> ArrayLength ElementType Operand Literal BasicLit OperandName
-%type <nt> PackageName MethodExpr RecieverType ImportSpec
+%type <nt> PackageName MethodExpr ReceiverType ImportSpec PointerType
 %type <nt> MethodName  UnaryOp BinaryOp String ImportPath
 %type <nt> PackageClause ImportDeclList ImportDecl ImportSpecList TopLevelDeclList
 /*%type <nt> TypeName InterfaceTypeName*/
@@ -144,30 +144,30 @@ StatementList:
     ;
 
 Statement:
-    Declaration { $$ = &(init() << $1 >> "Statement"); }
-    | LabeledStmt { $$ = &(init() << $1 >> "Statement"); }
-    | SimpleStmt { $$ = &(init() << $1 >> "Statement"); }
-    | GoStmt { $$ = &(init() << $1 >> "Statement"); }
-    | ReturnStmt { $$ = &(init() << $1 >> "Statement"); }
-    | BreakStmt { $$ = &(init() << $1 >> "Statement"); }
-    | ContinueStmt { $$ = &(init() << $1 >> "Statement"); }
-    | GotoStmt { $$ = &(init() << $1 >> "Statement"); }
+    Declaration       { $$ = &(init() << $1 >> "Statement"); }
+    | LabeledStmt     { $$ = &(init() << $1 >> "Statement"); }
+    | SimpleStmt      { $$ = &(init() << $1 >> "Statement"); }
+    | GoStmt          { $$ = &(init() << $1 >> "Statement"); }
+    | ReturnStmt      { $$ = &(init() << $1 >> "Statement"); }
+    | BreakStmt       { $$ = &(init() << $1 >> "Statement"); }
+    | ContinueStmt    { $$ = &(init() << $1 >> "Statement"); }
+    | GotoStmt        { $$ = &(init() << $1 >> "Statement"); }
     | FallthroughStmt { $$ = &(init() << $1 >> "Statement"); }
-    | Block { $$ = &(init() << $1 >> "Statement"); }
-    | IfStmt { $$ = &(init() << $1 >> "Statement"); }
-    | SwitchStmt { $$ = &(init() << $1 >> "Statement"); }
-    | SelectStmt { $$ = &(init() << $1 >> "Statement"); }
-    | ForStmt { $$ = &(init() << $1 >> "Statement"); }
-    | DeferStmt { $$ = &(init() << $1 >> "Statement"); }
+    | Block           { $$ = &(init() << $1 >> "Statement"); }
+    | IfStmt          { $$ = &(init() << $1 >> "Statement"); }
+    | SwitchStmt      { $$ = &(init() << $1 >> "Statement"); }
+    | SelectStmt      { $$ = &(init() << $1 >> "Statement"); }
+    | ForStmt         { $$ = &(init() << $1 >> "Statement"); }
+    | DeferStmt       { $$ = &(init() << $1 >> "Statement"); }
     ;
 
 SimpleStmt:
-    EmptyStmt { $$ = &(init() << $1 >> "SimpleStmt"); }
+    EmptyStmt        { $$ = &(init() << $1 >> "SimpleStmt"); }
     | ExpressionStmt { $$ = &(init() << $1 >> "SimpleStmt"); }
-    | SendStmt { $$ = &(init() << $1 >> "SimpleStmt"); }
-    | IncDecStmt { $$ = &(init() << $1 >> "SimpleStmt"); }
-    | Assignment { $$ = &(init() << $1 >> "SimpleStmt"); }
-    | ShortVarDecl { $$ = &(init() << $1 >> "SimpleStmt"); }
+    | SendStmt       { $$ = &(init() << $1 >> "SimpleStmt"); }
+    | IncDecStmt     { $$ = &(init() << $1 >> "SimpleStmt"); }
+    | Assignment     { $$ = &(init() << $1 >> "SimpleStmt"); }
+    | ShortVarDecl   { $$ = &(init() << $1 >> "SimpleStmt"); }
     ;
 
 EmptyStmt:
@@ -187,7 +187,7 @@ Channel:
     ;
 
 IncDecStmt:
-    Expression INC { $$ = &(init() << $1 >> "Channel"); }
+    Expression INC   { $$ = &(init() << $1 >> "Channel"); }
     | Expression DEC { $$ = &(init() << $1 >> "IncDecStmt"); }
     ;
 
@@ -196,14 +196,14 @@ Assignment:
     ;
 
 ShortVarDecl:
-    IdentifierList DECL ExpressionList { $$ = &(init() << $1  << $3 >> "ShortVarDecl"); }
+    ExpressionList DECL ExpressionList   { $$ = &(init() << $1  << $3 >> "ShortVarDecl"); }
     ;
 
 
 Declaration:
-    ConstDecl { $$ = &(init() << $1 >> "Declaration"); }
+    ConstDecl  { $$ = &(init() << $1 >> "Declaration"); }
     | TypeDecl { $$ = &(init() << $1 >> "Declaration"); }
-    | VarDecl { $$ = &(init() << $1 >> "Declaration"); }
+    | VarDecl  { $$ = &(init() << $1 >> "Declaration"); }
     ;
 
 ConstDecl:
@@ -212,24 +212,24 @@ ConstDecl:
     ;
 
 ConstSpecList:
-    /* empty */ { $$ = &(init() >> "ConstSpecList"); }
+    /* empty */                   { $$ = &(init() >> "ConstSpecList"); }
     | ConstSpecList ConstSpec ';' { $$ = &(init() << $1 << $2 >> "ConstSpecList"); }
-    | ConstSpec ';' { $$ = &(init() << $1 >> "ConstSpecList"); }
+    | ConstSpec ';'               { $$ = &(init() << $1 >> "ConstSpecList"); }
     ;
 
 Signature:
-    Parameters { $$ = &(init() << $1 >> "Signature"); }
+    Parameters          { $$ = &(init() << $1 >> "Signature"); }
     | Parameters Result { $$ = &(init() << $1 << $2 >> "Signature"); }
     ;
 
 Result:
     Parameters { $$ = &(init() << $1 >> "Result"); }
-    | Type { $$ = &(init() << $1 >> "Result"); }
+    | Type     { $$ = &(init() << $1 >> "Result"); }
     ;
 
 Parameters:
-    '('  ')' { $$ = &(init() >> "Parameters"); }
-    | '(' ParameterList  ')' { $$ = &(init() << $2 >> "Parameters"); }
+    '('  ')'                    { $$ = &(init() >> "Parameters"); }
+    | '(' ParameterList  ')'    { $$ = &(init() << $2 >> "Parameters"); }
     | '(' ParameterList ',' ')' { $$ = &(init() << $2 >> "Parameters"); }
     ;
 
@@ -239,9 +239,9 @@ ParameterList:
     ;
 
 ParameterDecl:
-    Type { $$ = &(init() << $1 >> "ParameterDecl"); }
-    | DOTS Type { $$ = &(init() << $1 << $2 >> "ParameterDecl"); }
-    | IdentifierList Type { $$ = &(init() << $1 << $2 >> "ParameterDecl"); }
+    /*Type                       { $$ = &(init() << $1 >> "ParameterDecl"); }*/
+    DOTS Type                { $$ = &(init() << $1 << $2 >> "ParameterDecl"); }
+    | IdentifierList Type      { $$ = &(init() << $1 << $2 >> "ParameterDecl"); }
     | IdentifierList DOTS Type { $$ = &(init() << $1 << $2 << $3 >> "ParameterDecl"); }
     ;
 
@@ -252,7 +252,7 @@ ConstSpec:
     ;
 
 MethodDecl:
-    FUNC Receiver MethodName Signature { $$ = &(init() << $2 << $3 << $4 >> "MethodDecl"); }
+    FUNC Receiver MethodName Signature  { $$ = &(init() << $2 << $3 << $4 >> "MethodDecl"); }
     | FUNC Receiver MethodName Function { $$ = &(init() << $2 << $3 << $4 >> "MethodDecl"); }
     ;
 
@@ -261,15 +261,15 @@ Receiver:
     ;
 
 TopLevelDeclList:
-    /* empty */
-    | TopLevelDeclList TopLevelDecl ';'
-    | TopLevelDecl ';'
+    /* empty */ { $$ = &(init() >> "TopLevelDeclList"); }
+    | TopLevelDeclList TopLevelDecl ';' { $$ = &(init() << $1 << $2 >> "TopLevelDeclList"); }
+    | TopLevelDecl ';' { $$ = &(init() << $1 >> "TopLevelDeclList"); }
     ;
 
 TopLevelDecl:
-    Declaration { $$ = &(init() << $1 >> "TopLevelDecl"); }
+    Declaration    { $$ = &(init() << $1 >> "TopLevelDecl"); }
     | FunctionDecl { $$ = &(init() << $1 >> "TopLevelDecl"); }
-    | MethodDecl { $$ = &(init() << $1 >> "TopLevelDecl"); }
+    | MethodDecl   { $$ = &(init() << $1 >> "TopLevelDecl"); }
     ;
 
 LabeledStmt:
@@ -286,7 +286,7 @@ ReturnStmt:
     ;
 
 BreakStmt:
-    BREAK { $$ = &(init() >> "BreakStmt"); }
+    BREAK         { $$ = &(init() >> "BreakStmt"); }
     | BREAK Label { $$ = &(init() << $2 >> "BreakStmt"); }
     ;
 
@@ -360,7 +360,7 @@ CommCase:
 RecvStmt:
     RecvExpr { $$ = &(init() << $1 >> "RecvStmt"); }
     | ExpressionList '=' RecvExpr { $$ = &(init() << $1 << $3 >> "RecvStmt"); }
-    | IdentifierList DECL RecvExpr { $$ = &(init() << $1 << $2 << $3  >> "RecvStmt"); }
+    | ExpressionList DECL RecvExpr { $$ = &(init() << $1 << $2 << $3  >> "RecvStmt"); }
     ;
 
 RecvExpr:
@@ -429,7 +429,7 @@ ForClause:
 
 RangeClause:
     RANGE Expression  { $$ = &(init() << $2 >> "RangeClause"); }
-    | IdentifierList DECL RANGE Expression  { $$ = &(init() << $1 << $4 >> "RangeClause"); }
+    | ExpressionList DECL RANGE Expression  { $$ = &(init() << $1 << $4 >> "RangeClause"); }
     | ExpressionList '=' RANGE Expression  { $$ = &(init() << $1 << $4 >> "RangeClause"); }
     ;
 
@@ -552,13 +552,17 @@ Type:
 
 TypeLit:
     ArrayType { $$ = &(init() << $1 >> "TypeLit"); }
- /* | StructType
+ /* | StructType */
     | PointerType
-    | FunctionType
+/*  | FunctionType
     | InterfaceType
     | SliceType
     | MapType
     | ChannelType*/
+    ;
+
+PointerType:
+    STAR Type { $$ = &(init() << $1 << $2 >> "PointerType"); }
     ;
 
 ArrayType:
@@ -600,13 +604,12 @@ OperandName:
     ;
 
 MethodExpr:
-    RecieverType '.' MethodName  { $$ = &(init() << $1 << $3 >> "MethodExpr"); }
+    ReceiverType '.' MethodName  { $$ = &(init() << $1 << $3 >> "MethodExpr"); }
     ;
 
-RecieverType:
-    OperandName               { $$ = &(init() << $1 >> "RecieverType"); }
-    | '(' '*' OperandName ')' { $$ = &(init() << "*" << $3 >> "RecieverType"); }
-    | '(' RecieverType ')' { $$ = &(init() << $2 >> "RecieverType"); }
+ReceiverType:
+    '(' STAR OperandName ')' { $$ = &(init() << $2 << $3 >> "ReceiverType"); }
+    | '(' ReceiverType ')' { $$ = &(init() << $2 >> "ReceiverType"); }
     ;
 
 MethodName:

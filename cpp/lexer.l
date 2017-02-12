@@ -127,7 +127,7 @@ VAR    (var)
 {DECIMAL}\.{DECIMAL}?{EXP}?            { yylval.sval = strdup(yytext); return FLOAT; }
 {DECIMAL}{EXP}                         { yylval.sval = strdup(yytext); return FLOAT; }
 \.{DECIMAL}{EXP}?                      { yylval.sval = strdup(yytext); return FLOAT; }
-
+\*                                     { yylval.sval = strdup(yytext); return STAR; }
 \+|-|\^|\*|&                           { yylval.sval = strdup(yytext); return DUAL_OP; }
 \+|-|!|\^|\*|&|{LEFT}                  { yylval.sval = strdup(yytext); return UN_OP; }
 {OR}|{AND}|{REL_OP}|{ADD_OP}|{MUL_OP}  { yylval.sval = strdup(yytext); return BIN_OP; }
