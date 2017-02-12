@@ -12,8 +12,16 @@ func main() {
 		k = 0
 	}
 
-	if k == 0; k != 1 {
+	if k := 0; k != 1 {
 		d = 0
+	}
+
+	for _, arg := range flag.Args() {
+		if v, err := strconv.Atoi(arg); err == nil && len(arg) == 1 {
+			numdays = v
+		} else {
+			location = arg
+		}
 	}
 
 	switch os := runtime.GOOS; os {

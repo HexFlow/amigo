@@ -75,6 +75,7 @@ ESEMI  (;)
 %%
 <SEMIMODE>{NEWLINE}                    { BEGIN(INITIAL); return ';'; }
 [}]/[\n]                               { BEGIN(SEMIMODE); return '}'; }
+[]]/[\n]                               { BEGIN(SEMIMODE); return ']'; }
 [)]/[\n]                               { BEGIN(SEMIMODE); return ')'; }
 
 [{]/[\n]                               { yylval.sval = strdup(yytext); return ESEMI; }
