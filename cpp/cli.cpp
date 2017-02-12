@@ -43,10 +43,10 @@ FILE *parseCLI(int argc, char **argv) {
         }
     }
 
-    if (!verbose) {
-        // Remove stderr
-        freopen("/dev/null", "a", stderr);
-    }
+    //if (!verbose) {
+        //// Remove stderr
+        //freopen("/dev/null", "a", stderr);
+    //}
 
     if (!infile) {
         cerr << "No input file provided" << endl;

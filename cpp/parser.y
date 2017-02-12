@@ -293,7 +293,7 @@ LiteralValue:
 SliceType:
     '[' ']' ElementType  { $$ = &(init() << $3 >> "SliceType"); }
     /* TODO: Fix this */
-    | '[' ']' OperandName  { $$ = &(init() << $3 >> "SliceType"); }
+    /*| '[' ']' OperandName  { $$ = &(init() << $3 >> "SliceType"); }*/
     ;
 
 ElementList:
@@ -600,8 +600,8 @@ ExpressionList:
     /*;*/
 
 Type:
-    /*OperandName       { $$ = &(init() << $1 >> "Type"); }*/
-    TypeLit      { $$ = &(init() << $1 >> "Type"); }
+    OperandName       { $$ = &(init() << $1 >> "Type"); }
+    | TypeLit      { $$ = &(init() << $1 >> "Type"); }
     | '(' Type ')' { $$ = &(init() << $2 >> "Type"); }
     ;
 
@@ -671,6 +671,7 @@ ArrayLength:
 
 Operand:
     Literal              { $$ = &(init() << $1 >> "Operand"); }
+    | LiteralType        { $$ = &(init() << $1 >> "Operand"); }
     | OperandName        { $$ = &(init() << $1 >> "Operand"); }
     | MethodExpr         { $$ = &(init() << $1 >> "Operand"); }
     | '(' Expression ')' { $$ = &(init() << $2 >> "Operand"); }
@@ -693,7 +694,6 @@ BasicLit:
 OperandName:
     IDENT            { $$ = &(init() << $1 >> "OperandName"); }
     | STAR OperandName { $$ = &(init() << $1 << $2 >> "OperandName"); }
-    /*| '[' ']' OperandName { $$ = &(init() << "[" << "]" << $3 >> "OperandName"); }*/
     | OperandName '.' IDENT { $$ = &(init() << $1 >> "OperandName"); }
     ;
 
