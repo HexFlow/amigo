@@ -47,6 +47,8 @@ CONST  "const"
 DOTS   "..."
 FUNC   (func)
 GO     (go)
+MAP    (map)
+STRUCT (struct)
 RETURN (return)
 BREAK  (break)
 CONT   (continue)
@@ -85,6 +87,8 @@ VAR    (var)
 {DOTS}                                 { yylval.sval = strdup(yytext); return DOTS; }
 {FUNC}                                 { yylval.sval = strdup(yytext); return FUNC; }
 {GO}                                   { yylval.sval = strdup(yytext); return GO; }
+{MAP}                                  { yylval.sval = strdup(yytext); return MAP; }
+{STRUCT}                               { yylval.sval = strdup(yytext); return STRUCT; }
 
 {RETURN}/[\n]                          { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return RETURN; }
 {BREAK}/[\n]                           { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return BREAK; }

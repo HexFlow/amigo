@@ -100,15 +100,15 @@ void printTop(node* n) {
 }
 
 %token <sval> INT FLOAT IDENT BIN_OP DUAL_OP REL_OP MUL_OP ADD_OP UN_OP
-%token <sval> RAW_ST INR_ST ASN_OP LEFT INC DEC DECL CONST DOTS FUNC
+%token <sval> RAW_ST INR_ST ASN_OP LEFT INC DEC DECL CONST DOTS FUNC MAP
 %token <sval> GO RETURN BREAK CONT GOTO FALL IF ELSE SWITCH CASE END STAR
-%token <sval> DEFLT SELECT TYPE ISOF FOR RANGE DEFER VAR IMPORT PACKGE
+%token <sval> DEFLT SELECT TYPE ISOF FOR RANGE DEFER VAR IMPORT PACKGE STRUCT
 %type <nt> SourceFile Expression Block StatementList Statement SimpleStmt
-%type <nt> EmptyStmt ExpressionStmt SendStmt Channel IncDecStmt
+%type <nt> EmptyStmt ExpressionStmt SendStmt Channel IncDecStmt MapType
 %type <nt> Assignment ShortVarDecl Declaration ConstDecl ConstSpecList
 %type <nt> Signature Result Parameters ParameterList ParameterDecl
 %type <nt> ConstSpec MethodDecl Receiver TopLevelDecl LabeledStmt
-%type <nt> GoStmt ReturnStmt BreakStmt ContinueStmt GotoStmt
+%type <nt> GoStmt ReturnStmt BreakStmt ContinueStmt GotoStmt StructType
 %type <nt> FallthroughStmt IfStmt SwitchStmt ExprSwitchStmt
 %type <nt> ExprCaseClauseList ExprCaseClause ExprSwitchCase SelectStmt
 %type <nt> CommClauseList CommClause CommCase RecvStmt RecvExpr
@@ -118,11 +118,13 @@ void printTop(node* n) {
 %type <nt> PostStmt Condition DeferStmt Label UnaryExpr PrimaryExpr
 %type <nt> Selector Index Slice TypeDecl TypeSpecList TypeSpec VarDecl
 %type <nt> VarSpec VarSpecList TypeAssertion Arguments IdentifierList
-%type <nt> ExpressionList Conversion Type TypeLit ArrayType
-%type <nt> ArrayLength ElementType Operand Literal BasicLit OperandName
+%type <nt> ExpressionList TypeLit ArrayType CompositeLit LiteralType
+%type <nt> LiteralValue ElementList KeyedElement Key FieldName Element
+%type <nt> ArrayLength Type Operand Literal BasicLit OperandName
 %type <nt> PackageName MethodExpr ReceiverType ImportSpec PointerType
-%type <nt> MethodName  UnaryOp BinaryOp String ImportPath
+%type <nt> MethodName  UnaryOp BinaryOp String ImportPath SliceType KeyType
 %type <nt> PackageClause ImportDeclList ImportDecl ImportSpecList TopLevelDeclList
+%type <nt> FieldDeclList FieldDecl Tag AnonymousField BaseType ElementType
 /*%type <nt> TypeName InterfaceTypeName*/
 %%
 SourceFile:
@@ -264,6 +266,54 @@ TopLevelDeclList:
     /* empty */ { $$ = &(init() >> "TopLevelDeclList"); }
     | TopLevelDeclList TopLevelDecl ';' { $$ = &(init() << $1 << $2 >> "TopLevelDeclList"); }
     | TopLevelDecl ';' { $$ = &(init() << $1 >> "TopLevelDeclList"); }
+    ;
+
+CompositeLit:
+    LiteralType LiteralValue { $$ = &(init() << $1 << $2 >> "CompositeLit"); }
+    ;
+
+LiteralType:
+    StructType                 { $$ = &(init() << $1 >> "LiteralType"); }
+    | ArrayType                { $$ = &(init() << $1 >> "LiteralType"); }
+    | '[' DOTS ']' ElementType { $$ = &(init() << $2 << $4 >> "LiteralType"); }
+    | SliceType                { $$ = &(init() << $1 >> "LiteralType"); }
+    | MapType                  { $$ = &(init() << $1 >> "LiteralType"); }
+    | OperandName              { $$ = &(init() << $1 >> "LiteralType"); }
+    ;
+
+LiteralValue:
+    '{' '}'                   { $$ = &(init() >> "LiteralValue"); }
+    | '{' ElementList '}'     { $$ = &(init() << $2 >> "LiteralValue"); }
+    | '{' ElementList ',' '}' { $$ = &(init() << $2 >> "LiteralValue"); }
+    ;
+
+SliceType:
+    '[' ']' ElementType  { $$ = &(init() << $3 >> "SliceType"); }
+    ;
+
+ElementList:
+    KeyedElement                   { $$ = &(init() << $1 >> "ElementList"); }
+    | ElementList ',' KeyedElement { $$ = &(init() << $1 << $3 >> "ElementList"); }
+    ;
+
+KeyedElement:
+    Element                        { $$ = &(init() << $1 >> "KeyedElement"); }
+    | Key ':' Element              { $$ = &(init() << $1 << $3 >> "KeyedElement"); }
+    ;
+
+Key:
+    FieldName      { $$ = &(init() << $1 >> "Key"); }
+    | Expression   { $$ = &(init() << $1 >> "Key"); }
+    | LiteralValue { $$ = &(init() << $1 >> "Key"); }
+    ;
+
+FieldName:
+    IDENT          { $$ = &(init() << $1 >> "FieldName"); }
+    ;
+
+Element:
+    Expression     { $$ = &(init() << $1 >> "Element"); }
+    | LiteralValue { $$ = &(init() << $1 >> "Element"); }
     ;
 
 TopLevelDecl:
@@ -550,19 +600,60 @@ Type:
     | '(' Type ')' { $$ = &(init() << $2 >> "Type"); }
     ;
 
+MapType:
+    MAP '[' KeyType ']' ElementType { $$ = &(init() << $1 << $3 << $5 >> "MapType"); }
+    ;
+
+KeyType:
+    Type { $$ = &(init() << $1 >> "KeyType"); }
+    ;
+
+ElementType:
+    Type { $$ = &(init() << $1 >> "ElementType"); }
+    ;
+
+StructType:
+    STRUCT '{' FieldDeclList '}' { $$ = &(init() << $1 << $3 >> "StructType"); }
+    ;
+
+FieldDeclList:
+    FieldDeclList FieldDecl ';' { $$ = &(init() << $1 << $2 >> "FieldDeclList"); }
+    | FieldDecl ';' { $$ = &(init() << $1 >> "FieldDeclList"); }
+    ;
+
+FieldDecl:
+    IdentifierList Type Tag { $$ = &(init() << $1 << $2 << $3 >> "FieldDecl"); }
+    | IdentifierList Type { $$ = &(init() << $1 << $2 >> "FieldDecl"); }
+    | AnonymousField Tag { $$ = &(init() << $1 << $2 >> "FieldDecl"); }
+    | AnonymousField { $$ = &(init() << $1 >> "FieldDecl"); }
+    ;
+
+AnonymousField:
+    '*' OperandName { $$ = &(init() << $2 >> "AnonymousField"); }
+    | OperandName { $$ = &(init() << $1 >> "AnonymousField"); }
+    ;
+
+Tag:
+   String { $$ = &(init() << $1 >> "Tag"); }
+   ;
+
 TypeLit:
     ArrayType { $$ = &(init() << $1 >> "TypeLit"); }
- /* | StructType */
-    | PointerType
-/*  | FunctionType
-    | InterfaceType
-    | SliceType
-    | MapType
-    | ChannelType*/
+    | StructType { $$ = &(init() << $1 >> "TypeLit"); }
+    | PointerType { $$ = &(init() << $1 >> "TypeLit"); }
+/*  | FunctionType { $$ = &(init() << $1 >> "TypeLit"); }
+    | ChannelType { $$ = &(init() << $1 >> "TypeLit"); }
+    | InterfaceType  { $$ = &(init() << $1 >> "TypeLit"); }*/
+    | SliceType { $$ = &(init() << $1 >> "TypeLit"); }
+    | MapType { $$ = &(init() << $1 >> "TypeLit"); }
     ;
 
 PointerType:
-    STAR Type { $$ = &(init() << $1 << $2 >> "PointerType"); }
+    STAR BaseType { $$ = &(init() << $1 << $2 >> "PointerType"); }
+    ;
+
+BaseType:
+    Type { $$ = &(init() << $1 >> "BaseType"); }
     ;
 
 ArrayType:
@@ -571,10 +662,6 @@ ArrayType:
 
 ArrayLength:
     Expression  { $$ = &(init() << $1 >> "ArrayLength"); }
-    ;
-
-ElementType:
-    Type  { $$ = &(init() << $1 >> "ElementType"); }
     ;
 
 Operand:
@@ -586,8 +673,8 @@ Operand:
 
 Literal:
     BasicLit { $$ = &(init() << $1 >> "Literal"); }
-/*  | CompositeLit
-    | FunctionLit */
+    | CompositeLit { $$ = &(init() << $1 >> "Literal"); }
+/*  | FunctionLit */
     ;
 
 BasicLit:
