@@ -9,6 +9,9 @@ all:
 	mkdir -p $(BUILD)
 	make gust
 
+lexer: $(BUILD)/gust.yy.c $(BUILD)/lexer.o
+	g++ $(FLAGS) $(BUILD)/gust.tab.c $(BUILD)/gust.yy.c $(BUILD)/lexer.o -lfl -o lexer
+
 gust: $(BUILD)/gust.yy.c $(BUILD)/gust.tab.c $(BUILD)/gust.tab.h $(BUILD)/main.o
 	g++ $(FLAGS) $(BUILD)/gust.tab.c $(BUILD)/gust.yy.c $(BUILD)/main.o -lfl -o gust
 
@@ -20,6 +23,9 @@ $(BUILD)/gust.tab.c $(BUILD)/gust.tab.h: $(CPP)/parser.y
 
 $(BUILD)/main.o: $(CPP)/main.cpp
 	g++ -c $(FLAGS) $(CPP)/main.cpp -o $(BUILD)/main.o
+
+$(BUILD)/lexer.o: $(CPP)/lexer.cpp
+	g++ -c $(FLAGS) $(CPP)/lexer.cpp -o $(BUILD)/lexer.o
 
 clean:
 	rm -rf $(BUILD)
