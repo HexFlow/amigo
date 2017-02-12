@@ -4,17 +4,23 @@
 
 using namespace std;
 
+void help() {
+    cerr << "No input files provided" << endl;
+    cerr << "Usage: " << '\t' <<
+        "./<lexer/parser> <input_file>" << endl;
+    cerr << "Or: " << '\t' <<
+        "./<lexer/parser> <input_file> -o <outfile>";
+}
+
 FILE *parseCLI(int argc, char **argv) {
     if (argc < 2) {
-        cerr << "No input files provided" << endl;
-        cerr << "Usage: " << '\t' <<
-            "./<lexer/parser> <input_file>" << endl;
-        cerr << "Or: " << '\t' <<
-            "./<lexer/parser> <input_file> -o <outfile>";
+        help();
         exit(0);
     }
 
     FILE *infile = NULL;
+
+    bool verbose = false;
 
     for (int i=1; i<argc; i++) {
         if (strcmp(argv[i], "-o") == 0) {
@@ -24,6 +30,10 @@ FILE *parseCLI(int argc, char **argv) {
             } else {
                 cerr << "No outfile file provided for -o flag" << endl;
             }
+        } else if (strcmp(argv[i], "--help") == 0) {
+            help();
+        } else if (strcmp(argv[i], "-v") == 0) {
+            verbose = true;
         } else {
             infile = fopen(argv[i], "r");
             if (!infile) {
@@ -31,6 +41,11 @@ FILE *parseCLI(int argc, char **argv) {
                 exit(0);
             }
         }
+    }
+
+    if (!verbose) {
+        // Remove stderr
+        freopen("/dev/null", "a", stderr);
     }
 
     if (!infile) {
