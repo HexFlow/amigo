@@ -366,10 +366,10 @@ SwitchStmt:
     ;
 
 ExprSwitchStmt:
-    SWITCH '{' ExprCaseClauseList '}' { $$ = &(init() << $3 >> "ExprSwitchStmt"); }
-    | SWITCH Expression '{' ExprCaseClauseList '}' { $$ = &(init() << $2 << $4 >> "ExprSwitchStmt"); }
-    | SWITCH SimpleStmt ';' '{' ExprCaseClauseList '}' { $$ = &(init() << $2 << $5 >> "ExprSwitchStmt"); }
-    | SWITCH SimpleStmt ';' Expression '{' ExprCaseClauseList '}' { $$ = &(init() << $2 << $4 << $6 >> "ExprSwitchStmt"); }
+    SWITCH ESEMI ExprCaseClauseList '}' { $$ = &(init() << $3 >> "ExprSwitchStmt"); }
+    | SWITCH Expression ESEMI ExprCaseClauseList '}' { $$ = &(init() << $2 << $4 >> "ExprSwitchStmt"); }
+    | SWITCH SimpleStmt ';' ESEMI ExprCaseClauseList '}' { $$ = &(init() << $2 << $5 >> "ExprSwitchStmt"); }
+    | SWITCH SimpleStmt ';' Expression ESEMI ExprCaseClauseList '}' { $$ = &(init() << $2 << $4 << $6 >> "ExprSwitchStmt"); }
     ;
 
 ExprCaseClauseList:
@@ -387,7 +387,7 @@ ExprSwitchCase:
     ;
 
 SelectStmt:
-    SELECT '{' CommClauseList '}' { $$ = &(init() << $3 >> "SelectStmt"); }
+    SELECT ESEMI CommClauseList '}' { $$ = &(init() << $3 >> "SelectStmt"); }
     ;
 
 CommClauseList:
@@ -425,8 +425,8 @@ FunctionName:
     ;
 
 TypeSwitchStmt:
-    SWITCH SimpleStmt ';' TypeSwitchGuard '{' TypeCaseClauseList '}' { $$ = &(init() << $2 << $4 << $6 >> "TypeSwitchStmt"); }
-    | SWITCH TypeSwitchGuard '{' TypeCaseClauseList '}' { $$ = &(init() << $2 << $4 >> "TypeSwitchStmt"); }
+    SWITCH SimpleStmt ';' TypeSwitchGuard ESEMI TypeCaseClauseList '}' { $$ = &(init() << $2 << $4 << $6 >> "TypeSwitchStmt"); }
+    | SWITCH TypeSwitchGuard ESEMI TypeCaseClauseList '}' { $$ = &(init() << $2 << $4 >> "TypeSwitchStmt"); }
     ;
 
 TypeCaseClauseList:
