@@ -1,4 +1,7 @@
 target
-gust
+/gust
+/lexer
+/parser
 /dotfile
 /dot.ps
+/dot*.ps
