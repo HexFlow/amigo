@@ -524,12 +524,13 @@ PrimaryExpr:
 
 StructLiteral:
     '{' KeyValList '}' { $$ = &(init() << $2 >> "StructLiteral"); }
-    | ESEMI KeyValList '}' { $$ = &(init() << $2 >> "StructLiteral"); }
+    /*| ESEMI KeyValList '}' { $$ = &(init() << $2 >> "StructLiteral"); }*/
+    ;
 
 KeyValList:
     /* empty */  { $$ = &(init() >> "KeyValList"); }
-    | Operand ':' Operand { $$ = &(init() << $1 << $3 >> "KeyValList"); }
-    | Operand ':' Operand ',' KeyValList { $$ = &(init() << $1 << $3 << $5 >> "KeyValList"); }
+    | Expression ':' Expression { $$ = &(init() << $1 << $3 >> "KeyValList"); }
+    | Expression ':' Expression ',' KeyValList { $$ = &(init() << $1 << $3 << $5 >> "KeyValList"); }
 
 MakeExpr:
     MAKE '(' LiteralType ',' ExpressionList ')' { $$ = &(init() << $3 << $5 >> "MakeExpr"); }
