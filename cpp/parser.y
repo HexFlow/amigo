@@ -16,7 +16,9 @@ extern "C" FILE *yyin;
 
 void yyerror(const char *s);
 
-int id = 0;
+int node_id  = 0;
+int scope_id = 0;
+string scope_prefix = "0-";
 
 struct node {
     char name[100] = {0};
@@ -69,7 +71,7 @@ string escape_json(const string &s) {
 
 string print(node* n) {
     int id1=0, id2=0;
-    string name = "_" + to_string(id++);
+    string name = "_" + to_string(node_id++);
     while(id1 < n->children_nt.size() || id2 < n->children_t.size()) {
         if(id1 < n->children_nt.size()) {
             string child = print(n->children_nt[id1++]);
@@ -77,9 +79,9 @@ string print(node* n) {
         }
 
         if(id2 < n->children_t.size()) {
-            cout << "_" + to_string(id) <<
+            cout << "_" + to_string(node_id) <<
               "[label=\"" << escape_json(n->children_t[id2++]) << "\"]" << endl;
-            cout << name << " -- " << "_" + to_string(id++) << endl;
+            cout << name << " -- " << "_" + to_string(node_id++) << endl;
         }
     }
     cout << name << "[label=\"" << n->name << "\"]" << endl;
@@ -99,7 +101,7 @@ void printTop(node* n) {
     char *sval;
 }
 
-%token <sval> INT FLOAT IDENT BIN_OP DUAL_OP REL_OP MUL_OP ADD_OP UN_OP ESEMI
+%token <sval> INT FLOAT IDENT BIN_OP DUAL_OP REL_OP MUL_OP ADD_OP UN_OP ECURLY
 %token <sval> RAW_ST INR_ST ASN_OP LEFT INC DEC DECL CONST DOTS FUNC MAP
 %token <sval> GO RETURN BREAK CONT GOTO FALL IF ELSE SWITCH CASE END STAR MAKE
 %token <sval> DEFLT SELECT TYPE ISOF FOR RANGE DEFER VAR IMPORT PACKGE STRUCT
@@ -138,7 +140,20 @@ Expression:
     ;
 
 Block:
-    ESEMI StatementList '}' { $$ = &(init() << $2 >> "Block"); }
+    ECURLY OPENB StatementList CLOSEB '}' { $$ = &(init() << $3 >> "Block"); }
+    ;
+
+OPENB:
+    /* empty */ {
+        scope_id++;
+        scope_prefix = (to_string(scope_id) + "-" + scope_prefix);
+    }
+    ;
+
+CLOSEB:
+    /* empty */ {
+        scope_prefix = scope_prefix.substr(scope_prefix.find("-") + 1);
+    }
     ;
 
 StatementList:
@@ -284,11 +299,11 @@ LiteralType:
 
 LiteralValue:
     '{' '}'                   { $$ = &(init() >> "LiteralValue"); }
-    | ESEMI '}'                   { $$ = &(init() >> "LiteralValue"); }
+    | ECURLY '}'                   { $$ = &(init() >> "LiteralValue"); }
     | '{' ElementList '}'     { $$ = &(init() << $2 >> "LiteralValue"); }
-    | ESEMI ElementList '}'     { $$ = &(init() << $2 >> "LiteralValue"); }
+    | ECURLY ElementList '}'     { $$ = &(init() << $2 >> "LiteralValue"); }
     | '{' ElementList ',' '}' { $$ = &(init() << $2 >> "LiteralValue"); }
-    | ESEMI ElementList ',' '}' { $$ = &(init() << $2 >> "LiteralValue"); }
+    | ECURLY ElementList ',' '}' { $$ = &(init() << $2 >> "LiteralValue"); }
     ;
 
 SliceType:
@@ -369,10 +384,10 @@ SwitchStmt:
     ;
 
 ExprSwitchStmt:
-    SWITCH ESEMI ExprCaseClauseList '}' { $$ = &(init() << $3 >> "ExprSwitchStmt"); }
-    | SWITCH Expression ESEMI ExprCaseClauseList '}' { $$ = &(init() << $2 << $4 >> "ExprSwitchStmt"); }
-    | SWITCH SimpleStmt ';' ESEMI ExprCaseClauseList '}' { $$ = &(init() << $2 << $5 >> "ExprSwitchStmt"); }
-    | SWITCH SimpleStmt ';' Expression ESEMI ExprCaseClauseList '}' { $$ = &(init() << $2 << $4 << $6 >> "ExprSwitchStmt"); }
+    SWITCH ECURLY ExprCaseClauseList '}' { $$ = &(init() << $3 >> "ExprSwitchStmt"); }
+    | SWITCH Expression ECURLY ExprCaseClauseList '}' { $$ = &(init() << $2 << $4 >> "ExprSwitchStmt"); }
+    | SWITCH SimpleStmt ';' ECURLY ExprCaseClauseList '}' { $$ = &(init() << $2 << $5 >> "ExprSwitchStmt"); }
+    | SWITCH SimpleStmt ';' Expression ECURLY ExprCaseClauseList '}' { $$ = &(init() << $2 << $4 << $6 >> "ExprSwitchStmt"); }
     ;
 
 ExprCaseClauseList:
@@ -390,7 +405,7 @@ ExprSwitchCase:
     ;
 
 SelectStmt:
-    SELECT ESEMI CommClauseList '}' { $$ = &(init() << $3 >> "SelectStmt"); }
+    SELECT ECURLY CommClauseList '}' { $$ = &(init() << $3 >> "SelectStmt"); }
     ;
 
 CommClauseList:
@@ -428,8 +443,8 @@ FunctionName:
     ;
 
 TypeSwitchStmt:
-    SWITCH SimpleStmt ';' TypeSwitchGuard ESEMI TypeCaseClauseList '}' { $$ = &(init() << $2 << $4 << $6 >> "TypeSwitchStmt"); }
-    | SWITCH TypeSwitchGuard ESEMI TypeCaseClauseList '}' { $$ = &(init() << $2 << $4 >> "TypeSwitchStmt"); }
+    SWITCH SimpleStmt ';' TypeSwitchGuard ECURLY TypeCaseClauseList '}' { $$ = &(init() << $2 << $4 << $6 >> "TypeSwitchStmt"); }
+    | SWITCH TypeSwitchGuard ECURLY TypeCaseClauseList '}' { $$ = &(init() << $2 << $4 >> "TypeSwitchStmt"); }
     ;
 
 TypeCaseClauseList:
@@ -524,7 +539,7 @@ PrimaryExpr:
 
 StructLiteral:
     '{' KeyValList '}' { $$ = &(init() << $2 >> "StructLiteral"); }
-    /*| ESEMI KeyValList '}' { $$ = &(init() << $2 >> "StructLiteral"); }*/
+    /*| ECURLY KeyValList '}' { $$ = &(init() << $2 >> "StructLiteral"); }*/
     ;
 
 KeyValList:
@@ -631,12 +646,13 @@ ElementType:
 
 StructType:
     STRUCT '{' FieldDeclList '}' { $$ = &(init() << $1 << $3 >> "StructType"); }
-    | STRUCT ESEMI FieldDeclList '}' { $$ = &(init() << $1 << $3 >> "StructType"); }
+    | STRUCT ECURLY FieldDeclList '}' { $$ = &(init() << $1 << $3 >> "StructType"); }
     ;
 
 FieldDeclList:
-    FieldDeclList FieldDecl ';' { $$ = &(init() << $1 << $2 >> "FieldDeclList"); }
-    | FieldDecl ';' { $$ = &(init() << $1 >> "FieldDeclList"); }
+    /* empty */ { $$ = &(init() >> "FieldDeclList"); }
+    | FieldDeclList FieldDecl ';' { $$ = &(init() << $1 << $2 >> "FieldDeclList"); }
+    /*| FieldDecl ';' { $$ = &(init() << $1 >> "FieldDeclList"); }*/
     ;
 
 FieldDecl:
@@ -706,7 +722,7 @@ OperandName:
     | '(' OperandName ')' { $$ = &(init() << $2 >> "OperandName"); }
     | STAR OperandName { $$ = &(init() << $1 << $2 >> "OperandName"); }
     | LiteralType        { $$ = &(init() << $1 >> "OperandName"); }
-    | OperandName '.' IDENT { $$ = &(init() << $1 >> "OperandName"); }
+    | OperandName '.' IDENT { $$ = &(init() << $1 << $3 >> "OperandName"); }
     ;
 
 MethodName:

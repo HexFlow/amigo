@@ -69,7 +69,7 @@ FOR    (for)
 RANGE  (range)
 DEFER  (defer)
 VAR    (var)
-ESEMI  (;)
+ECURLY (;)
 
 %x SEMIMODE
 
@@ -79,7 +79,7 @@ ESEMI  (;)
 []]/[\n]                               { BEGIN(SEMIMODE); return ']'; }
 [)]/[\n]                               { BEGIN(SEMIMODE); return ')'; }
 
-[{]/[\n]                               { yylval.sval = strdup(yytext); return ESEMI; }
+[{]/[\n]                               { yylval.sval = strdup(yytext); return ECURLY; }
 
 {INC}/[\n]                             { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return INC; }
 {DEC}/[\n]                             { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return DEC; }
