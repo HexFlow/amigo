@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include "node.h"
+#include <unordered_map>
 #define YYDEBUG 1
 using namespace std;
 
@@ -16,10 +17,27 @@ extern "C" FILE *yyin;
 
 void yyerror(const char *s);
 
-int node_id  = 0;
+// SYMBOL TABLE CONSTRUCTS
+int node_id = 0;
 int scope_id = 0;
 string scope_prefix = "0-";
 
+struct gotype {
+    char name[100];
+};
+
+struct symbol {
+    gotype type;
+};
+
+bool operator==(gotype &t, gotype &u) {
+    return t.name == u.name;
+}
+
+unordered_map<string, symbol> stable; // symbols
+unordered_map<string, gotype> ttable; // types
+
+// TREE NODE DEFINTIONS
 struct node {
     char name[100] = {0};
     vector<node *> children_nt;
@@ -123,15 +141,16 @@ void printTop(node* n) {
 %type <nt> ExpressionList TypeLit ArrayType CompositeLit LiteralType
 %type <nt> LiteralValue ElementList KeyedElement Key Element
 %type <nt> ArrayLength Operand Literal BasicLit OperandName
-%type <nt> PackageName MethodExpr ImportSpec TypeList
+%type <nt> PackageName ImportSpec TypeList
 %type <nt> MethodName  UnaryOp BinaryOp String ImportPath SliceType KeyType
 %type <nt> PackageClause ImportDeclList ImportDecl ImportSpecList TopLevelDeclList
 %type <nt> FieldDeclList FieldDecl Tag AnonymousField BaseType ElementType MakeExpr
 %type <nt> StructLiteral KeyValList
-/*%type <nt> TypeName InterfaceTypeName*/
+%type <nt> OPENB CLOSEB
+/*%type <nt> TypeName InterfaceTypeName MethodExpr*/
 %%
 SourceFile:
-    PackageClause ';' ImportDeclList TopLevelDeclList { $$ = &(init() << $1 << $3 << $4 >> "SourceFile"); printTop($$); }
+    OPENB PackageClause ';' ImportDeclList TopLevelDeclList CLOSEB { $$ = &(init() << $2 << $4 << $5 >> "SourceFile"); printTop($$); }
     ;
 
 Expression:
@@ -147,12 +166,14 @@ OPENB:
     /* empty */ {
         scope_id++;
         scope_prefix = (to_string(scope_id) + "-" + scope_prefix);
+        $$ = &(init() >> "ERROR");
     }
     ;
 
 CLOSEB:
     /* empty */ {
         scope_prefix = scope_prefix.substr(scope_prefix.find("-") + 1);
+        $$ = &(init() >> "ERROR");
     }
     ;
 
@@ -210,11 +231,11 @@ IncDecStmt:
     ;
 
 Assignment:
-    ExpressionList ASN_OP ExpressionList { $$ = &(init() << $1 << $2 << $3 >> "Assignment"); }
+    IdentifierList ASN_OP ExpressionList { $$ = &(init() << $1 << $2 << $3 >> "Assignment"); }
     ;
 
 ShortVarDecl:
-    ExpressionList DECL ExpressionList   { $$ = &(init() << $1  << $3 >> "ShortVarDecl"); }
+    IdentifierList DECL ExpressionList   { $$ = &(init() << $1  << $3 >> "ShortVarDecl"); }
     ;
 
 
@@ -370,12 +391,12 @@ FallthroughStmt:
     ;
 
 IfStmt:
-    IF Expression Block { $$ = &(init() << $2 << $3 >> "IfStmt"); }
-    | IF SimpleStmt ';' Expression Block { $$ = &(init() << $2 << $4 << $5 >> "IfStmt"); }
-    | IF Expression Block ELSE Block     { $$ = &(init() << $2 << $3 << $5 >> "IfStmt"); }
-    | IF Expression Block ELSE IfStmt    { $$ = &(init() << $2 << $3 << $5 >> "IfStmt"); }
-    | IF SimpleStmt ';' Expression Block ELSE IfStmt { $$ = &(init() << $2 << $4 << $5 << $7 >> "IfStmt"); }
-    | IF SimpleStmt ';' Expression Block ELSE Block  { $$ = &(init() << $2 << $4 << $5 << $7 >> "IfStmt"); }
+    IF OPENB Expression Block CLOSEB { $$ = &(init() << $3 << $4 >> "IfStmt"); }
+    | IF OPENB SimpleStmt ';' Expression Block CLOSEB { $$ = &(init() << $3 << $5 << $6 >> "IfStmt"); }
+    | IF OPENB Expression Block ELSE Block CLOSEB { $$ = &(init() << $3 << $4 << $6 >> "IfStmt"); }
+    | IF OPENB Expression Block ELSE IfStmt CLOSEB   { $$ = &(init() << $3 << $4 << $6 >> "IfStmt"); }
+    | IF OPENB SimpleStmt ';' Expression Block ELSE IfStmt CLOSEB { $$ = &(init() << $3 << $5 << $6 << $8 >> "IfStmt"); }
+    | IF OPENB SimpleStmt ';' Expression Block ELSE Block CLOSEB { $$ = &(init() << $3 << $5 << $6 << $8 >> "IfStmt"); }
     ;
 
 SwitchStmt:
@@ -384,10 +405,10 @@ SwitchStmt:
     ;
 
 ExprSwitchStmt:
-    SWITCH ECURLY ExprCaseClauseList '}' { $$ = &(init() << $3 >> "ExprSwitchStmt"); }
-    | SWITCH Expression ECURLY ExprCaseClauseList '}' { $$ = &(init() << $2 << $4 >> "ExprSwitchStmt"); }
-    | SWITCH SimpleStmt ';' ECURLY ExprCaseClauseList '}' { $$ = &(init() << $2 << $5 >> "ExprSwitchStmt"); }
-    | SWITCH SimpleStmt ';' Expression ECURLY ExprCaseClauseList '}' { $$ = &(init() << $2 << $4 << $6 >> "ExprSwitchStmt"); }
+    SWITCH OPENB ECURLY ExprCaseClauseList '}' CLOSEB { $$ = &(init() << $4 >> "ExprSwitchStmt"); }
+    | SWITCH OPENB Expression ECURLY ExprCaseClauseList '}' CLOSEB { $$ = &(init() << $3 << $5 >> "ExprSwitchStmt"); }
+    | SWITCH OPENB SimpleStmt ';' ECURLY ExprCaseClauseList '}' CLOSEB { $$ = &(init() << $3 << $6 >> "ExprSwitchStmt"); }
+    | SWITCH OPENB SimpleStmt ';' Expression ECURLY ExprCaseClauseList '}' CLOSEB { $$ = &(init() << $3 << $5 << $7 >> "ExprSwitchStmt"); }
     ;
 
 ExprCaseClauseList:
@@ -396,7 +417,7 @@ ExprCaseClauseList:
     ;
 
 ExprCaseClause:
-    ExprSwitchCase ':' StatementList { $$ = &(init() << $1 << $3 >> "ExprCaseClause"); }
+    OPENB ExprSwitchCase ':' StatementList CLOSEB { $$ = &(init() << $2 << $4 >> "ExprCaseClause"); }
     ;
 
 ExprSwitchCase:
@@ -414,7 +435,7 @@ CommClauseList:
     ;
 
 CommClause:
-    CommCase ':' StatementList { $$ = &(init() << $1 << $3 >> "CommClause"); }
+    OPENB CommCase ':' StatementList CLOSEB { $$ = &(init() << $2 << $4 >> "CommClause"); }
     ;
 
 CommCase:
@@ -425,8 +446,8 @@ CommCase:
 
 RecvStmt:
     RecvExpr { $$ = &(init() << $1 >> "RecvStmt"); }
-    | ExpressionList '=' RecvExpr { $$ = &(init() << $1 << $3 >> "RecvStmt"); }
-    | ExpressionList DECL RecvExpr { $$ = &(init() << $1 << $2 << $3  >> "RecvStmt"); }
+    | IdentifierList '=' RecvExpr { $$ = &(init() << $1 << $3 >> "RecvStmt"); }
+    | IdentifierList DECL RecvExpr { $$ = &(init() << $1 << $2 << $3  >> "RecvStmt"); }
     ;
 
 RecvExpr:
@@ -443,14 +464,14 @@ FunctionName:
     ;
 
 TypeSwitchStmt:
-    SWITCH SimpleStmt ';' TypeSwitchGuard ECURLY TypeCaseClauseList '}' { $$ = &(init() << $2 << $4 << $6 >> "TypeSwitchStmt"); }
-    | SWITCH TypeSwitchGuard ECURLY TypeCaseClauseList '}' { $$ = &(init() << $2 << $4 >> "TypeSwitchStmt"); }
+    SWITCH OPENB SimpleStmt ';' TypeSwitchGuard ECURLY TypeCaseClauseList '}' CLOSEB { $$ = &(init() << $3 << $5 << $7 >> "TypeSwitchStmt"); }
+    | SWITCH OPENB TypeSwitchGuard ECURLY TypeCaseClauseList '}' CLOSEB { $$ = &(init() << $3 << $5 >> "TypeSwitchStmt"); }
     ;
 
 TypeCaseClauseList:
     /* empty */ { $$ = &(init() >> "TypeCaseClauseList"); }
     | TypeCaseClauseList TypeCaseClause { $$ = &(init() << $1 << $2 >> "TypeCaseClauseList"); }
-    | TypeCaseClause { $$ = &(init() << $1 >> "TypeCaseClauseList"); }
+    /*| TypeCaseClause { $$ = &(init() << $1 >> "TypeCaseClauseList"); }*/
     ;
 
 TypeSwitchGuard:
@@ -459,7 +480,7 @@ TypeSwitchGuard:
     ;
 
 TypeCaseClause:
-    TypeSwitchCase ':' StatementList { $$ = &(init() << $1 << $3 >> "TypeCaseClause"); }
+    OPENB TypeSwitchCase ':' StatementList CLOSEB { $$ = &(init() << $2 << $4 >> "TypeCaseClause"); }
     ;
 
 TypeSwitchCase:
@@ -474,7 +495,7 @@ TypeList:
 
 
 Function:
-    Signature FunctionBody { $$ = &(init() << $1 << $2 >> "Function"); }
+    OPENB Signature FunctionBody CLOSEB { $$ = &(init() << $2 << $3 >> "Function"); }
     ;
 
 FunctionBody:
@@ -483,9 +504,9 @@ FunctionBody:
 
 ForStmt:
     FOR Block { $$ = &(init() << $2 >> "ForStmt"); }
-    | FOR Condition Block { $$ = &(init() << $2 << $3 >> "ForStmt"); }
-    | FOR ForClause Block { $$ = &(init() << $2 << $3 >> "ForStmt"); }
-    | FOR RangeClause Block { $$ = &(init() << $2 << $3 >> "ForStmt"); }
+    | FOR OPENB Condition Block CLOSEB { $$ = &(init() << $3 << $4 >> "ForStmt"); }
+    | FOR OPENB ForClause Block CLOSEB { $$ = &(init() << $3 << $4 >> "ForStmt"); }
+    | FOR OPENB RangeClause Block CLOSEB { $$ = &(init() << $3 << $4 >> "ForStmt"); }
     ;
 
 ForClause:
@@ -495,8 +516,8 @@ ForClause:
 
 RangeClause:
     RANGE Expression  { $$ = &(init() << $2 >> "RangeClause"); }
-    | ExpressionList DECL RANGE Expression  { $$ = &(init() << $1 << $4 >> "RangeClause"); }
-    | ExpressionList '=' RANGE Expression  { $$ = &(init() << $1 << $4 >> "RangeClause"); }
+    | IdentifierList DECL RANGE Expression  { $$ = &(init() << $1 << $4 >> "RangeClause"); }
+    | IdentifierList '=' RANGE Expression  { $$ = &(init() << $1 << $4 >> "RangeClause"); }
     ;
 
 InitStmt:
@@ -612,8 +633,8 @@ Arguments:
     ;
 
 IdentifierList:
-    IDENT                         { $$ = &(init() << $1 >> "IdentifierList"); }
-    | IdentifierList ',' IDENT    { $$ = &(init() << $1 >> "IdentifierList"); }
+    OperandName { $$ = &(init() << $1 >> "IdentifierList"); }
+    | IdentifierList ',' OperandName { $$ = &(init() << $1 >> "IdentifierList"); }
     ;
 
 ExpressionList:
