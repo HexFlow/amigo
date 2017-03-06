@@ -23,25 +23,54 @@ int scope_id = 0;
 string scope_prefix = "0-";
 
 struct gotype {
-    char name[100];
+    string ret;
+    vector<string> args;
 };
 
+gotype newtype(string n) {
+    gotype k;
+    k.ret = n;
+    return k;
+}
+
 struct symbol {
+    string name;
     gotype type;
 };
 
+symbol newsymb(string n, gotype t) {
+    symbol s;
+    s.name = n;
+    s.type = t;
+    return s;
+}
+
 bool operator==(gotype &t, gotype &u) {
-    return t.name == u.name;
+    return t.ret == u.ret;
 }
 
 unordered_map<string, symbol> stable; // symbols
 unordered_map<string, gotype> ttable; // types
+
+void inittables() {
+    ttable.insert(make_pair("int", newtype("int")));
+    ttable.insert(make_pair("uint32", newtype("uint32")));
+}
+
+void printtables() {
+    cout << endl << endl << "Symbol table:" << endl;
+    for(auto elem: stable) {
+        cout << elem.first << " " << elem.second.type.ret << endl;
+    }
+}
 
 // TREE NODE DEFINTIONS
 struct node {
     char name[100] = {0};
     vector<node *> children_nt;
     vector<char *> children_t;
+    vector<string> types;
+    vector<string> names;
 };
 
 node &operator<<(node &l, node *r) {
@@ -257,8 +286,14 @@ ConstSpecList:
     ;
 
 Signature:
-    Parameters          { $$ = &(init() << $1 >> "Signature"); }
-    | Parameters Result { $$ = &(init() << $1 << $2 >> "Signature"); }
+    OPENB Parameters          {
+    $$ = &(init() << $1 >> "Signature");
+    $$->types.push_back("abcd");
+    }
+    | OPENB Parameters Result {
+        $$ = &(init() << $1 << $2 >> "Signature");
+        $$->types.push_back("int");
+    }
     ;
 
 Result:
@@ -291,7 +326,7 @@ ConstSpec:
     ;
 
 MethodDecl:
-    FUNC Receiver MethodName Signature  { $$ = &(init() << $2 << $3 << $4 >> "MethodDecl"); }
+    FUNC Receiver MethodName Signature CLOSEB { $$ = &(init() << $2 << $3 << $4 >> "MethodDecl"); }
     | FUNC Receiver MethodName Function { $$ = &(init() << $2 << $3 << $4 >> "MethodDecl"); }
     ;
 
@@ -455,12 +490,29 @@ RecvExpr:
     ;
 
 FunctionDecl:
-    FUNC FunctionName Signature { $$ = &(init() << $2 << $3 >> "FunctionDecl"); }
-    | FUNC FunctionName Function { $$ = &(init() << $2 << $3 >> "FunctionDecl"); }
+    FUNC FunctionName Signature CLOSEB {
+        $$ = &(init() << $2 << $3 >> "FunctionDecl");
+        gotype ftype;
+        ftype.ret = $3->types.back();
+        $3->types.pop_back();
+        ftype.args = $3->types;
+        stable.insert(make_pair($2->names[0], newsymb($2->names[0], ftype)));
+    }
+    | FUNC FunctionName Function {
+        $$ = &(init() << $2 << $3 >> "FunctionDecl");
+        gotype ftype;
+        ftype.ret = $3->types.back();
+        $3->types.pop_back();
+        ftype.args = $3->types;
+        stable.insert(make_pair($2->names[0], newsymb($2->names[0], ftype)));
+    }
     ;
 
 FunctionName:
-    IDENT { $$ = &(init() << $1 >> "FunctionName"); }
+    IDENT {
+        $$ = &(init() << $1 >> "FunctionName");
+        $$->names.push_back(string($1, strlen($1)));
+    }
     ;
 
 TypeSwitchStmt:
@@ -495,7 +547,10 @@ TypeList:
 
 
 Function:
-    OPENB Signature FunctionBody CLOSEB { $$ = &(init() << $2 << $3 >> "Function"); }
+    Signature FunctionBody CLOSEB {
+        $$ = &(init() << $2 << $3 >> "Function");
+        $$->types = $1->types;
+    }
     ;
 
 FunctionBody:

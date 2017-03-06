@@ -8,11 +8,16 @@ extern "C" FILE *yyin;
 extern "C" void exit(int);
 extern "C" int yydebug;
 
+extern void inittables();
+extern void printtables();
+
 void yyerror(const char *s);
 
 FILE *parseCLI(int argc, char **argv);
 
 int main(int argc, char **argv) {
+    inittables();
+
     yydebug = 1;
 
     FILE *myfile = parseCLI(argc, argv);
@@ -23,6 +28,8 @@ int main(int argc, char **argv) {
     do {
         yyparse();
     } while (!feof(yyin));
+
+    printtables();
 }
 
 void yyerror(const char *s) {
