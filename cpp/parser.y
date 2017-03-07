@@ -5,12 +5,9 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <sstream>
-#include "node.h"
 #include <unordered_map>
+#include "node.h"
 #define YYDEBUG 1
-#define ERROR cout<<"[ERROR] "
-#define WARN cout<<"[WARN]  "
 using namespace std;
 
 // stuff from flex that bison needs to know about:
@@ -29,169 +26,6 @@ int node_id = 0;
 int scope_id = 0;
 string scope_prefix = "0-";
 
-enum TypeClass {
-    _BasicType,
-    _FxnType,
-    _StructType,
-    _TupleType,
-    _MapType,
-    _ArrayType,
-    _StarType
-};
-
-class gotype;
-class symbol;
-
-class gotype {
-public:
-    string name;
-    TypeClass classtype;
-
-    unordered_map<string, symbol*> functions;
-
-    /* For functions */
-    vector<gotype*> args;
-    gotype *ret;
-
-    /* For structs */
-    unordered_map<string, gotype*> fields;
-
-    /* For tuples */
-    vector<gotype*> types;
-
-    /* For maps */
-    gotype *key, *value;
-
-    /* For array or star */
-    gotype *base;
-
-    /* Basic type */
-    gotype(string _name) : name(_name) {
-        classtype = _BasicType;
-    }
-
-    /* Function Type */
-    gotype(vector<gotype*> _args, gotype *_ret)
-        : args(_args), ret(_ret) {
-        classtype = _FxnType;
-    }
-
-    /* Struct Type */
-    gotype(unordered_map<string, gotype*> _fields)
-        : fields(_fields) {
-        classtype = _StructType;
-    }
-
-    /* Tuple Type */
-    gotype(vector<gotype*> _types)
-        : types(_types) {
-        classtype = _TupleType;
-    }
-
-    /* Map Type */
-    gotype(gotype *_key, gotype *_value)
-        : key(_key), value(_value) {
-        classtype = _MapType;
-    }
-
-    /* Array or star Type */
-    gotype(gotype *_base)
-        : base(_base) {
-        classtype = _ArrayType;
-    }
-
-    gotype(gotype *_base, bool isStar)
-        : base(_base) {
-        classtype = _StarType;
-    }
-
-    string tostring() {
-        stringstream strval;
-        if (classtype == _BasicType) {
-            strval << name;
-        } else if (classtype == _FxnType) {
-            for (auto &param: args) {
-                strval << param->tostring() << " -> ";
-            }
-            strval << ret->tostring();
-        } else if (classtype == _StructType) {
-            strval << "Data [ ";
-            bool first = false;
-            for (auto &param: fields) {
-                if (!first) strval << ", ";
-                strval << param.second->tostring();
-            }
-            cout << " ]";
-        } else if (classtype == _TupleType) {
-            strval << "( ";
-            bool first = false;
-            for (auto &param: types) {
-                if (!first) strval << ", ";
-                strval << param->tostring();
-            }
-            strval << " )";
-        } else if (classtype == _ArrayType) {
-            strval << "[]" << base->tostring();
-        } else if (classtype == _StarType) {
-            strval << "*" << base->tostring();
-        } else if (classtype == _MapType) {
-            strval << "map[" << key->tostring();
-            strval << "]" << value->tostring();
-        }
-        return strval.str();
-    }
-
-    static bool compareList(vector<gotype*> &list1, vector<gotype*> &list2) {
-        if (list1.size() != list2.size()) return false;
-        bool same = true;
-        for (int i=0; i<list1.size() && same; i++) {
-            if (list1[i] >= list2[i]) continue;
-            else same = false;
-        }
-        return same;
-    }
-
-    bool operator>=(gotype *comp) {
-        if (classtype == comp->classtype) {
-            if (classtype == _BasicType) {
-                return name == comp->name;
-            } else if (classtype == _StructType) {
-                /* if (fields.size() != comp->fields.size()) return false; */
-                /* return gotype::compareList(fields, comp->fields); */
-                /* TODO: Think about this */
-                return true;
-            } else if (classtype == _TupleType) {
-                if (types.size() != comp->types.size()) return false;
-                return gotype::compareList(types, comp->types);
-            } else if (classtype == _ArrayType || classtype == _StarType) {
-                return base >= comp->base;
-            } else if (classtype == _FxnType) {
-                return gotype::compareList(args, comp->args) &&
-                    ret >= comp->ret;
-            } else if (classtype == _MapType) {
-                return key >= comp->key && value >= comp->key;
-            }
-        } else {
-            return false;
-        }
-    }
-};
-
-class symbol {
-public:
-    string name;
-    gotype *type;
-    bool starred;
-
-    symbol(string n, gotype *t)
-        : name(n), type(t) {
-        starred = false;
-    }
-
-    symbol(string n, gotype *t, bool _starred)
-        : name(n), type(t), starred(_starred) {}
-};
-
 unordered_map<string, symbol> stable; // symbols
 unordered_map<string, gotype> ttable; // types
 
@@ -207,65 +41,6 @@ void printtables() {
         cout << elem.second.type->tostring();
         cout << endl;
     }
-}
-
-// TREE NODE DEFINTIONS
-struct node {
-    char name[100] = {0};
-    vector<node *> children_nt;
-    vector<char *> children_t;
-    vector<gotype*> types;
-    vector<symbol*> symbols;
-};
-
-node &operator<<(node &l, node *r) {
-    l.children_nt.push_back(r);
-    return l;
-}
-
-node &operator<=(node &l, node *r) {
-    l.children_nt.push_back(r);
-    l.types = r->types;
-    l.symbols = r->symbols;
-    return l;
-}
-
-/* Add elements to vector */
-node &operator+=(node &l, node *r) {
-    for (auto &t: r->types) {
-        l.types.push_back(t);
-    }
-    for (auto &t: r->symbols) {
-        l.symbols.push_back(t);
-    }
-    return l;
-}
-
-/* Apply function */
-node &operator||(node &l, string fxn) {
-    if (l.types[0]->functions.find(fxn) ==
-        l.types[0]->functions.end()) {
-        ERROR << "Function " <<
-            fxn << " not defined for " << l.types[0]->tostring() << endl;
-    }
-    return l;
-}
-
-node &operator<<(node &l, char *r) {
-    l.children_t.push_back(strdup(r));
-    return l;
-}
-
-node &operator>>(node &l, const char *r) {
-    strcpy(l.name, r);
-    return l;
-}
-
-node &init() {
-    node *n = new node();
-    n->types = vector<gotype*>();
-    n->symbols = vector<symbol*>();
-    return *n;
 }
 
 string escape_json(const string &s) {
@@ -345,13 +120,12 @@ void printTop(node* n) {
 %type <nt> ExpressionList TypeLit ArrayType CompositeLit LiteralType
 %type <nt> LiteralValue ElementList KeyedElement Key Element
 %type <nt> ArrayLength Operand Literal BasicLit OperandName
-%type <nt> PackageName ImportSpec TypeList
+%type <nt> PackageName MethodExpr ImportSpec TypeList
 %type <nt> MethodName  UnaryOp BinaryOp String ImportPath SliceType KeyType
 %type <nt> PackageClause ImportDeclList ImportDecl ImportSpecList TopLevelDeclList
 %type <nt> FieldDeclList FieldDecl Tag AnonymousField BaseType ElementType MakeExpr
 %type <nt> StructLiteral KeyValList
-%type <nt> OPENB CLOSEB
-/*%type <nt> TypeName InterfaceTypeName MethodExpr*/
+/*%type <nt> TypeName InterfaceTypeName*/
 %%
 SourceFile:
     PackageClause ';' ImportDeclList TopLevelDeclList { $$ = &(init() << $1 << $3 << $4 >> "SourceFile"); printTop($$); }
@@ -370,14 +144,12 @@ OPENB:
     /* empty */ {
         scope_id++;
         scope_prefix = (to_string(scope_id) + "-" + scope_prefix);
-        $$ = &(init() >> "ERROR");
     }
     ;
 
 CLOSEB:
     /* empty */ {
         scope_prefix = scope_prefix.substr(scope_prefix.find("-") + 1);
-        $$ = &(init() >> "ERROR");
     }
     ;
 
@@ -430,20 +202,12 @@ Channel:
     ;
 
 IncDecStmt:
-    Expression INC   { $$ = &(init() <= $1 << $2 >> "IncDecStmt"); }
-    | Expression DEC { $$ = &(init() <= $1 << $2 >> "IncDecStmt"); }
+    Expression INC   { $$ = &(init() << $1 << $2 >> "IncDecStmt"); }
+    | Expression DEC { $$ = &(init() << $1 << $2 >> "IncDecStmt"); }
     ;
 
 Assignment:
-    ExpressionList ASN_OP ExpressionList {
-        $$ = &(init() << $1 << $2 << $3 >> "Assignment");
-        if ($1->symbols.size() != $2->types.size()) {
-            ERROR << "Wrong number of operands in assignment: "
-                  << $1->symbols.size() << " and " << $2->types.size() << endl;
-        }
-        for (int i=0; i<$1->symbols.size(); i++) {
-        }
-    }
+    ExpressionList ASN_OP ExpressionList { $$ = &(init() << $1 << $2 << $3 >> "Assignment"); }
     ;
 
 ShortVarDecl:
@@ -469,63 +233,31 @@ ConstSpecList:
     ;
 
 Signature:
-    OPENB Parameters          {
-    $$ = &(init() << $2 >> "Signature");
-    $$->types.push_back(new gotype($2->types, new gotype("void")));
-    }
-    | OPENB Parameters Result {
-        $$ = &(init() << $2 << $3 >> "Signature");
-        $$->types.push_back(new gotype($2->types, $3->types[0]));
-    }
+    Parameters          { $$ = &(init() << $1 >> "Signature"); }
+    | Parameters Result { $$ = &(init() << $1 << $2 >> "Signature"); }
     ;
 
 Result:
-    Parameters { $$ = &(init() <= $1 >> "Result"); }
-    | OperandName { $$ = &(init() <= $1 >> "Result"); }
+    Parameters { $$ = &(init() << $1 >> "Result"); }
+    | OperandName { $$ = &(init() << $1 >> "Result"); }
     ;
 
 Parameters:
-    '('  ')'                    {
-        $$ = &(init() >> "Parameters");
-    }
-    | '(' ParameterList  ')'    {
-        $$ = &(init() << $2 >> "Parameters");
-        $$->types = $2->types;
-    }
-    | '(' ParameterList ',' ')' {
-        $$ = &(init() << $2 >> "Parameters");
-        $$->types = $2->types;
-      }
+    '('  ')'                    { $$ = &(init() >> "Parameters"); }
+    | '(' ParameterList  ')'    { $$ = &(init() << $2 >> "Parameters"); }
+    | '(' ParameterList ',' ')' { $$ = &(init() << $2 >> "Parameters"); }
     ;
 
 ParameterList:
-    ParameterDecl {
-        $$ = &(init() << $1 >> "ParameterList");
-        $$->types = $1->types;  /* Should not have more than 1 type */
-    }
-    | ParameterList ',' ParameterDecl {
-        $$ = &(init() << $1 << $3 >> "ParameterList");
-        $$->types = $1->types;
-        $$->types.push_back($3->types[0]); /* Should have only 1 type */
-      }
+    ParameterDecl { $$ = &(init() << $1 >> "ParameterList"); }
+    | ParameterList ',' ParameterDecl { $$ = &(init() << $1 << $3 >> "ParameterList"); }
     ;
 
 ParameterDecl:
     /*Type                       { $$ = &(init() << $1 >> "ParameterDecl"); }*/
-    DOTS OperandName { $$ = &(init() << $1 << $2 >> "ParameterDecl");  } /* TODO:
-                                                                   * Missing types */
-    | IdentifierList OperandName {
-        $$ = &(init() << $1 << $2 >> "ParameterDecl");
-        for (int i=0; i<$1->symbols.size(); i++) {
-            /* Fails if OperandName did not return a type */
-            $$->types.push_back($2->types[0]);
-            stable.insert(make_pair(scope_prefix += $1->symbols[i],
-                                    symbol($1->symbols[i], $2->types[0])));
-        }
-    }
-    | IdentifierList DOTS OperandName {
-        $$ = &(init() << $1 << $2 << $3 >> "ParameterDecl"); // TODO: Missing types
-    }
+    DOTS OperandName { $$ = &(init() << $1 << $2 >> "ParameterDecl"); }
+    | IdentifierList OperandName { $$ = &(init() << $1 << $2 >> "ParameterDecl"); }
+    | IdentifierList DOTS OperandName { $$ = &(init() << $1 << $2 << $3 >> "ParameterDecl"); }
     ;
 
 ConstSpec:
@@ -535,7 +267,7 @@ ConstSpec:
     ;
 
 MethodDecl:
-    FUNC Receiver MethodName Signature CLOSEB { $$ = &(init() << $2 << $3 << $4 >> "MethodDecl"); }
+    FUNC Receiver MethodName Signature  { $$ = &(init() << $2 << $3 << $4 >> "MethodDecl"); }
     | FUNC Receiver MethodName Function { $$ = &(init() << $2 << $3 << $4 >> "MethodDecl"); }
     ;
 
@@ -554,13 +286,12 @@ CompositeLit:
     ;
 
 LiteralType:
-    StructType                 { $$ = &(init() <= $1 >> "LiteralType"); }
-    | ArrayType                { $$ = &(init() <= $1 >> "LiteralType"); }
-    | '[' DOTS ']' ElementType {
-        $$ = &(init() << $2 <= $4 >> "LiteralType");
-    }
-    | SliceType                { $$ = &(init() <= $1 >> "LiteralType"); }
-    | MapType                  { $$ = &(init() <= $1 >> "LiteralType"); }
+    StructType                 { $$ = &(init() << $1 >> "LiteralType"); }
+    | ArrayType                { $$ = &(init() << $1 >> "LiteralType"); }
+    | '[' DOTS ']' ElementType { $$ = &(init() << $2 << $4 >> "LiteralType"); }
+    | SliceType                { $$ = &(init() << $1 >> "LiteralType"); }
+    | MapType                  { $$ = &(init() << $1 >> "LiteralType"); }
+    /*| OperandName              { $$ = &(init() << $1 >> "LiteralType"); }*/
     ;
 
 LiteralValue:
@@ -573,10 +304,7 @@ LiteralValue:
     ;
 
 SliceType:
-    '[' ']' ElementType  {
-        $$ = &(init() << $3 >> "SliceType");
-        clone($$, $3);
-    }
+    '[' ']' ElementType  { $$ = &(init() << $3 >> "SliceType"); }
     /* TODO: Fix this */
     /*| '[' ']' OperandName  { $$ = &(init() << $3 >> "SliceType"); }*/
     ;
@@ -639,12 +367,12 @@ FallthroughStmt:
     ;
 
 IfStmt:
-    IF OPENB Expression Block CLOSEB { $$ = &(init() << $3 << $4 >> "IfStmt"); }
-    | IF OPENB SimpleStmt ';' Expression Block CLOSEB { $$ = &(init() << $3 << $5 << $6 >> "IfStmt"); }
-    | IF OPENB Expression Block ELSE Block CLOSEB { $$ = &(init() << $3 << $4 << $6 >> "IfStmt"); }
-    | IF OPENB Expression Block ELSE IfStmt CLOSEB   { $$ = &(init() << $3 << $4 << $6 >> "IfStmt"); }
-    | IF OPENB SimpleStmt ';' Expression Block ELSE IfStmt CLOSEB { $$ = &(init() << $3 << $5 << $6 << $8 >> "IfStmt"); }
-    | IF OPENB SimpleStmt ';' Expression Block ELSE Block CLOSEB { $$ = &(init() << $3 << $5 << $6 << $8 >> "IfStmt"); }
+    IF Expression Block { $$ = &(init() << $2 << $3 >> "IfStmt"); }
+    | IF SimpleStmt ';' Expression Block { $$ = &(init() << $2 << $4 << $5 >> "IfStmt"); }
+    | IF Expression Block ELSE Block     { $$ = &(init() << $2 << $3 << $5 >> "IfStmt"); }
+    | IF Expression Block ELSE IfStmt    { $$ = &(init() << $2 << $3 << $5 >> "IfStmt"); }
+    | IF SimpleStmt ';' Expression Block ELSE IfStmt { $$ = &(init() << $2 << $4 << $5 << $7 >> "IfStmt"); }
+    | IF SimpleStmt ';' Expression Block ELSE Block  { $$ = &(init() << $2 << $4 << $5 << $7 >> "IfStmt"); }
     ;
 
 SwitchStmt:
@@ -653,10 +381,10 @@ SwitchStmt:
     ;
 
 ExprSwitchStmt:
-    SWITCH OPENB ECURLY ExprCaseClauseList '}' CLOSEB { $$ = &(init() << $4 >> "ExprSwitchStmt"); }
-    | SWITCH OPENB Expression ECURLY ExprCaseClauseList '}' CLOSEB { $$ = &(init() << $3 << $5 >> "ExprSwitchStmt"); }
-    | SWITCH OPENB SimpleStmt ';' ECURLY ExprCaseClauseList '}' CLOSEB { $$ = &(init() << $3 << $6 >> "ExprSwitchStmt"); }
-    | SWITCH OPENB SimpleStmt ';' Expression ECURLY ExprCaseClauseList '}' CLOSEB { $$ = &(init() << $3 << $5 << $7 >> "ExprSwitchStmt"); }
+    SWITCH ECURLY ExprCaseClauseList '}' { $$ = &(init() << $3 >> "ExprSwitchStmt"); }
+    | SWITCH Expression ECURLY ExprCaseClauseList '}' { $$ = &(init() << $2 << $4 >> "ExprSwitchStmt"); }
+    | SWITCH SimpleStmt ';' ECURLY ExprCaseClauseList '}' { $$ = &(init() << $2 << $5 >> "ExprSwitchStmt"); }
+    | SWITCH SimpleStmt ';' Expression ECURLY ExprCaseClauseList '}' { $$ = &(init() << $2 << $4 << $6 >> "ExprSwitchStmt"); }
     ;
 
 ExprCaseClauseList:
@@ -665,7 +393,7 @@ ExprCaseClauseList:
     ;
 
 ExprCaseClause:
-    OPENB ExprSwitchCase ':' StatementList CLOSEB { $$ = &(init() << $2 << $4 >> "ExprCaseClause"); }
+    ExprSwitchCase ':' StatementList { $$ = &(init() << $1 << $3 >> "ExprCaseClause"); }
     ;
 
 ExprSwitchCase:
@@ -683,7 +411,7 @@ CommClauseList:
     ;
 
 CommClause:
-    OPENB CommCase ':' StatementList CLOSEB { $$ = &(init() << $2 << $4 >> "CommClause"); }
+    CommCase ':' StatementList { $$ = &(init() << $1 << $3 >> "CommClause"); }
     ;
 
 CommCase:
@@ -694,8 +422,8 @@ CommCase:
 
 RecvStmt:
     RecvExpr { $$ = &(init() << $1 >> "RecvStmt"); }
-    | IdentifierList '=' RecvExpr { $$ = &(init() << $1 << $3 >> "RecvStmt"); }
-    | IdentifierList DECL RecvExpr { $$ = &(init() << $1 << $2 << $3  >> "RecvStmt"); }
+    | ExpressionList '=' RecvExpr { $$ = &(init() << $1 << $3 >> "RecvStmt"); }
+    | ExpressionList DECL RecvExpr { $$ = &(init() << $1 << $2 << $3  >> "RecvStmt"); }
     ;
 
 RecvExpr:
@@ -703,34 +431,23 @@ RecvExpr:
     ;
 
 FunctionDecl:
-    FUNC FunctionName Signature CLOSEB {
-        $$ = &(init() << $2 << $3 >> "FunctionDecl");
-        stable.insert(make_pair(scope_prefix += $2->symbols[0],
-                                symbol($2->symbols[0], $3->types[0])));
-    }
-    | FUNC FunctionName Function {
-        $$ = &(init() << $2 << $3 >> "FunctionDecl");
-        stable.insert(make_pair(scope_prefix += $2->symbols[0],
-                                symbol($2->symbols[0], $3->types[0])));
-    }
+    FUNC FunctionName Signature { $$ = &(init() << $2 << $3 >> "FunctionDecl"); }
+    | FUNC FunctionName Function { $$ = &(init() << $2 << $3 >> "FunctionDecl"); }
     ;
 
 FunctionName:
-    IDENT {
-        $$ = &(init() << $1 >> "FunctionName");
-        $$->symbols.push_back(string($1, strlen($1)));
-    }
+    IDENT { $$ = &(init() << $1 >> "FunctionName"); }
     ;
 
 TypeSwitchStmt:
-    SWITCH OPENB SimpleStmt ';' TypeSwitchGuard ECURLY TypeCaseClauseList '}' CLOSEB { $$ = &(init() << $3 << $5 << $7 >> "TypeSwitchStmt"); }
-    | SWITCH OPENB TypeSwitchGuard ECURLY TypeCaseClauseList '}' CLOSEB { $$ = &(init() << $3 << $5 >> "TypeSwitchStmt"); }
+    SWITCH SimpleStmt ';' TypeSwitchGuard ECURLY TypeCaseClauseList '}' { $$ = &(init() << $2 << $4 << $6 >> "TypeSwitchStmt"); }
+    | SWITCH TypeSwitchGuard ECURLY TypeCaseClauseList '}' { $$ = &(init() << $2 << $4 >> "TypeSwitchStmt"); }
     ;
 
 TypeCaseClauseList:
     /* empty */ { $$ = &(init() >> "TypeCaseClauseList"); }
     | TypeCaseClauseList TypeCaseClause { $$ = &(init() << $1 << $2 >> "TypeCaseClauseList"); }
-    /*| TypeCaseClause { $$ = &(init() << $1 >> "TypeCaseClauseList"); }*/
+    | TypeCaseClause { $$ = &(init() << $1 >> "TypeCaseClauseList"); }
     ;
 
 TypeSwitchGuard:
@@ -739,7 +456,7 @@ TypeSwitchGuard:
     ;
 
 TypeCaseClause:
-    OPENB TypeSwitchCase ':' StatementList CLOSEB { $$ = &(init() << $2 << $4 >> "TypeCaseClause"); }
+    TypeSwitchCase ':' StatementList { $$ = &(init() << $1 << $3 >> "TypeCaseClause"); }
     ;
 
 TypeSwitchCase:
@@ -754,10 +471,7 @@ TypeList:
 
 
 Function:
-    Signature FunctionBody CLOSEB {
-        $$ = &(init() << $2 << $3 >> "Function");
-        $$->types = $1->types;
-    }
+    Signature FunctionBody { $$ = &(init() << $1 << $2 >> "Function"); }
     ;
 
 FunctionBody:
@@ -766,9 +480,9 @@ FunctionBody:
 
 ForStmt:
     FOR Block { $$ = &(init() << $2 >> "ForStmt"); }
-    | FOR OPENB Condition Block CLOSEB { $$ = &(init() << $3 << $4 >> "ForStmt"); }
-    | FOR OPENB ForClause Block CLOSEB { $$ = &(init() << $3 << $4 >> "ForStmt"); }
-    | FOR OPENB RangeClause Block CLOSEB { $$ = &(init() << $3 << $4 >> "ForStmt"); }
+    | FOR Condition Block { $$ = &(init() << $2 << $3 >> "ForStmt"); }
+    | FOR ForClause Block { $$ = &(init() << $2 << $3 >> "ForStmt"); }
+    | FOR RangeClause Block { $$ = &(init() << $2 << $3 >> "ForStmt"); }
     ;
 
 ForClause:
@@ -778,8 +492,8 @@ ForClause:
 
 RangeClause:
     RANGE Expression  { $$ = &(init() << $2 >> "RangeClause"); }
-    | IdentifierList DECL RANGE Expression  { $$ = &(init() << $1 << $4 >> "RangeClause"); }
-    | IdentifierList '=' RANGE Expression  { $$ = &(init() << $1 << $4 >> "RangeClause"); }
+    | ExpressionList DECL RANGE Expression  { $$ = &(init() << $1 << $4 >> "RangeClause"); }
+    | ExpressionList '=' RANGE Expression  { $$ = &(init() << $1 << $4 >> "RangeClause"); }
     ;
 
 InitStmt:
@@ -895,10 +609,8 @@ Arguments:
     ;
 
 IdentifierList:
-    OperandName { $$ = &(init() <= $1 >> "IdentifierList"); }
-    | IdentifierList ',' OperandName {
-        $$ = &(init() <= $1 += $3 >> "IdentifierList");
-    }
+    IDENT                         { $$ = &(init() << $1 >> "IdentifierList"); }
+    | IdentifierList ',' IDENT    { $$ = &(init() << $1 >> "IdentifierList"); }
     ;
 
 ExpressionList:
@@ -906,16 +618,27 @@ ExpressionList:
     | ExpressionList ',' Expression { $$ = &(init() << $1 << $3 >> "ExpressionList"); }
     ;
 
+/*Conversion:*/
+    /*Type '(' Expression ')'       { $$ = &(init() << $1 << $3 >> "Conversion"); }*/
+    /*| Type '(' Expression ',' ')' { $$ = &(init() << $1 << $3 >> "Conversion"); }*/
+    /*;*/
+
+/*Type:*/
+    /*OperandName       { $$ = &(init() << $1 >> "Type"); }*/
+    /*| TypeLit      { $$ = &(init() << $1 >> "Type"); }*/
+    /*| '(' Type ')' { $$ = &(init() << $2 >> "Type"); }*/
+    /*;*/
+
 MapType:
     MAP '[' KeyType ']' ElementType { $$ = &(init() << $1 << $3 << $5 >> "MapType"); }
     ;
 
 KeyType:
-    OperandName { $$ = &(init() << $1 >> "KeyType"); clone($$, $1); }
+    OperandName { $$ = &(init() << $1 >> "KeyType"); }
     ;
 
 ElementType:
-    OperandName { $$ = &(init() << $1 >> "ElementType"); clone($$, $1); }
+    OperandName { $$ = &(init() << $1 >> "ElementType"); }
     ;
 
 StructType:
@@ -944,11 +667,27 @@ Tag:
    String { $$ = &(init() << $1 >> "Tag"); }
    ;
 
+TypeLit:
+    ArrayType { $$ = &(init() << $1 >> "TypeLit"); }
+    | StructType { $$ = &(init() << $1 >> "TypeLit"); }
+    /*| PointerType { $$ = &(init() << $1 >> "TypeLit"); }*/
+/*  | FunctionType { $$ = &(init() << $1 >> "TypeLit"); }
+    | ChannelType { $$ = &(init() << $1 >> "TypeLit"); }
+    | InterfaceType  { $$ = &(init() << $1 >> "TypeLit"); }*/
+    | SliceType { $$ = &(init() << $1 >> "TypeLit"); }
+    | MapType { $$ = &(init() << $1 >> "TypeLit"); }
+    ;
+
+/*PointerType:*/
+    /*STAR BaseType { $$ = &(init() << $1 << $2 >> "PointerType"); }*/
+    /*;*/
+
+BaseType:
+    OperandName { $$ = &(init() << $1 >> "BaseType"); }
+    ;
+
 ArrayType:
-    '[' ArrayLength ']' ElementType  {
-        /* TODO Handle length */
-        $$ = &(init() << $2 <= $4 >> "ArrayType");
-    }
+    '[' ArrayLength ']' ElementType  { $$ = &(init() << $2 << $4 >> "ArrayType"); }
     ;
 
 ArrayLength:
@@ -976,27 +715,11 @@ BasicLit:
     ;
 
 OperandName:
-    IDENT            {
-        $$ = &(init() << $1 >> "OperandName");
-        $$->types.push_back(new gotype(tstr($1)));
-        $$->symbols.push_back(new symbol(tstr($1), NULL, false));
-    }
-    | '(' OperandName ')' {
-        $$ = &(init() <= $2 >> "OperandName");
-    }
-    | STAR OperandName {
-        $$ = &(init() << $1 << $2 >> "OperandName");
-        /* TODO Fix */
-        $$->types.push_back(new gotype($2->types[0], true));
-        $$->symbols = $2->symbols;
-        $$->symbols[0]->starred = true;
-    }
-    | LiteralType        {
-        $$ = &(init() <= $1 >> "OperandName");
-      }
-    | OperandName '.' IDENT {
-        $$ = &(init() <= $1 += $3 << $3 >> "OperandName");
-      }
+    IDENT            { $$ = &(init() << $1 >> "OperandName"); }
+    | '(' OperandName ')' { $$ = &(init() << $2 >> "OperandName"); }
+    | STAR OperandName { $$ = &(init() << $1 << $2 >> "OperandName"); }
+    | LiteralType        { $$ = &(init() << $1 >> "OperandName"); }
+    | OperandName '.' IDENT { $$ = &(init() << $1 << $3 >> "OperandName"); }
     ;
 
 MethodName:
