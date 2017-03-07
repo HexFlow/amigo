@@ -50,6 +50,7 @@ GO     (go)
 MAP    (map)
 STRUCT (struct)
 MAKE   (make)
+NEW    (new)
 RETURN (return)
 BREAK  (break)
 CONT   (continue)
@@ -95,6 +96,7 @@ ECURLY (;)
 {MAP}                                  { yylval.sval = strdup(yytext); return MAP; }
 {STRUCT}                               { yylval.sval = strdup(yytext); return STRUCT; }
 {MAKE}                                 { yylval.sval = strdup(yytext); return MAKE; }
+{NEW}                                  { yylval.sval = strdup(yytext); return NEW; }
 
 {RETURN}/[\n]                          { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return RETURN; }
 {BREAK}/[\n]                           { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return BREAK; }
