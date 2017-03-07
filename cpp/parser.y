@@ -113,8 +113,8 @@ void printTop(node* n) {
 %type <nt> Function FunctionBody ForStmt ForClause RangeClause InitStmt
 %type <nt> PostStmt Condition DeferStmt UnaryExpr PrimaryExpr
 %type <nt> Selector Index Slice TypeDecl TypeSpecList TypeSpec VarDecl
-%type <nt> TypeAssertion Arguments IdentifierList
-%type <nt> ExpressionList TypeLit ArrayType CompositeLit LiteralType
+%type <nt> TypeAssertion Arguments
+%type <nt> ExpressionList ArrayType CompositeLit LiteralType
 %type <nt> LiteralValue ElementList KeyedElement Key Element
 %type <nt> ArrayLength Operand Literal BasicLit OperandName
 %type <nt> ImportSpec
@@ -123,7 +123,7 @@ void printTop(node* n) {
 %type <nt> FieldDeclList FieldDecl MakeExpr
 %type <nt> StructLiteral KeyValList
 /*%type <nt> TypeName InterfaceTypeName*/
-%type <nt> Type QualifiedIdent PointerType
+%type <nt> QualifiedIdent PointerType Conversion IdentifierList
 %%
 SourceFile:
     PackageClause ';' ImportDeclList TopLevelDeclList { $$ = &(init() << $1 << $3 << $4 >> "SourceFile"); printTop($$); }
@@ -209,25 +209,13 @@ Assignment:
     ;
 
 ShortVarDecl:
-    IdentifierList DECL ExpressionList   { $$ = &(init() << $1  << $3 >> "ShortVarDecl"); }
+    ExpressionList DECL ExpressionList   { $$ = &(init() << $1  << $3 >> "ShortVarDecl"); }
     ;
 
 
 Declaration:
-    ConstDecl  { $$ = &(init() << $1 >> "Declaration"); }
-    | TypeDecl { $$ = &(init() << $1 >> "Declaration"); }
+    TypeDecl { $$ = &(init() << $1 >> "Declaration"); }
     | VarDecl  { $$ = &(init() << $1 >> "Declaration"); }
-    ;
-
-ConstDecl:
-    CONST ConstSpec { $$ = &(init() << $2 >> "ConstDecl"); }
-    | CONST '(' ConstSpecList ')' { $$ = &(init() << $3 >> "ConstDecl"); }
-    ;
-
-ConstSpecList:
-    /* empty */                   { $$ = &(init() >> "ConstSpecList"); }
-    | ConstSpecList ConstSpec ';' { $$ = &(init() << $1 << $2 >> "ConstSpecList"); }
-    | ConstSpec ';'               { $$ = &(init() << $1 >> "ConstSpecList"); }
     ;
 
 Signature:
@@ -237,7 +225,7 @@ Signature:
 
 Result:
     Parameters { $$ = &(init() << $1 >> "Result"); }
-    | Type { $$ = &(init() << $1 >> "Result"); }
+    | Operand { $$ = &(init() << $1 >> "Result"); }
     ;
 
 Parameters:
@@ -252,27 +240,16 @@ ParameterList:
     ;
 
 ParameterDecl:
-    /*Type                       { $$ = &(init() << $1 >> "ParameterDecl"); }*/
-    DOTS Type { $$ = &(init() << $1 << $2 >> "ParameterDecl"); }
-    | IdentifierList Type { $$ = &(init() << $1 << $2 >> "ParameterDecl"); }
-    | IdentifierList DOTS Type { $$ = &(init() << $1 << $2 << $3 >> "ParameterDecl"); }
+    IDENT Operand { $$ = &(init() << $1 << $2 >> "ParameterDecl"); }
     ;
 
-/* TYPES DEFINED HERE */
-Type:
-    OperandName { $$ = &(init() << $1 >> "Type"); }
-    | TypeLit   { $$ = &(init() << $1 >> "Type"); }
-    | '(' Type ')' { $$ = &(init() << $2 >> "Type"); }
+IdentifierList:
+    IDENT { $$ = &(init() << $1 >> "IdentifierList"); }
+    | IdentifierList ',' IDENT { $$ = &(init() << $1 << $3 >> "IdentifierList"); }
     ;
 
 QualifiedIdent:
     IDENT '.' IDENT { $$ = &(init() << $1 << $3 >> "QualifiedIdent"); }
-    ;
-
-ConstSpec:
-    IdentifierList { $$ = &(init() << $1 >> "ConstSpec"); }
-    | IdentifierList '=' ExpressionList { $$ = &(init() << $1 << $3 >> "ConstSpec"); }
-    | IdentifierList Type '=' ExpressionList { $$ = &(init() << $1 << $2 << $4 >> "ConstSpec"); }
     ;
 
 MethodDecl:
@@ -297,9 +274,13 @@ CompositeLit:
 LiteralType:
     StructType                 { $$ = &(init() << $1 >> "LiteralType"); }
     | ArrayType                { $$ = &(init() << $1 >> "LiteralType"); }
-    | '[' DOTS ']' Type        { $$ = &(init() << $2 << $4 >> "LiteralType"); }
+    | '[' DOTS ']' Operand        { $$ = &(init() << $2 << $4 >> "LiteralType"); }
     | SliceType                { $$ = &(init() << $1 >> "LiteralType"); }
     | MapType                  { $$ = &(init() << $1 >> "LiteralType"); }
+    | PointerType { $$ = &(init() << $1 >> "LiteralType"); }
+/*  | FunctionType { $$ = &(init() << $1 >> "TypeLit"); }
+    | ChannelType { $$ = &(init() << $1 >> "TypeLit"); }
+    | InterfaceType  { $$ = &(init() << $1 >> "TypeLit"); }*/
     ;
 
 Operand:
@@ -315,7 +296,8 @@ OperandName:
     ;
 
 LiteralValue:
-    '{' '}'                   { $$ = &(init() >> "LiteralValue"); }
+    /* empty */{ $$ = &(init() >> "LiteralValue"); }
+    | '{' '}'                   { $$ = &(init() >> "LiteralValue"); }
     | ECURLY '}'                   { $$ = &(init() >> "LiteralValue"); }
     | '{' ElementList '}'     { $$ = &(init() << $2 >> "LiteralValue"); }
     | ECURLY ElementList '}'     { $$ = &(init() << $2 >> "LiteralValue"); }
@@ -324,7 +306,7 @@ LiteralValue:
     ;
 
 SliceType:
-    '[' ']' Type  { $$ = &(init() << $3 >> "SliceType"); }
+    '[' ']' Operand  { $$ = &(init() << $3 >> "SliceType"); }
     ;
 
 ElementList:
@@ -458,7 +440,7 @@ PrimaryExpr:
     | PrimaryExpr TypeAssertion { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr Arguments { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | OperandName StructLiteral { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
-    /*| Conversion { $$ = &(init() << $1 >> "PrimaryExpr"); }*/
+    | Conversion { $$ = &(init() << $1 >> "PrimaryExpr"); }
     ;
 
 StructLiteral:
@@ -471,7 +453,7 @@ KeyValList:
     | Expression ':' Expression ',' KeyValList { $$ = &(init() << $1 << $3 << $5 >> "KeyValList"); }
 
 MakeExpr:
-    MAKE '(' Type ',' ExpressionList ')' { $$ = &(init() << $3 << $5 >> "MakeExpr"); }
+    MAKE '(' Operand ',' ExpressionList ')' { $$ = &(init() << $3 << $5 >> "MakeExpr"); }
     ;
 
 Selector:
@@ -511,13 +493,13 @@ VarDecl:
     ;
 
 VarSpec:
-    IdentifierList Type { $$ = &(init() << $1 << $2 >> "VarSpec"); }
-    | IdentifierList Type '=' ExpressionList { $$ = &(init() << $1 << $2 << $4 >> "VarSpec"); }
+    IdentifierList Operand { $$ = &(init() << $1 << $2 >> "VarSpec"); }
+    | IdentifierList Operand '=' ExpressionList { $$ = &(init() << $1 << $2 << $4 >> "VarSpec"); }
     | IdentifierList '=' ExpressionList      { $$ = &(init() << $1 << $3 >> "VarSpec"); }
     ;
 
 TypeAssertion:
-    '.' '(' Type ')'  { $$ = &(init() << $3 >> "TypeAssertion"); }
+    '.' '(' Operand ')'  { $$ = &(init() << $3 >> "TypeAssertion"); }
     ;
 
 Arguments:
@@ -526,23 +508,18 @@ Arguments:
     | '(' ExpressionList DOTS ')' { $$ = &(init() << $2 << $3 >> "Arguments"); }
     ;
 
-IdentifierList:
-    IDENT                         { $$ = &(init() << $1 >> "IdentifierList"); }
-    | IdentifierList ',' IDENT    { $$ = &(init() << $1 >> "IdentifierList"); }
-    ;
-
 ExpressionList:
     Expression                      { $$ = &(init() << $1 >> "ExpressionList"); }
     | ExpressionList ',' Expression { $$ = &(init() << $1 << $3 >> "ExpressionList"); }
     ;
 
-/*Conversion:*/
-    /*Type '(' Expression ')'       { $$ = &(init() << $1 << $3 >> "Conversion"); }*/
-    /*| Type '(' Expression ',' ')' { $$ = &(init() << $1 << $3 >> "Conversion"); }*/
-    /*;*/
+Conversion:
+    Operand '(' Expression ')'       { $$ = &(init() << $1 << $3 >> "Conversion"); }
+    | Operand '(' Expression ',' ')' { $$ = &(init() << $1 << $3 >> "Conversion"); }
+    ;
 
 MapType:
-    MAP '[' Type ']' Type { $$ = &(init() << $1 << $3 << $5 >> "MapType"); }
+    MAP '[' Operand ']' Operand { $$ = &(init() << $1 << $3 << $5 >> "MapType"); }
     ;
 
 StructType:
@@ -556,33 +533,18 @@ FieldDeclList:
     ;
 
 FieldDecl:
-    IdentifierList Type String { $$ = &(init() << $1 << $2 << $3 >> "FieldDecl"); }
-    | IdentifierList Type { $$ = &(init() << $1 << $2 >> "FieldDecl"); }
+    ExpressionList Operand String { $$ = &(init() << $1 << $2 << $3 >> "FieldDecl"); }
+    | ExpressionList Operand { $$ = &(init() << $1 << $2 >> "FieldDecl"); }
     /* | AnonymousField Tag { $$ = &(init() << $1 << $2 >> "FieldDecl"); } */
     /* | AnonymousField { $$ = &(init() << $1 >> "FieldDecl"); } */
     ;
 
-TypeLit:
-    ArrayType { $$ = &(init() << $1 >> "TypeLit"); }
-    | StructType { $$ = &(init() << $1 >> "TypeLit"); }
-    | PointerType { $$ = &(init() << $1 >> "TypeLit"); }
-/*  | FunctionType { $$ = &(init() << $1 >> "TypeLit"); }
-    | ChannelType { $$ = &(init() << $1 >> "TypeLit"); }
-    | InterfaceType  { $$ = &(init() << $1 >> "TypeLit"); }*/
-    | SliceType { $$ = &(init() << $1 >> "TypeLit"); }
-    | MapType { $$ = &(init() << $1 >> "TypeLit"); }
-    ;
-
 PointerType:
-    STAR Type { $$ = &(init() << $1 << $2 >> "PointerType"); }
+    STAR Operand { $$ = &(init() << $1 << $2 >> "PointerType"); }
     ;
 
 ArrayType:
-    '[' ArrayLength ']' Type  { $$ = &(init() << $2 << $4 >> "ArrayType"); }
-    ;
-
-ArrayLength:
-    Expression  { $$ = &(init() << $1 >> "ArrayLength"); }
+    '[' Expression ']' Operand  { $$ = &(init() << $2 << $4 >> "ArrayType"); }
     ;
 
 Literal:
