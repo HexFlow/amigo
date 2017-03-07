@@ -8,8 +8,6 @@ CPP=./cpp
 
 all:
 	mkdir -p $(BUILD) $(BIN)
-	make lexer
-	make parser
 	make ast
 
 # Rule for lexer and parser binaries

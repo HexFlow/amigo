@@ -18,5 +18,6 @@ node &operator>>(node &l, const char *r) {
 
 node &init() {
     node *n = new node();
+    n->ast = new Object("");
     return *n;
 }

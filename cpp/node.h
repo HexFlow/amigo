@@ -8,10 +8,14 @@
 
 using namespace std;
 
+class Object;
+
 struct node {
     char name[100] = {0};
     vector<node *> children_nt;
     vector<char *> children_t;
+
+    Object *ast;
 };
 
 node &operator<<(node &l, node *r);
@@ -29,48 +33,60 @@ enum TypeClass {
     _StarType
 };
 
-class gotype;
-class symbol;
-
-class symbol {
-public:
-    string name;
-    gotype *type;
+enum What {
+    GoType,
+    GoObj,
+    GoExpr
 };
 
-class gotype {
-public:
-    string name;
-    TypeClass classtype;
+typedef void* Where;
 
-    unordered_map<string, symbol*> functions;
+class Object {
+public:
+    string name = "";
+    What what = GoType;
+    Where where = NULL;
+    TypeClass classtype = _BasicType;
+
+    unordered_map<string, Object*> members;
 
     /* For functions */
-    vector<gotype*> args;
-    gotype *ret;
+    vector<Object*> args;
+    Object *ret;
 
     /* For structs */
-    unordered_map<string, gotype*> fields;
+    unordered_map<string, Object*> fields;
 
     /* For tuples */
-    vector<gotype*> types;
+    vector<Object*> types;
+
+    /* For expressions */
+    vector<Object*> children;
 
     /* For maps */
-    gotype *key, *value;
+    Object *key, *value;
 
-    /* For array or star */
-    gotype *base;
+    /* For array or star or object */
+    Object *base;
 
-    gotype(string);
-    gotype(vector<gotype*>, gotype*);
-    gotype(unordered_map<string, gotype*>);
-    gotype(vector<gotype*>);
-    gotype(gotype*, gotype*);
-    gotype(gotype*);
-    gotype(gotype*, bool);
+    Object(string);
+    Object(string, What);
+    Object(string, Object *);
+    Object(vector<Object*>, Object*);
+    Object(unordered_map<string, Object*>);
+    Object(vector<Object*>);
+    Object(Object*, Object*);
+    Object(Object*);
+    Object(Object*, bool);
 
     string tostring();
-    bool operator>=(gotype *comp);
+    bool operator==(Object *comp);
+    Object* operator>>(Object &comp);
+    Object* operator=(Object *c);
 };
+
+Object &operator<<(Object &a, Object &b);
+Object &operator+=(Object &a, Object &b);
+Object &operator<<=(Object &a, Object &b);
 
 #endif

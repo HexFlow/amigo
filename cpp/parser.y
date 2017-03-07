@@ -10,6 +10,8 @@
 #define YYDEBUG 1
 using namespace std;
 
+#define AST(a) (*(a->ast))
+
 // stuff from flex that bison needs to know about:
 extern "C" int yylex();
 extern "C" int yyparse();
@@ -26,19 +28,21 @@ int node_id = 0;
 int scope_id = 0;
 string scope_prefix = "0-";
 
-unordered_map<string, symbol> stable; // symbols
-unordered_map<string, gotype> ttable; // types
+unordered_map<string, Object*> stable; // symbols
+unordered_map<string, Object*> ttable; // types
 
 void inittables() {
-    /* ttable.insert(make_pair("int", newtype("int"))); */
-    /* ttable.insert(make_pair("uint32", newtype("uint32"))); */
+    ttable.insert({"void", new Object("void")});
+    ttable.insert({"int", new Object("int")});
+    ttable.insert({"float", new Object("float")});
+    ttable.insert({"string", new Object("string")});
 }
 
 void printtables() {
     cout << endl << endl << "Symbol table:" << endl;
     for(auto elem: stable) {
         cout << elem.first << " :: ";
-        cout << elem.second.type->tostring();
+        cout << elem.second->base->tostring();
         cout << endl;
     }
 }
@@ -116,14 +120,14 @@ void printTop(node* n) {
 %type <nt> TypeAssertion Arguments
 %type <nt> ExpressionList ArrayType CompositeLit LiteralType
 %type <nt> LiteralValue ElementList KeyedElement Key Element
-%type <nt> ArrayLength Operand Literal BasicLit OperandName
+%type <nt> Operand Literal BasicLit OperandName
 %type <nt> ImportSpec
-%type <nt> UnaryOp BinaryOp String ImportPath SliceType KeyType
+%type <nt> UnaryOp BinaryOp String ImportPath SliceType
 %type <nt> PackageClause ImportDeclList ImportDecl ImportSpecList TopLevelDeclList
 %type <nt> FieldDeclList FieldDecl MakeExpr
 %type <nt> StructLiteral KeyValList Type
 /*%type <nt> TypeName InterfaceTypeName*/
-%type <nt> QualifiedIdent PointerType Conversion IdentifierList
+%type <nt> QualifiedIdent PointerType IdentifierList
 %%
 SourceFile:
     PackageClause ';' ImportDeclList TopLevelDeclList { $$ = &(init() << $1 << $3 << $4 >> "SourceFile"); printTop($$); }
@@ -213,8 +217,34 @@ Declaration:
     | VarDecl  { $$ = &(init() << $1 >> "Declaration"); }
     ;
 
+FunctionDecl:
+    FUNC IDENT Signature { $$ = &(init() << $2 << $3 >> "FunctionDecl"); }
+    | FUNC IDENT Function {
+        $$ = &(init() << $2 << $3 >> "FunctionDecl");
+        delete $$->ast;
+        $$->ast = new Object("FunctionDecl", GoExpr);
+        Object *tmp = new Object(tstr($2), AST($3).children[0]);
+        cout << tmp->base->tostring();
+        stable.insert({scope_prefix + tstr($2), tmp});
+        AST($$) << *tmp;
+    }
+    ;
+
+Function:
+    Signature Block {
+        $$ = &(init() << $1 << $2 >> "Function");
+        delete $$->ast;
+        $$->ast = new Object("Function", GoExpr);
+        AST($$) << AST($1);
+    }
+    ;
+
 Signature:
-    Parameters          { $$ = &(init() << $1 >> "Signature"); }
+    Parameters          {
+        $$ = &(init() << $1 >> "Signature");
+        AST($$) <<= AST($1);
+        AST($$).ret = ttable["void"];
+    }
     | Parameters Result { $$ = &(init() << $1 << $2 >> "Signature"); }
     ;
 
@@ -224,18 +254,40 @@ Result:
     ;
 
 Parameters:
-    '('  ')'                    { $$ = &(init() >> "Parameters"); }
-    | '(' ParameterList  ')'    { $$ = &(init() << $2 >> "Parameters"); }
-    | '(' ParameterList ',' ')' { $$ = &(init() << $2 >> "Parameters"); }
+    '('  ')'                    {
+        $$ = &(init() >> "Parameters");
+        $$->ast = ttable["void"];
+    }
+    | '(' ParameterList  ')'    {
+        $$ = &(init() << $2 >> "Parameters");
+        AST($$).args = AST($2).children;
+        AST($$).classtype = _FxnType;
+      }
+    | '(' ParameterList ',' ')' {
+        $$ = &(init() << $2 >> "Parameters");
+        AST($$).args = AST($2).children;
+        AST($$).classtype = _FxnType;
+      }
     ;
 
 ParameterList:
-    ParameterDecl { $$ = &(init() << $1 >> "ParameterList"); }
-    | ParameterList ',' ParameterDecl { $$ = &(init() << $1 << $3 >> "ParameterList"); }
+    ParameterDecl {
+        $$ = &(init() << $1 >> "ParameterList");
+        AST($$) << AST($1);
+    }
+    | ParameterList ',' ParameterDecl {
+        $$ = &(init() << $1 << $3 >> "ParameterList");
+        AST($$) += AST($1);
+        AST($$) << AST($3);
+    }
     ;
 
 ParameterDecl:
-    IDENT Type { $$ = &(init() << $1 << $2 >> "ParameterDecl"); }
+    IDENT Type {
+        $$ = &(init() << $1 << $2 >> "ParameterDecl");
+        stable.insert({scope_prefix + tstr($1), new Object(tstr($1), $2->ast)});
+        AST($$) <<= AST($2);
+    }
     ;
 
 IdentifierList:
@@ -270,27 +322,41 @@ LiteralType:
     StructType                 { $$ = &(init() << $1 >> "LiteralType"); }
     | ArrayType                { $$ = &(init() << $1 >> "LiteralType"); }
     | '[' DOTS ']' Operand        { $$ = &(init() << $2 << $4 >> "LiteralType"); }
-    | SliceType                { $$ = &(init() << $1 >> "LiteralType"); }
+    | SliceType                {
+        $$ = &(init() << $1 >> "LiteralType");
+        AST($$) <<= AST($1);
+    }
     | MapType                  { $$ = &(init() << $1 >> "LiteralType"); }
     ;
 
 Type:
-    BasicLit             { $$ = &(init() << $1 >> "Type"); }
-    | LiteralType        { $$ = &(init() << $1 >> "Type"); }
-    | OperandName        { $$ = &(init() << $1 >> "Type"); }
+    BasicLit             { $$ = &(init() << $1 >> "Type"); AST($$) <<= AST($1); }
+    | LiteralType        { $$ = &(init() << $1 >> "Type"); AST($$) <<= AST($1); }
+    | OperandName        { $$ = &(init() << $1 >> "Type"); AST($$) <<= AST($1); }
     | PointerType        { $$ = &(init() << $1 >> "Type"); }
     ;
 
 Operand:
-    Literal              { $$ = &(init() << $1 >> "Operand"); }
+    Literal              {
+        $$ = &(init() << $1 >> "Operand");
+        AST($$) <<= AST($1);
+    }
     | PointerType        { $$ = &(init() << $1 >> "Operand"); }
-    | OperandName        { $$ = &(init() << $1 >> "Operand"); }
+    | OperandName        {
+        $$ = &(init() << $1 >> "Operand");
+        $$ = &(init() << $1 >> "Operand"); AST($$) <<= AST($1);
+    }
     | '(' Expression ')' { $$ = &(init() << $2 >> "Operand"); }
     ;
 
 OperandName:
-    IDENT            { $$ = &(init() << $1 >> "OperandName"); }
-    | QualifiedIdent { $$ = &(init() << $1 >> "OperandName"); }
+    IDENT            {
+        $$ = &(init() << $1 >> "OperandName");
+        $$->ast = new Object(tstr($1));
+    }
+    | QualifiedIdent {
+        $$ = &(init() << $1 >> "OperandName"); AST($$) <<= AST($1);
+    }
     ;
 
 LiteralValue:
@@ -303,7 +369,11 @@ LiteralValue:
     ;
 
 SliceType:
-    '[' ']' Operand  { $$ = &(init() << $3 >> "SliceType"); }
+    '[' ']' Operand  {
+        $$ = &(init() << $3 >> "SliceType");
+        AST($$).base = $3->ast;
+        AST($$).classtype = _ArrayType;
+    }
     ;
 
 ElementList:
@@ -370,23 +440,6 @@ IfStmt:
     | IF Expression Block ELSE IfStmt    { $$ = &(init() << $2 << $3 << $5 >> "IfStmt"); }
     | IF SimpleStmt ';' Expression Block ELSE IfStmt { $$ = &(init() << $2 << $4 << $5 << $7 >> "IfStmt"); }
     | IF SimpleStmt ';' Expression Block ELSE Block  { $$ = &(init() << $2 << $4 << $5 << $7 >> "IfStmt"); }
-    ;
-
-FunctionDecl:
-    FUNC FunctionName Signature { $$ = &(init() << $2 << $3 >> "FunctionDecl"); }
-    | FUNC FunctionName Function { $$ = &(init() << $2 << $3 >> "FunctionDecl"); }
-    ;
-
-FunctionName:
-    IDENT { $$ = &(init() << $1 >> "FunctionName"); }
-    ;
-
-Function:
-    Signature FunctionBody { $$ = &(init() << $1 << $2 >> "Function"); }
-    ;
-
-FunctionBody:
-    Block { $$ = &(init() << $1 >> "FunctionBody"); }
     ;
 
 ForStmt:
@@ -539,15 +592,24 @@ ArrayType:
     ;
 
 Literal:
-    BasicLit { $$ = &(init() << $1 >> "Literal"); }
+    BasicLit { $$ = &(init() << $1 >> "Literal"); *($$->ast) = $1->ast; }
     | CompositeLit { $$ = &(init() << $1 >> "Literal"); }
     /* | FunctionLit */
     ;
 
 BasicLit:
-    INT         { $$ = &(init() << $1 >> "BasicLit"); }
-    | FLOAT     { $$ = &(init() << $1 >> "BasicLit"); }
-    | String    { $$ = &(init() << $1 >> "BasicLit"); }
+    INT         {
+        $$ = &(init() << $1 >> "BasicLit");
+        $$->ast = new Object(tstr($1), ttable["int"]);
+    }
+    | FLOAT     {
+        $$ = &(init() << $1 >> "BasicLit");
+        $$->ast = new Object(tstr($1), ttable["float"]);
+    }
+    | String    {
+        $$ = &(init() << $1 >> "BasicLit");
+        *($$->ast) = $1->ast;
+    }
     ;
 
 UnaryOp:
