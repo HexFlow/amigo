@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include "node.h"
 #define YYDEBUG 1
+#define ERROR cout<<"[ERROR] "
+#define WARN cout<<"[WARN ] "
 using namespace std;
 
 #define AST(a) (*(a->ast))
@@ -30,6 +32,23 @@ string scope_prefix = "0-";
 
 unordered_map<string, Object*> stable; // symbols
 unordered_map<string, Object*> ttable; // types
+
+void tableinsert(unordered_map<string, Object*> &table,
+            string name, Object *obj) {
+    bool found = false;
+    found = (stable.find(name) != stable.end());
+    if (!found) {
+        found = (ttable.find(name) != ttable.end());
+        if (!found) {
+            table.insert({name, obj});
+        } else {
+            ERROR << name << " already declared as a type in this scope" << endl;
+        }
+    }
+    else {
+        ERROR << name << " already declared as a symbol in this scope" << endl;
+    }
+}
 
 void inittables() {
     ttable.insert({"void", new Object("void")});
@@ -208,9 +227,54 @@ Assignment:
     ;
 
 ShortVarDecl:
-    ExpressionList DECL ExpressionList   { $$ = &(init() << $1  << $3 >> "ShortVarDecl"); }
+    ExpressionList DECL ExpressionList   {
+        $$ = &(init() << $1  << $3 >> "ShortVarDecl");
+        auto s1 = AST($1).children;
+        auto s2 = AST($3).children;
+
+        /* TODO: Remove the false when next TODO is finished */
+        if (s1.size() != s2.size() && false) {
+            ERROR << "Expected " << s1.size()
+                  << " items on right of :=, found " << s2.size() << endl;
+        } else {
+            for (int i=0; i<s1.size(); i++) {
+                if (s1[i]->classtype != _BasicType) {
+                    ERROR << "Expected identifier list on left side of :="
+                          << endl;
+                    break;
+                }
+                /* TODO: We need to pick type from RHS */
+                tableinsert(stable, scope_prefix + s1[i]->name,
+                            new Object(s1[i]->name, ttable["int"]));
+            }
+        }
+    }
     ;
 
+VarDecl:
+    /* VAR '(' VarSpecList ')' { $$ = &(init() << $3 >> "VarDecl"); } */
+    VAR VarSpec           { $$ = &(init() << $2 >> "VarDecl"); }
+    ;
+
+VarSpec:
+    IdentifierList Type {
+        $$ = &(init() << $1 << $2 >> "VarSpec");
+        for (auto child: AST($1).children) {
+            tableinsert(stable, scope_prefix + child->name,
+                        new Object(child->name, $2->ast));
+        }
+    }
+    | IdentifierList Type '=' ExpressionList {
+        $$ = &(init() << $1 << $2 << $4 >> "VarSpec");
+        for (auto child: AST($1).children) {
+            tableinsert(stable, scope_prefix + child->name,
+                new Object(child->name, $2->ast));
+        }
+    }
+    | IdentifierList '=' ExpressionList      {
+        $$ = &(init() << $1 << $3 >> "VarSpec");
+      }
+    ;
 
 Declaration:
     TypeDecl { $$ = &(init() << $1 >> "Declaration"); }
@@ -225,7 +289,7 @@ FunctionDecl:
         $$->ast = new Object("FunctionDecl", GoExpr);
         Object *tmp = new Object(tstr($2), AST($3).children[0]);
         cout << tmp->base->tostring();
-        stable.insert({scope_prefix + tstr($2), tmp});
+        tableinsert(stable, scope_prefix + tstr($2), tmp);
         AST($$) << *tmp;
     }
     ;
@@ -285,14 +349,21 @@ ParameterList:
 ParameterDecl:
     IDENT Type {
         $$ = &(init() << $1 << $2 >> "ParameterDecl");
-        stable.insert({scope_prefix + tstr($1), new Object(tstr($1), $2->ast)});
+        tableinsert(stable, scope_prefix + tstr($1), new Object(tstr($1), $2->ast));
         AST($$) <<= AST($2);
     }
     ;
 
 IdentifierList:
-    IDENT { $$ = &(init() << $1 >> "IdentifierList"); }
-    | IdentifierList ',' IDENT { $$ = &(init() << $1 << $3 >> "IdentifierList"); }
+    IDENT {
+        $$ = &(init() << $1 >> "IdentifierList");
+        AST($$) << *(new Object(tstr($1)));
+    }
+    | IdentifierList ',' IDENT {
+        $$ = &(init() << $1 << $3 >> "IdentifierList");
+        AST($$) += AST($1);
+        AST($$) << *(new Object(tstr($3)));
+      }
     ;
 
 QualifiedIdent:
@@ -341,12 +412,18 @@ Operand:
         $$ = &(init() << $1 >> "Operand");
         AST($$) <<= AST($1);
     }
-    | PointerType        { $$ = &(init() << $1 >> "Operand"); }
+    | PointerType        {
+        $$ = &(init() << $1 >> "Operand");
+        AST($$) <<= AST($1);
+    }
     | OperandName        {
         $$ = &(init() << $1 >> "Operand");
-        $$ = &(init() << $1 >> "Operand"); AST($$) <<= AST($1);
+        AST($$) <<= AST($1);
     }
-    | '(' Expression ')' { $$ = &(init() << $2 >> "Operand"); }
+    | '(' Expression ')' {
+        $$ = &(init() << $2 >> "Operand");
+        AST($$) <<= AST($2);
+      }
     ;
 
 OperandName:
@@ -355,7 +432,8 @@ OperandName:
         $$->ast = new Object(tstr($1));
     }
     | QualifiedIdent {
-        $$ = &(init() << $1 >> "OperandName"); AST($$) <<= AST($1);
+        $$ = &(init() << $1 >> "OperandName");
+        AST($$) <<= AST($1);
     }
     ;
 
@@ -434,19 +512,19 @@ FallthroughStmt:
     ;
 
 IfStmt:
-    IF Expression Block { $$ = &(init() << $2 << $3 >> "IfStmt"); }
-    | IF SimpleStmt ';' Expression Block { $$ = &(init() << $2 << $4 << $5 >> "IfStmt"); }
-    | IF Expression Block ELSE Block     { $$ = &(init() << $2 << $3 << $5 >> "IfStmt"); }
-    | IF Expression Block ELSE IfStmt    { $$ = &(init() << $2 << $3 << $5 >> "IfStmt"); }
-    | IF SimpleStmt ';' Expression Block ELSE IfStmt { $$ = &(init() << $2 << $4 << $5 << $7 >> "IfStmt"); }
-    | IF SimpleStmt ';' Expression Block ELSE Block  { $$ = &(init() << $2 << $4 << $5 << $7 >> "IfStmt"); }
+    IF OPENB Expression Block CLOSEB { $$ = &(init() << $3 << $4 >> "IfStmt"); }
+    | IF OPENB SimpleStmt ';' Expression Block CLOSEB { $$ = &(init() << $3 << $5 << $6 >> "IfStmt"); }
+    | IF OPENB Expression Block ELSE Block CLOSEB { $$ = &(init() << $3 << $4 << $6 >> "IfStmt"); }
+    | IF OPENB Expression Block ELSE IfStmt CLOSEB { $$ = &(init() << $3 << $4 << $6 >> "IfStmt"); }
+    | IF OPENB SimpleStmt ';' Expression Block ELSE IfStmt CLOSEB { $$ = &(init() << $3 << $5 << $6 << $8 >> "IfStmt"); }
+    | IF OPENB SimpleStmt ';' Expression Block ELSE Block CLOSEB { $$ = &(init() << $3 << $5 << $6 << $8 >> "IfStmt"); }
     ;
 
 ForStmt:
     FOR Block { $$ = &(init() << $2 >> "ForStmt"); }
-    | FOR Condition Block { $$ = &(init() << $2 << $3 >> "ForStmt"); }
-    | FOR ForClause Block { $$ = &(init() << $2 << $3 >> "ForStmt"); }
-    | FOR RangeClause Block { $$ = &(init() << $2 << $3 >> "ForStmt"); }
+    | FOR OPENB Condition Block CLOSEB { $$ = &(init() << $3 << $4 >> "ForStmt"); }
+    | FOR OPENB ForClause Block CLOSEB { $$ = &(init() << $3 << $4 >> "ForStmt"); }
+    | FOR OPENB RangeClause Block CLOSEB { $$ = &(init() << $3 << $4 >> "ForStmt"); }
     ;
 
 ForClause:
@@ -477,17 +555,17 @@ DeferStmt:
     ;
 
 Expression:
-    UnaryExpr { $$ = &(init() << $1 >> "Expression"); }
+    UnaryExpr { $$ = &(init() << $1 >> "Expression"); AST($$) <<= AST($1); }
     | Expression BinaryOp Expression {$$ = &(init() << $1 << $2 << $3 >> "Expression");}
     ;
 
 UnaryExpr:
-    PrimaryExpr { $$ = &(init() << $1 >> "UnaryExpr"); }
+    PrimaryExpr { $$ = &(init() << $1 >> "UnaryExpr"); AST($$) <<= AST($1); }
     | UnaryOp PrimaryExpr { $$ = &(init() << $1 << $2 >> "UnaryExpr"); }
     ;
 
 PrimaryExpr:
-    Operand { $$ = &(init() << $1 >> "PrimaryExpr"); }
+    Operand { $$ = &(init() << $1 >> "PrimaryExpr"); AST($$) <<= AST($1); }
     | MakeExpr { $$ = &(init() << $1 >> "PrimaryExpr"); }
     | PrimaryExpr Selector { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr Index { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
@@ -536,17 +614,6 @@ TypeSpec:
     IDENT Type { $$ = &(init() << $1 << $2 >> "TypeSpec"); }
     ;
 
-VarDecl:
-    /* VAR '(' VarSpecList ')' { $$ = &(init() << $3 >> "VarDecl"); } */
-    VAR VarSpec           { $$ = &(init() << $2 >> "VarDecl"); }
-    ;
-
-VarSpec:
-    IdentifierList Type { $$ = &(init() << $1 << $2 >> "VarSpec"); }
-    | IdentifierList Type '=' ExpressionList { $$ = &(init() << $1 << $2 << $4 >> "VarSpec"); }
-    | IdentifierList '=' ExpressionList      { $$ = &(init() << $1 << $3 >> "VarSpec"); }
-    ;
-
 TypeAssertion:
     '.' '(' Type ')'  { $$ = &(init() << $3 >> "TypeAssertion"); }
     ;
@@ -558,8 +625,15 @@ Arguments:
     ;
 
 ExpressionList:
-    Expression                      { $$ = &(init() << $1 >> "ExpressionList"); }
-    | ExpressionList ',' Expression { $$ = &(init() << $1 << $3 >> "ExpressionList"); }
+    Expression                      {
+        $$ = &(init() << $1 >> "ExpressionList");
+        AST($$) << AST($1);
+    }
+    | ExpressionList ',' Expression {
+        $$ = &(init() << $1 << $3 >> "ExpressionList");
+        AST($$) += AST($1);
+        AST($$) << AST($3);
+    }
     ;
 
 MapType:
@@ -584,7 +658,10 @@ FieldDecl:
     ;
 
 PointerType:
-    STAR Operand { $$ = &(init() << $1 << $2 >> "PointerType"); }
+    STAR Operand {
+        $$ = &(init() << $1 << $2 >> "PointerType");
+        $$->ast = new Object($2->ast, true);
+    }
     ;
 
 ArrayType:
@@ -592,7 +669,7 @@ ArrayType:
     ;
 
 Literal:
-    BasicLit { $$ = &(init() << $1 >> "Literal"); *($$->ast) = $1->ast; }
+    BasicLit { $$ = &(init() << $1 >> "Literal"); AST($$) <<= AST($1); }
     | CompositeLit { $$ = &(init() << $1 >> "Literal"); }
     /* | FunctionLit */
     ;

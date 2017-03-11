@@ -18,7 +18,7 @@ static bool compareList(vector<Object*> &list1, vector<Object*> &list2) {
     return same;
 }
 
-/* Basic type */
+/* Basic type or identifier */
 Object::Object(string _name) : name(_name) {
     classtype = _BasicType;
 }

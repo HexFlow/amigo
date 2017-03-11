@@ -1,6 +1,8 @@
 package main
 
 func main() {
+	var d int
+	a, b := c, d
 	b := [5]int{
 		1,
 		2,
@@ -9,11 +11,11 @@ func main() {
 		5,
 	}
 	for i := 0; i < 2; i++ {
-		k = 0
+		kk := 0
 	}
 
 	if k := 0; k != 1 {
-		d = 0
+		j := 0
 	}
 
 	for _, arg := range flag.Args() {
