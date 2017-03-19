@@ -30,11 +30,10 @@ int node_id = 0;
 int scope_id = 0;
 string scope_prefix = "0-";
 
-unordered_map<string, Object*> stable; // symbols
-unordered_map<string, Object*> ttable; // types
+umap<string, Object*> stable; // symbols
+umap<string, Object*> ttable; // types
 
-void tableinsert(unordered_map<string, Object*> &table,
-            string name, Object *obj) {
+void tableinsert(umap<string, Object*> &table, string name, Object *obj) {
     bool found = false;
     found = (stable.find(name) != stable.end());
     if (!found) {

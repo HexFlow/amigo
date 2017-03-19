@@ -8,12 +8,15 @@
 
 using namespace std;
 
-static bool compareList(vector<Object*> &list1, vector<Object*> &list2) {
-    if (list1.size() != list2.size()) return false;
+static bool compareList(vector<Object *> &list1, vector<Object *> &list2) {
+    if (list1.size() != list2.size())
+        return false;
     bool same = true;
-    for (int i=0; i<list1.size() && same; i++) {
-        if (list1[i] >= list2[i]) continue;
-        else same = false;
+    for (int i = 0; i < list1.size() && same; i++) {
+        if (list1[i] >= list2[i])
+            continue;
+        else
+            same = false;
     }
     return same;
 }
@@ -23,7 +26,7 @@ Object::Object(string _name) : name(_name) {
     classtype = _BasicType;
 }
 
-// Or statement
+// Or statement #TODO Is this correct?
 Object::Object(string _name, What _what) : name(_name) {
     what = GoExpr;
 }
@@ -36,37 +39,32 @@ Object::Object(string _name, Object *_type) {
 }
 
 /* Function Type */
-Object::Object(vector<Object*> _args, Object *_ret)
-    : args(_args), ret(_ret) {
+Object::Object(vector<Object *> _args, Object *_ret) : args(_args), ret(_ret) {
     classtype = _FxnType;
 }
 
 /* Struct Type */
-Object::Object(unordered_map<string, Object*> _fields)
-    : fields(_fields) {
+Object::Object(unordered_map<string, Object *> _fields) : fields(_fields) {
     classtype = _StructType;
 }
 
 /* Tuple Type */
-Object::Object(vector<Object*> _types) {
+Object::Object(vector<Object *> _types) {
     classtype = _TupleType;
 }
 
 /* Map Type */
-Object::Object(Object *_key, Object *_value)
-    : key(_key), value(_value) {
+Object::Object(Object *_key, Object *_value) : key(_key), value(_value) {
     classtype = _MapType;
 }
 
 /* Array Type */
-Object::Object(Object *_base)
-    : base(_base) {
+Object::Object(Object *_base) : base(_base) {
     classtype = _ArrayType;
 }
 
 /* Star Type */
-Object::Object(Object *_base, bool isStar)
-    : base(_base) {
+Object::Object(Object *_base, bool isStar) : base(_base) {
     classtype = _StarType;
 }
 
@@ -76,23 +74,25 @@ string Object::tostring() {
     if (classtype == _BasicType) {
         strval << name;
     } else if (classtype == _FxnType) {
-        for (auto &param: args) {
+        for (auto &param : args) {
             strval << param->tostring() << " -> ";
         }
         strval << ret->tostring();
     } else if (classtype == _StructType) {
         strval << "Data [ ";
         bool first = false;
-        for (auto &param: fields) {
-            if (!first) strval << ", ";
+        for (auto &param : fields) {
+            if (!first)
+                strval << ", ";
             strval << param.second->tostring();
         }
         cout << " ]";
     } else if (classtype == _TupleType) {
         strval << "( ";
         bool first = false;
-        for (auto &param: types) {
-            if (!first) strval << ", ";
+        for (auto &param : types) {
+            if (!first)
+                strval << ", ";
             strval << param->tostring();
         }
         strval << " )";
@@ -118,13 +118,13 @@ bool Object::operator==(Object *comp) {
             /* TODO: Think about this */
             return true;
         } else if (classtype == _TupleType) {
-            if (types.size() != comp->types.size()) return false;
+            if (types.size() != comp->types.size())
+                return false;
             return compareList(types, comp->types);
         } else if (classtype == _ArrayType || classtype == _StarType) {
             return base == comp->base;
         } else if (classtype == _FxnType) {
-            return compareList(args, comp->args) &&
-                ret == comp->ret;
+            return compareList(args, comp->args) && ret == comp->ret;
         } else if (classtype == _MapType) {
             return key == comp->key && value == comp->key;
         }
@@ -133,7 +133,7 @@ bool Object::operator==(Object *comp) {
 }
 
 // Copy
-Object* Object::operator=(Object *c) {
+Object *Object::operator=(Object *c) {
     name = c->name;
     what = c->what;
     where = c->where;
@@ -151,7 +151,7 @@ Object* Object::operator=(Object *c) {
 }
 
 // Assign type to object
-Object* Object::operator>>(Object &comp) {
+Object *Object::operator>>(Object &comp) {
     assert(what == GoObj && comp.what == GoType);
     base = &comp;
     return this;
@@ -164,8 +164,7 @@ Object &operator<<(Object &a, Object &comp) {
 }
 
 Object &operator+=(Object &a, Object &b) {
-    a.children.insert(a.children.end(),
-                      b.children.begin(), b.children.end());
+    a.children.insert(a.children.end(), b.children.begin(), b.children.end());
     return a;
 }
 

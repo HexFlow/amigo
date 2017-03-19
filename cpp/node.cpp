@@ -12,7 +12,7 @@ node &operator<<(node &l, char *r) {
 }
 
 node &operator>>(node &l, const char *r) {
-    strcpy(l.name, r);
+    l.name = string(r);
     return l;
 }
 
