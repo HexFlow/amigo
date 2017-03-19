@@ -11,7 +11,7 @@ all:
 	make ast
 
 # Rule for lexer and parser binaries
-%: $(BUILD)/gust.yy.c $(BUILD)/gust.tab.c $(BUILD)/cli.o $(BUILD)/operand.o $(BUILD)/node.o $(BUILD)/%.o
+%: $(BUILD)/gust.yy.c $(BUILD)/gust.tab.c $(BUILD)/cli.o $(BUILD)/operand.o $(BUILD)/node.o $(BUILD)/type.o $(BUILD)/%.o
 	mkdir -p $(BIN)
 	g++ $(FLAGS) $^ -lfl -o bin/$@
 

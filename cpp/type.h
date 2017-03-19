@@ -1,51 +1,36 @@
-class Type {
+#ifndef _TYPE_H
+#define _TYPE_H
+
+#include <string>
+#include <vector>
+#include <assert.h>
+using namespace std;
+
+struct Type {
     virtual string getType();
-}
+};
 
-class BasicType : Type {
+struct BasicType : Type {
     string base;
-    string getType() {
-        return base;
-    }
-}
+    string getType();
+};
 
-class ArrayType : Type {
+struct ArrayType : Type {
     int size;
     Type base;
-    string getType() {
-        return "[" + size + "]" + base.getType();
-    }
-}
+    string getType();
+};
 
-class StructType : Type {
+struct StructType : Type {
     vector<string> memNames;
     vector<Type> memTypes;
-    string getType() {
-        assert(memTypes.size() == memNames.size());
-        if (memTypes.size() == 0) {
-            return "struct {}";
-        }
-        string mems = "";
-        for (int i = 0; i < memNames.size(); i++) {
-            mems += " " + memNames[i] + " " + memTypes[i].getType() + ";";
-        }
-        return "struct {" + mems + "}";
-    }
-}
+    string getType();
+};
 
-class FunctionType : Type {
+struct FunctionType : Type {
     vector<Type> argTypes;
     vector<Type> retTypes;
+    string getType();
+};
 
-    string getType() {
-        string argStr = "";
-        string retStr = "";
-        for (int i = 0; i < argTypes.size(); i++) {
-            argStr += argTypes[i].getType() + ", ";
-        }
-        for (int i = 0; i < retTypes.size(); i++) {
-            retStr += retTypes[i].getType() + ", ";
-        }
-        return "func (" + argStr + ") (" + retStr + ")";
-    }
-}
+#endif
