@@ -2,12 +2,12 @@
 #include "node.h"
 
 node &operator<<(node &l, node *r) {
-    l.children_nt.push_back(r);
+    l.children.push_back(child{0, r, ""});
     return l;
 }
 
 node &operator<<(node &l, char *r) {
-    l.children_t.push_back(strdup(r));
+    l.children.push_back(child{1, 0, strdup(r)});
     return l;
 }
 
@@ -18,6 +18,6 @@ node &operator>>(node &l, const char *r) {
 
 node &init() {
     node *n = new node();
-    n->ast = new Object("");
+    // n->ast = new Object("");
     return *n;
 }

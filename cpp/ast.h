@@ -1,1 +1,1 @@
-class AST {}
+struct AST {};

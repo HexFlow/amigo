@@ -40,7 +40,7 @@ Object::Object(string _name, Object *_type) {
 
 /* Function Type */
 Object::Object(vector<Object *> _args, Object *_ret) : args(_args), ret(_ret) {
-    classtype = _FxnType;
+    classtype = _FunctionType;
 }
 
 /* Struct Type */
@@ -73,7 +73,7 @@ string Object::tostring() {
     stringstream strval;
     if (classtype == _BasicType) {
         strval << name;
-    } else if (classtype == _FxnType) {
+    } else if (classtype == _FunctionType) {
         for (auto &param : args) {
             strval << param->tostring() << " -> ";
         }
@@ -123,7 +123,7 @@ bool Object::operator==(Object *comp) {
             return compareList(types, comp->types);
         } else if (classtype == _ArrayType || classtype == _StarType) {
             return base == comp->base;
-        } else if (classtype == _FxnType) {
+        } else if (classtype == _FunctionType) {
             return compareList(args, comp->args) && ret == comp->ret;
         } else if (classtype == _MapType) {
             return key == comp->key && value == comp->key;
