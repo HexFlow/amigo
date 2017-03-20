@@ -50,6 +50,23 @@ void tableinsert(umap<string, Object*> &table, string name, Object *obj) {
 }
 */
 
+Data* last(Data*ptr) {
+    while(ptr->next != 0)
+        ptr = ptr->next;
+    return ptr;
+}
+
+void printtables();
+
+char* concat(char* a, char*b) {
+    int len1 = strlen(a);
+    int len2 = strlen(b);
+    char *ptr = new char[len1+len2+1];
+    strcpy(ptr, a);
+    strcat(ptr, a);
+    return ptr;
+}
+
 void typeInsert(string name, Type* tp) {
     bool found = (ttable.find(name) != ttable.end());
     if(found) {
@@ -66,6 +83,10 @@ void symInsert(string name, Type* tp) {
         ERROR(name, " already declared as a symbol");
         exit(1);
     } else {
+        if(tp == 0) {
+            ERROR("Type shouldn't be null: ",tp);
+            exit(1);
+        }
         stable[name] = tp;
     }
 }
@@ -75,7 +96,14 @@ bool isType(string name) {
 }
 
 bool isSymbol(string name) {
-    return (stable.find(name) != ttable.end());
+    return (stable.find(name) != stable.end());
+}
+
+bool isInScope(string name) {
+    if(isSymbol(scope_prefix + name)) {
+        return true;
+    }
+    return false;
 }
 
 string getSymType(string name) {
@@ -87,24 +115,34 @@ string getSymType(string name) {
         }
         cur_prefix = cur_prefix.substr(cur_prefix.find("-") + 1);
     }
-    ERROR(name, ": Symbol's Type not found. Variable undeclared?");
-    exit(1);
+    return "Undefined";
+}
+
+bool isDefined(string name) {
+    return (getSymType(name) != "Undefined");
 }
 
 void inittables() {
-    /*ttable.insert({"void", new Object("void")});*/
-    /*ttable.insert({"int", new Object("int")});*/
-    /*ttable.insert({"float", new Object("float")});*/
-    /*ttable.insert({"string", new Object("string")});*/
+    typeInsert("void", new BasicType("void"));
+    typeInsert("int", new BasicType("int"));
+    typeInsert("bool", new BasicType("bool"));
+    typeInsert("byte", new BasicType("byte"));
+    typeInsert("float", new BasicType("float"));
+    typeInsert("string", new BasicType("string"));
 }
 
 void printtables() {
     cout << endl << endl << "Symbol table:" << endl;
-    /*for(auto elem: stable) {*/
-        /*cout << elem.first << " :: ";*/
-        /*cout << elem.second->base->tostring();*/
-        /*cout << endl;*/
-    /*}*/
+    for(auto elem: stable) {
+        cout << elem.first << " :: ";
+        cout << elem.second->getType();
+        cout << endl;
+    }
+    for(auto elem: ttable) {
+        cout << elem.first << " :: ";
+        cout << elem.second->getType();
+        cout << endl;
+    }
 }
 
 string escape_json(const string &s) {
@@ -307,17 +345,30 @@ VarDecl:
 VarSpec:
     IdentifierList Type {
         $$ = &(init() << $1 << $2 >> "VarSpec");
-//      for (auto child: AST($1).children) {
-//          tableinsert(stable, scope_prefix + child->name,
-//                      new Object(child->name, $2->ast));
-//      }
+        Data *data = $1->data;
+        while(data != 0) {
+            if(isInScope(data->name)) {
+                ERROR(data->name, " is already defined in this scope");
+                exit(1);
+            }
+            cout << $2->type << __LINE__ << endl;
+            symInsert(scope_prefix+data->name, $2->type);
+            $$->type = $2->type;
+            data = data->next;
+        }
     }
     | IdentifierList Type '=' ExpressionList {
         $$ = &(init() << $1 << $2 << $4 >> "VarSpec");
-//      for (auto child: AST($1).children) {
-//          tableinsert(stable, scope_prefix + child->name,
-//              new Object(child->name, $2->ast));
-//      }
+        Data *data = $1->data;
+        while(data != 0) {
+            if(isInScope(data->name)) {
+                ERROR(data->name, " is already defined in this scope");
+                exit(1);
+            }
+            cout << $2->type << __LINE__ << endl;
+            symInsert(scope_prefix+data->name, $2->type);
+            $$->type = $2->type;
+        }
     }
     | IdentifierList '=' ExpressionList      {
         $$ = &(init() << $1 << $3 >> "VarSpec");
@@ -395,27 +446,39 @@ ParameterList:
     ;
 
 ParameterDecl:
-    IDENT Type {
+    IdentifierList Type {
         $$ = &(init() << $1 << $2 >> "ParameterDecl");
-        /*tableinsert(stable, scope_prefix + tstr($1), new Object(tstr($1), $2->ast));*/
-        /*AST($$) <<= AST($2);*/
+        Data *data = $1->data;
+        while(data != 0) {
+            if(isInScope(data->name)) {
+                ERROR(data->name, " is already defined in this scope");
+                exit(1);
+            }
+            cout << $2->type << __LINE__ <<" " << data->name << endl;
+            symInsert(scope_prefix+data->name, $2->type);
+            $$->type = $2->type;
+            data = data->next;
+        }
     }
     ;
 
 IdentifierList:
     IDENT {
         $$ = &(init() << $1 >> "IdentifierList");
-        /*AST($$) << *(new Object(tstr($1)));*/
+        $$->data = new Data{$1};
     }
     | IdentifierList ',' IDENT {
         $$ = &(init() << $1 << $3 >> "IdentifierList");
-        /*AST($$) += AST($1);*/
-        /*AST($$) << *(new Object(tstr($3)));*/
+        last($1->data)->next = new Data{$3};
+        $$->data = $1->data;
       }
     ;
 
 QualifiedIdent:
-    IDENT '.' IDENT { $$ = &(init() << $1 << $3 >> "QualifiedIdent"); }
+    IDENT '.' IDENT {
+        $$ = &(init() << $1 << $3 >> "QualifiedIdent");
+        $$->data = new Data{ concat(concat($1, "."), $3) };
+    }
     ;
 
 MethodDecl:
@@ -450,7 +513,15 @@ LiteralType:
 
 Type:
     LiteralType          { $$ = &(init() << $1 >> "Type"); }
-    | OperandName        { $$ = &(init() << $1 >> "Type"); }
+    | OperandName        {
+        $$ = &(init() << $1 >> "Type");
+        $$->data = $1->data;
+        $$->type = new BasicType($1->data->name);
+        if(!isType($1->data->name)) {
+            ERROR("Invalid Type: ", $1->data->name);
+            exit(1);
+        }
+    }
     | PointerType        { $$ = &(init() << $1 >> "Type"); }
     ;
 
@@ -476,21 +547,21 @@ Operand:
 OperandName:
     IDENT            {
         $$ = &(init() << $1 >> "OperandName");
-        /*$$->ast = new Object(tstr($1));*/
+        $$->data = new Data{$1};
     }
     | QualifiedIdent {
         $$ = &(init() << $1 >> "OperandName");
-        /*AST($$) <<= AST($1);*/
+        $$->data = $1->data;
     }
     ;
 
 LiteralValue:
-    '{' '}'                   { $$ = &(init() >> "LiteralValue"); }
+    '{' '}'                        { $$ = &(init() >> "LiteralValue"); }
     | ECURLY '}'                   { $$ = &(init() >> "LiteralValue"); }
-    | '{' ElementList '}'     { $$ = &(init() << $2 >> "LiteralValue"); }
-    | ECURLY ElementList '}'     { $$ = &(init() << $2 >> "LiteralValue"); }
-    | '{' ElementList ',' '}' { $$ = &(init() << $2 >> "LiteralValue"); }
-    | ECURLY ElementList ',' '}' { $$ = &(init() << $2 >> "LiteralValue"); }
+    | '{' ElementList '}'          { $$ = &(init() << $2 >> "LiteralValue"); }
+    | ECURLY ElementList '}'       { $$ = &(init() << $2 >> "LiteralValue"); }
+    | '{' ElementList ',' '}'      { $$ = &(init() << $2 >> "LiteralValue"); }
+    | ECURLY ElementList ',' '}'   { $$ = &(init() << $2 >> "LiteralValue"); }
     ;
 
 SliceType:
@@ -698,8 +769,8 @@ FieldDeclList:
     ;
 
 FieldDecl:
-    ExpressionList Type String { $$ = &(init() << $1 << $2 << $3 >> "FieldDecl"); }
-    | ExpressionList Type { $$ = &(init() << $1 << $2 >> "FieldDecl"); }
+    IdentifierList Type String { $$ = &(init() << $1 << $2 << $3 >> "FieldDecl"); }
+    | IdentifierList Type { $$ = &(init() << $1 << $2 >> "FieldDecl"); }
     /* | AnonymousField Tag { $$ = &(init() << $1 << $2 >> "FieldDecl"); } */
     /* | AnonymousField { $$ = &(init() << $1 >> "FieldDecl"); } */
     ;

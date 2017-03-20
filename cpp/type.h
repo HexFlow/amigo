@@ -15,6 +15,7 @@ struct Type {
 struct BasicType : Type {
     string base;
     string getType();
+    BasicType(string);
     //	string getClass();
 };
 

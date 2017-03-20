@@ -8,9 +8,10 @@ ADD_OP	target/cpp/gust.tab.c	/^    ADD_OP = 265,$/;"	e	enum:yytokentype	file:
 ADD_OP	target/cpp/gust.tab.h	/^    ADD_OP = 265,$/;"	e	enum:yytokentype
 ASN_OP	target/cpp/gust.tab.c	/^    ASN_OP = 270,$/;"	e	enum:yytokentype	file:
 ASN_OP	target/cpp/gust.tab.h	/^    ASN_OP = 270,$/;"	e	enum:yytokentype
-AST	target/cpp/gust.tab.c	81;"	d	file:
+AST	cpp/ast.h	/^struct AST {};$/;"	s
 Arguments	cpp/parser.y	/^Arguments:$/;"	l
 ArrayType	cpp/parser.y	/^ArrayType:$/;"	l
+ArrayType	cpp/type.h	/^struct ArrayType : Type {$/;"	s
 Assignment	cpp/parser.y	/^Assignment:$/;"	l
 BEGIN	target/cpp/gust.yy.c	190;"	d	file:
 BIN	Makefile	/^BIN=.\/bin$/;"	m
@@ -20,6 +21,8 @@ BREAK	target/cpp/gust.tab.c	/^    BREAK = 281,$/;"	e	enum:yytokentype	file:
 BREAK	target/cpp/gust.tab.h	/^    BREAK = 281,$/;"	e	enum:yytokentype
 BUILD	Makefile	/^BUILD=.\/target\/cpp$/;"	m
 BasicLit	cpp/parser.y	/^BasicLit:$/;"	l
+BasicType	cpp/type.cpp	/^BasicType::BasicType(string _base) {$/;"	f	class:BasicType
+BasicType	cpp/type.h	/^struct BasicType : Type {$/;"	s
 BinaryOp	cpp/parser.y	/^BinaryOp:$/;"	l
 Block	cpp/parser.y	/^Block:$/;"	l
 BreakStmt	cpp/parser.y	/^BreakStmt:$/;"	l
@@ -48,6 +51,7 @@ DOTS	target/cpp/gust.tab.c	/^    DOTS = 276,$/;"	e	enum:yytokentype	file:
 DOTS	target/cpp/gust.tab.h	/^    DOTS = 276,$/;"	e	enum:yytokentype
 DUAL_OP	target/cpp/gust.tab.c	/^    DUAL_OP = 262,$/;"	e	enum:yytokentype	file:
 DUAL_OP	target/cpp/gust.tab.h	/^    DUAL_OP = 262,$/;"	e	enum:yytokentype
+Data	cpp/node.h	/^struct Data {$/;"	s
 Declaration	cpp/parser.y	/^Declaration:$/;"	l
 DeferStmt	cpp/parser.y	/^DeferStmt:$/;"	l
 ECHO	target/cpp/gust.yy.c	850;"	d	file:
@@ -60,9 +64,9 @@ END	target/cpp/gust.tab.h	/^    END = 289,$/;"	e	enum:yytokentype
 EOB_ACT_CONTINUE_SCAN	target/cpp/gust.yy.c	234;"	d	file:
 EOB_ACT_END_OF_FILE	target/cpp/gust.yy.c	235;"	d	file:
 EOB_ACT_LAST_MATCH	target/cpp/gust.yy.c	236;"	d	file:
-ERROR	target/cpp/gust.tab.c	76;"	d	file:
-EXIT_SUCCESS	target/cpp/gust.tab.c	427;"	d	file:
-EXIT_SUCCESS	target/cpp/gust.tab.c	455;"	d	file:
+ERROR	target/cpp/gust.tab.c	77;"	d	file:
+EXIT_SUCCESS	target/cpp/gust.tab.c	516;"	d	file:
+EXIT_SUCCESS	target/cpp/gust.tab.c	544;"	d	file:
 Element	cpp/parser.y	/^Element:$/;"	l
 ElementList	cpp/parser.y	/^ElementList:$/;"	l
 EmptyStmt	cpp/parser.y	/^EmptyStmt:$/;"	l
@@ -88,14 +92,12 @@ ForClause	cpp/parser.y	/^ForClause:$/;"	l
 ForStmt	cpp/parser.y	/^ForStmt:$/;"	l
 Function	cpp/parser.y	/^Function:$/;"	l
 FunctionDecl	cpp/parser.y	/^FunctionDecl:$/;"	l
+FunctionType	cpp/type.h	/^struct FunctionType : Type {$/;"	s
 GO	target/cpp/gust.tab.c	/^    GO = 279,$/;"	e	enum:yytokentype	file:
 GO	target/cpp/gust.tab.h	/^    GO = 279,$/;"	e	enum:yytokentype
 GOTO	target/cpp/gust.tab.c	/^    GOTO = 283,$/;"	e	enum:yytokentype	file:
 GOTO	target/cpp/gust.tab.h	/^    GOTO = 283,$/;"	e	enum:yytokentype
-GoExpr	cpp/node.h	/^    GoExpr$/;"	e	enum:What
-GoObj	cpp/node.h	/^    GoObj,$/;"	e	enum:What
 GoStmt	cpp/parser.y	/^GoStmt:$/;"	l
-GoType	cpp/node.h	/^    GoType,$/;"	e	enum:What
 GotoStmt	cpp/parser.y	/^GotoStmt:$/;"	l
 IDENT	target/cpp/gust.tab.c	/^    IDENT = 260,$/;"	e	enum:yytokentype	file:
 IDENT	target/cpp/gust.tab.h	/^    IDENT = 260,$/;"	e	enum:yytokentype
@@ -149,7 +151,6 @@ MethodDecl	cpp/parser.y	/^MethodDecl:$/;"	l
 NEW	target/cpp/gust.tab.c	/^    NEW = 292,$/;"	e	enum:yytokentype	file:
 NEW	target/cpp/gust.tab.h	/^    NEW = 292,$/;"	e	enum:yytokentype
 OPENB	cpp/parser.y	/^OPENB:$/;"	l
-Object	cpp/node.h	/^class Object {$/;"	c
 Object	cpp/operand.cpp	/^Object::Object(Object *_base) : base(_base) {$/;"	f	class:Object
 Object	cpp/operand.cpp	/^Object::Object(Object *_base, bool isStar) : base(_base) {$/;"	f	class:Object
 Object	cpp/operand.cpp	/^Object::Object(Object *_key, Object *_value) : key(_key), value(_value) {$/;"	f	class:Object
@@ -200,17 +201,20 @@ Signature	cpp/parser.y	/^Signature:$/;"	l
 SimpleStmt	cpp/parser.y	/^SimpleStmt:$/;"	l
 Slice	cpp/parser.y	/^Slice:$/;"	l
 SliceType	cpp/parser.y	/^SliceType:$/;"	l
+SliceType	cpp/type.h	/^struct SliceType : Type {$/;"	s
 SourceFile	cpp/parser.y	/^SourceFile:$/;"	l
 Statement	cpp/parser.y	/^Statement:$/;"	l
 StatementList	cpp/parser.y	/^StatementList:$/;"	l
 String	cpp/parser.y	/^String:$/;"	l
 StructLiteral	cpp/parser.y	/^StructLiteral:$/;"	l
 StructType	cpp/parser.y	/^StructType:$/;"	l
+StructType	cpp/type.h	/^struct StructType : Type {$/;"	s
 TYPE	target/cpp/gust.tab.c	/^    TYPE = 295,$/;"	e	enum:yytokentype	file:
 TYPE	target/cpp/gust.tab.h	/^    TYPE = 295,$/;"	e	enum:yytokentype
 TopLevelDecl	cpp/parser.y	/^TopLevelDecl:$/;"	l
 TopLevelDeclList	cpp/parser.y	/^TopLevelDeclList:$/;"	l
 Type	cpp/parser.y	/^Type:$/;"	l
+Type	cpp/type.h	/^struct Type {$/;"	s
 TypeAssertion	cpp/parser.y	/^TypeAssertion:$/;"	l
 TypeClass	cpp/node.h	/^enum TypeClass {$/;"	g
 TypeDecl	cpp/parser.y	/^TypeDecl:$/;"	l
@@ -226,90 +230,88 @@ VAR	target/cpp/gust.tab.c	/^    VAR = 300,$/;"	e	enum:yytokentype	file:
 VAR	target/cpp/gust.tab.h	/^    VAR = 300,$/;"	e	enum:yytokentype
 VarDecl	cpp/parser.y	/^VarDecl:$/;"	l
 VarSpec	cpp/parser.y	/^VarSpec:$/;"	l
-WARN	target/cpp/gust.tab.c	77;"	d	file:
-What	cpp/node.h	/^enum What {$/;"	g
-Where	cpp/node.h	/^typedef void* Where;$/;"	t
-YYABORT	target/cpp/gust.tab.c	1107;"	d	file:
-YYACCEPT	target/cpp/gust.tab.c	1106;"	d	file:
-YYBACKUP	target/cpp/gust.tab.c	1113;"	d	file:
+WARN	target/cpp/gust.tab.c	78;"	d	file:
+YYABORT	target/cpp/gust.tab.c	1170;"	d	file:
+YYACCEPT	target/cpp/gust.tab.c	1169;"	d	file:
+YYBACKUP	target/cpp/gust.tab.c	1176;"	d	file:
 YYBISON	target/cpp/gust.tab.c	44;"	d	file:
 YYBISON_VERSION	target/cpp/gust.tab.c	47;"	d	file:
-YYCASE_	target/cpp/gust.tab.c	1454;"	d	file:
-YYCASE_	target/cpp/gust.tab.c	1464;"	d	file:
-YYCOPY	target/cpp/gust.tab.c	519;"	d	file:
-YYCOPY	target/cpp/gust.tab.c	522;"	d	file:
-YYCOPY_NEEDED	target/cpp/gust.tab.c	494;"	d	file:
-YYDEBUG	target/cpp/gust.tab.c	208;"	d	file:
-YYDEBUG	target/cpp/gust.tab.c	75;"	d	file:
+YYCASE_	target/cpp/gust.tab.c	1517;"	d	file:
+YYCASE_	target/cpp/gust.tab.c	1527;"	d	file:
+YYCOPY	target/cpp/gust.tab.c	608;"	d	file:
+YYCOPY	target/cpp/gust.tab.c	611;"	d	file:
+YYCOPY_NEEDED	target/cpp/gust.tab.c	583;"	d	file:
+YYDEBUG	target/cpp/gust.tab.c	297;"	d	file:
+YYDEBUG	target/cpp/gust.tab.c	76;"	d	file:
 YYDEBUG	target/cpp/gust.tab.h	37;"	d
-YYDPRINTF	target/cpp/gust.tab.c	1144;"	d	file:
-YYDPRINTF	target/cpp/gust.tab.c	1259;"	d	file:
-YYEMPTY	target/cpp/gust.tab.c	1103;"	d	file:
-YYEOF	target/cpp/gust.tab.c	1104;"	d	file:
-YYERRCODE	target/cpp/gust.tab.c	1132;"	d	file:
-YYERROR	target/cpp/gust.tab.c	1108;"	d	file:
-YYERROR_VERBOSE	target/cpp/gust.tab.c	196;"	d	file:
-YYERROR_VERBOSE	target/cpp/gust.tab.c	197;"	d	file:
-YYERROR_VERBOSE	target/cpp/gust.tab.c	199;"	d	file:
-YYFINAL	target/cpp/gust.tab.c	535;"	d	file:
-YYFPRINTF	target/cpp/gust.tab.c	1141;"	d	file:
-YYFREE	target/cpp/gust.tab.c	465;"	d	file:
-YYINITDEPTH	target/cpp/gust.tab.c	1268;"	d	file:
-YYLAST	target/cpp/gust.tab.c	537;"	d	file:
-YYMALLOC	target/cpp/gust.tab.c	459;"	d	file:
-YYMAXDEPTH	target/cpp/gust.tab.c	1279;"	d	file:
-YYMAXUTOK	target/cpp/gust.tab.c	551;"	d	file:
-YYNNTS	target/cpp/gust.tab.c	542;"	d	file:
-YYNRULES	target/cpp/gust.tab.c	544;"	d	file:
-YYNSTATES	target/cpp/gust.tab.c	546;"	d	file:
-YYNTOKENS	target/cpp/gust.tab.c	540;"	d	file:
-YYPACT_NINF	target/cpp/gust.tab.c	667;"	d	file:
-YYPOPSTACK	target/cpp/gust.tab.c	1579;"	d	file:
+YYDPRINTF	target/cpp/gust.tab.c	1207;"	d	file:
+YYDPRINTF	target/cpp/gust.tab.c	1322;"	d	file:
+YYEMPTY	target/cpp/gust.tab.c	1166;"	d	file:
+YYEOF	target/cpp/gust.tab.c	1167;"	d	file:
+YYERRCODE	target/cpp/gust.tab.c	1195;"	d	file:
+YYERROR	target/cpp/gust.tab.c	1171;"	d	file:
+YYERROR_VERBOSE	target/cpp/gust.tab.c	285;"	d	file:
+YYERROR_VERBOSE	target/cpp/gust.tab.c	286;"	d	file:
+YYERROR_VERBOSE	target/cpp/gust.tab.c	288;"	d	file:
+YYFINAL	target/cpp/gust.tab.c	624;"	d	file:
+YYFPRINTF	target/cpp/gust.tab.c	1204;"	d	file:
+YYFREE	target/cpp/gust.tab.c	554;"	d	file:
+YYINITDEPTH	target/cpp/gust.tab.c	1331;"	d	file:
+YYLAST	target/cpp/gust.tab.c	626;"	d	file:
+YYMALLOC	target/cpp/gust.tab.c	548;"	d	file:
+YYMAXDEPTH	target/cpp/gust.tab.c	1342;"	d	file:
+YYMAXUTOK	target/cpp/gust.tab.c	640;"	d	file:
+YYNNTS	target/cpp/gust.tab.c	631;"	d	file:
+YYNRULES	target/cpp/gust.tab.c	633;"	d	file:
+YYNSTATES	target/cpp/gust.tab.c	635;"	d	file:
+YYNTOKENS	target/cpp/gust.tab.c	629;"	d	file:
+YYPACT_NINF	target/cpp/gust.tab.c	756;"	d	file:
+YYPOPSTACK	target/cpp/gust.tab.c	1642;"	d	file:
 YYPULL	target/cpp/gust.tab.c	59;"	d	file:
 YYPURE	target/cpp/gust.tab.c	53;"	d	file:
 YYPUSH	target/cpp/gust.tab.c	56;"	d	file:
-YYRECOVERING	target/cpp/gust.tab.c	1111;"	d	file:
-YYSIZE_MAXIMUM	target/cpp/gust.tab.c	338;"	d	file:
-YYSIZE_T	target/cpp/gust.tab.c	327;"	d	file:
-YYSIZE_T	target/cpp/gust.tab.c	329;"	d	file:
-YYSIZE_T	target/cpp/gust.tab.c	332;"	d	file:
-YYSIZE_T	target/cpp/gust.tab.c	334;"	d	file:
+YYRECOVERING	target/cpp/gust.tab.c	1174;"	d	file:
+YYSIZE_MAXIMUM	target/cpp/gust.tab.c	427;"	d	file:
+YYSIZE_T	target/cpp/gust.tab.c	416;"	d	file:
+YYSIZE_T	target/cpp/gust.tab.c	418;"	d	file:
+YYSIZE_T	target/cpp/gust.tab.c	421;"	d	file:
+YYSIZE_T	target/cpp/gust.tab.c	423;"	d	file:
 YYSKELETON_NAME	target/cpp/gust.tab.c	50;"	d	file:
-YYSTACK_ALLOC	target/cpp/gust.tab.c	413;"	d	file:
-YYSTACK_ALLOC	target/cpp/gust.tab.c	417;"	d	file:
-YYSTACK_ALLOC	target/cpp/gust.tab.c	422;"	d	file:
-YYSTACK_ALLOC	target/cpp/gust.tab.c	445;"	d	file:
-YYSTACK_ALLOC_MAXIMUM	target/cpp/gust.tab.c	442;"	d	file:
-YYSTACK_ALLOC_MAXIMUM	target/cpp/gust.tab.c	448;"	d	file:
-YYSTACK_BYTES	target/cpp/gust.tab.c	490;"	d	file:
-YYSTACK_FREE	target/cpp/gust.tab.c	436;"	d	file:
-YYSTACK_FREE	target/cpp/gust.tab.c	446;"	d	file:
-YYSTACK_GAP_MAXIMUM	target/cpp/gust.tab.c	486;"	d	file:
-YYSTACK_RELOCATE	target/cpp/gust.tab.c	501;"	d	file:
+YYSTACK_ALLOC	target/cpp/gust.tab.c	502;"	d	file:
+YYSTACK_ALLOC	target/cpp/gust.tab.c	506;"	d	file:
+YYSTACK_ALLOC	target/cpp/gust.tab.c	511;"	d	file:
+YYSTACK_ALLOC	target/cpp/gust.tab.c	534;"	d	file:
+YYSTACK_ALLOC_MAXIMUM	target/cpp/gust.tab.c	531;"	d	file:
+YYSTACK_ALLOC_MAXIMUM	target/cpp/gust.tab.c	537;"	d	file:
+YYSTACK_BYTES	target/cpp/gust.tab.c	579;"	d	file:
+YYSTACK_FREE	target/cpp/gust.tab.c	525;"	d	file:
+YYSTACK_FREE	target/cpp/gust.tab.c	535;"	d	file:
+YYSTACK_GAP_MAXIMUM	target/cpp/gust.tab.c	575;"	d	file:
+YYSTACK_RELOCATE	target/cpp/gust.tab.c	590;"	d	file:
 YYSTATE	target/cpp/gust.yy.c	196;"	d	file:
 YYSTYPE	target/cpp/gust.tab.c	/^typedef union YYSTYPE YYSTYPE;$/;"	t	typeref:union:YYSTYPE	file:
 YYSTYPE	target/cpp/gust.tab.c	/^union YYSTYPE$/;"	u	file:
 YYSTYPE	target/cpp/gust.tab.h	/^typedef union YYSTYPE YYSTYPE;$/;"	t	typeref:union:YYSTYPE
 YYSTYPE	target/cpp/gust.tab.h	/^union YYSTYPE$/;"	u
-YYSTYPE_IS_DECLARED	target/cpp/gust.tab.c	283;"	d	file:
+YYSTYPE_IS_DECLARED	target/cpp/gust.tab.c	372;"	d	file:
 YYSTYPE_IS_DECLARED	target/cpp/gust.tab.h	112;"	d
-YYSTYPE_IS_TRIVIAL	target/cpp/gust.tab.c	282;"	d	file:
+YYSTYPE_IS_TRIVIAL	target/cpp/gust.tab.c	371;"	d	file:
 YYSTYPE_IS_TRIVIAL	target/cpp/gust.tab.h	111;"	d
 YYTABLES_NAME	target/cpp/gust.yy.c	2479;"	d	file:
-YYTABLE_NINF	target/cpp/gust.tab.c	672;"	d	file:
-YYTERROR	target/cpp/gust.tab.c	1131;"	d	file:
-YYTOKENTYPE	target/cpp/gust.tab.c	216;"	d	file:
+YYTABLE_NINF	target/cpp/gust.tab.c	761;"	d	file:
+YYTERROR	target/cpp/gust.tab.c	1194;"	d	file:
+YYTOKENTYPE	target/cpp/gust.tab.c	305;"	d	file:
 YYTOKENTYPE	target/cpp/gust.tab.h	45;"	d
-YYTRANSLATE	target/cpp/gust.tab.c	553;"	d	file:
-YYUNDEFTOK	target/cpp/gust.tab.c	550;"	d	file:
-YYUSE	target/cpp/gust.tab.c	381;"	d	file:
-YYUSE	target/cpp/gust.tab.c	383;"	d	file:
-YY_	target/cpp/gust.tab.c	344;"	d	file:
-YY_	target/cpp/gust.tab.c	348;"	d	file:
-YY_ATTRIBUTE	target/cpp/gust.tab.c	356;"	d	file:
-YY_ATTRIBUTE	target/cpp/gust.tab.c	358;"	d	file:
-YY_ATTRIBUTE_PURE	target/cpp/gust.tab.c	363;"	d	file:
-YY_ATTRIBUTE_UNUSED	target/cpp/gust.tab.c	367;"	d	file:
+YYTRANSLATE	target/cpp/gust.tab.c	642;"	d	file:
+YYUNDEFTOK	target/cpp/gust.tab.c	639;"	d	file:
+YYUSE	target/cpp/gust.tab.c	470;"	d	file:
+YYUSE	target/cpp/gust.tab.c	472;"	d	file:
+YY_	target/cpp/gust.tab.c	433;"	d	file:
+YY_	target/cpp/gust.tab.c	437;"	d	file:
+YY_ATTRIBUTE	target/cpp/gust.tab.c	445;"	d	file:
+YY_ATTRIBUTE	target/cpp/gust.tab.c	447;"	d	file:
+YY_ATTRIBUTE_PURE	target/cpp/gust.tab.c	452;"	d	file:
+YY_ATTRIBUTE_UNUSED	target/cpp/gust.tab.c	456;"	d	file:
 YY_AT_BOL	target/cpp/gust.yy.c	395;"	d	file:
 YY_BREAK	target/cpp/gust.yy.c	929;"	d	file:
 YY_BUFFER_EOF_PENDING	target/cpp/gust.yy.c	316;"	d	file:
@@ -334,66 +336,70 @@ YY_FLEX_MAJOR_VERSION	target/cpp/gust.yy.c	10;"	d	file:
 YY_FLEX_MINOR_VERSION	target/cpp/gust.yy.c	11;"	d	file:
 YY_FLEX_SUBMINOR_VERSION	target/cpp/gust.yy.c	12;"	d	file:
 YY_FLUSH_BUFFER	target/cpp/gust.yy.c	366;"	d	file:
-YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN	target/cpp/gust.tab.c	388;"	d	file:
-YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN	target/cpp/gust.tab.c	398;"	d	file:
-YY_IGNORE_MAYBE_UNINITIALIZED_END	target/cpp/gust.tab.c	392;"	d	file:
-YY_IGNORE_MAYBE_UNINITIALIZED_END	target/cpp/gust.tab.c	399;"	d	file:
-YY_INITIAL_VALUE	target/cpp/gust.tab.c	395;"	d	file:
-YY_INITIAL_VALUE	target/cpp/gust.tab.c	402;"	d	file:
+YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN	target/cpp/gust.tab.c	477;"	d	file:
+YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN	target/cpp/gust.tab.c	487;"	d	file:
+YY_IGNORE_MAYBE_UNINITIALIZED_END	target/cpp/gust.tab.c	481;"	d	file:
+YY_IGNORE_MAYBE_UNINITIALIZED_END	target/cpp/gust.tab.c	488;"	d	file:
+YY_INITIAL_VALUE	target/cpp/gust.tab.c	484;"	d	file:
+YY_INITIAL_VALUE	target/cpp/gust.tab.c	491;"	d	file:
 YY_INPUT	target/cpp/gust.yy.c	857;"	d	file:
 YY_INT_ALIGNED	target/cpp/gust.yy.c	5;"	d	file:
 YY_LESS_LINENO	target/cpp/gust.yy.c	238;"	d	file:
 YY_LINENO_REWIND_TO	target/cpp/gust.yy.c	239;"	d	file:
-YY_LOCATION_PRINT	target/cpp/gust.tab.c	1152;"	d	file:
+YY_LOCATION_PRINT	target/cpp/gust.tab.c	1215;"	d	file:
 YY_MORE_ADJ	target/cpp/gust.yy.c	740;"	d	file:
 YY_NEW_FILE	target/cpp/gust.yy.c	200;"	d	file:
 YY_NULL	target/cpp/gust.yy.c	179;"	d	file:
-YY_NULLPTR	target/cpp/gust.tab.c	188;"	d	file:
-YY_NULLPTR	target/cpp/gust.tab.c	190;"	d	file:
+YY_NULLPTR	target/cpp/gust.tab.c	277;"	d	file:
+YY_NULLPTR	target/cpp/gust.tab.c	279;"	d	file:
 YY_NUM_RULES	target/cpp/gust.yy.c	427;"	d	file:
 YY_READ_BUF_SIZE	target/cpp/gust.yy.c	839;"	d	file:
 YY_READ_BUF_SIZE	target/cpp/gust.yy.c	841;"	d	file:
-YY_REDUCE_PRINT	target/cpp/gust.tab.c	1249;"	d	file:
-YY_REDUCE_PRINT	target/cpp/gust.tab.c	1262;"	d	file:
+YY_REDUCE_PRINT	target/cpp/gust.tab.c	1312;"	d	file:
+YY_REDUCE_PRINT	target/cpp/gust.tab.c	1325;"	d	file:
 YY_RESTORE_YY_MORE_OFFSET	target/cpp/gust.yy.c	741;"	d	file:
 YY_RULE_SETUP	target/cpp/gust.yy.c	932;"	d	file:
 YY_SC_TO_UI	target/cpp/gust.yy.c	184;"	d	file:
-YY_STACK_PRINT	target/cpp/gust.tab.c	1218;"	d	file:
-YY_STACK_PRINT	target/cpp/gust.tab.c	1261;"	d	file:
+YY_STACK_PRINT	target/cpp/gust.tab.c	1281;"	d	file:
+YY_STACK_PRINT	target/cpp/gust.tab.c	1324;"	d	file:
 YY_START	target/cpp/gust.yy.c	195;"	d	file:
 YY_START_STACK_INCR	target/cpp/gust.yy.c	899;"	d	file:
 YY_STATE_BUF_SIZE	target/cpp/gust.yy.c	218;"	d	file:
 YY_STATE_EOF	target/cpp/gust.yy.c	198;"	d	file:
 YY_STRUCT_YY_BUFFER_STATE	target/cpp/gust.yy.c	257;"	d	file:
-YY_SYMBOL_PRINT	target/cpp/gust.tab.c	1156;"	d	file:
-YY_SYMBOL_PRINT	target/cpp/gust.tab.c	1260;"	d	file:
+YY_SYMBOL_PRINT	target/cpp/gust.tab.c	1219;"	d	file:
+YY_SYMBOL_PRINT	target/cpp/gust.tab.c	1323;"	d	file:
 YY_TYPEDEF_YY_BUFFER_STATE	target/cpp/gust.yy.c	221;"	d	file:
 YY_TYPEDEF_YY_SIZE_T	target/cpp/gust.yy.c	226;"	d	file:
 YY_USER_ACTION	target/cpp/gust.yy.c	924;"	d	file:
-YY_YY_TARGET_CPP_GUST_TAB_H_INCLUDED	target/cpp/gust.tab.c	205;"	d	file:
+YY_YY_TARGET_CPP_GUST_TAB_H_INCLUDED	target/cpp/gust.tab.c	294;"	d	file:
 YY_YY_TARGET_CPP_GUST_TAB_H_INCLUDED	target/cpp/gust.tab.h	34;"	d
 _ArrayType	cpp/node.h	/^    _ArrayType,$/;"	e	enum:TypeClass
 _BasicType	cpp/node.h	/^    _BasicType,$/;"	e	enum:TypeClass
-_FxnType	cpp/node.h	/^    _FxnType,$/;"	e	enum:TypeClass
+_FunctionType	cpp/node.h	/^    _FunctionType,$/;"	e	enum:TypeClass
 _MapType	cpp/node.h	/^    _MapType,$/;"	e	enum:TypeClass
 _NODE_H	cpp/node.h	2;"	d
-_Noreturn	target/cpp/gust.tab.c	373;"	d	file:
-_Noreturn	target/cpp/gust.tab.c	375;"	d	file:
+_Noreturn	target/cpp/gust.tab.c	462;"	d	file:
+_Noreturn	target/cpp/gust.tab.c	464;"	d	file:
 _StarType	cpp/node.h	/^    _StarType$/;"	e	enum:TypeClass
 _StructType	cpp/node.h	/^    _StructType,$/;"	e	enum:TypeClass
+_TYPE_H	cpp/type.h	2;"	d
 _TupleType	cpp/node.h	/^    _TupleType,$/;"	e	enum:TypeClass
+__CLASS_NAME__	cpp/type.h	3;"	d
 __STDC_LIMIT_MACROS	target/cpp/gust.yy.c	118;"	d	file:
-alloca	target/cpp/gust.tab.c	420;"	d	file:
-args	cpp/node.h	/^    vector<Object*> args;$/;"	m	class:Object
-ast	cpp/node.h	/^    Object *ast;$/;"	m	struct:node
-base	cpp/node.h	/^    Object *base;$/;"	m	class:Object
-children	cpp/node.h	/^    vector<Object*> children;$/;"	m	class:Object
-children_nt	cpp/node.h	/^    vector<node *> children_nt;$/;"	m	struct:node
-children_t	cpp/node.h	/^    vector<char *> children_t;$/;"	m	struct:node
-classtype	cpp/node.h	/^    TypeClass classtype = _BasicType;$/;"	m	class:Object
+alloca	target/cpp/gust.tab.c	509;"	d	file:
+argTypes	cpp/type.h	/^    vector<Type *> argTypes;$/;"	m	struct:FunctionType
+base	cpp/type.h	/^    Type *base;$/;"	m	struct:ArrayType
+base	cpp/type.h	/^    Type *base;$/;"	m	struct:SliceType
+base	cpp/type.h	/^    string base;$/;"	m	struct:BasicType
+child	cpp/node.h	/^    Data *child = NULL;$/;"	m	struct:Data
+child	cpp/node.h	/^struct child {$/;"	s
+children	cpp/node.h	/^    vector<child> children;$/;"	m	struct:node
+className	cpp/type.cpp	/^inline string className(const string &prettyFunction) {$/;"	f
 compareList	cpp/operand.cpp	/^static bool compareList(vector<Object *> &list1, vector<Object *> &list2) {$/;"	f	file:
+concat	target/cpp/gust.tab.c	/^char* concat(char* a, char*b) {$/;"	f
+data	cpp/node.h	/^    Data *data;$/;"	m	struct:node
 escape_json	target/cpp/gust.tab.c	/^string escape_json(const string &s) {$/;"	f
-fields	cpp/node.h	/^    unordered_map<string, Object*> fields;$/;"	m	class:Object
 flex_int16_t	target/cpp/gust.yy.c	/^typedef int16_t flex_int16_t;$/;"	t	file:
 flex_int16_t	target/cpp/gust.yy.c	/^typedef short int flex_int16_t;$/;"	t	file:
 flex_int32_t	target/cpp/gust.yy.c	/^typedef int flex_int32_t;$/;"	t	file:
@@ -406,18 +412,33 @@ flex_uint32_t	target/cpp/gust.yy.c	/^typedef uint32_t flex_uint32_t;$/;"	t	file:
 flex_uint32_t	target/cpp/gust.yy.c	/^typedef unsigned int flex_uint32_t;$/;"	t	file:
 flex_uint8_t	target/cpp/gust.yy.c	/^typedef uint8_t flex_uint8_t;$/;"	t	file:
 flex_uint8_t	target/cpp/gust.yy.c	/^typedef unsigned char flex_uint8_t; $/;"	t	file:
+getClass	cpp/type.cpp	/^string Type::getClass() {$/;"	f	class:Type
+getSymType	target/cpp/gust.tab.c	/^string getSymType(string name) {$/;"	f
+getType	cpp/type.cpp	/^string ArrayType::getType() {$/;"	f	class:ArrayType
+getType	cpp/type.cpp	/^string BasicType::getType() {$/;"	f	class:BasicType
+getType	cpp/type.cpp	/^string FunctionType::getType() {$/;"	f	class:FunctionType
+getType	cpp/type.cpp	/^string SliceType::getType() {$/;"	f	class:SliceType
+getType	cpp/type.cpp	/^string StructType::getType() {$/;"	f	class:StructType
+getType	cpp/type.cpp	/^string Type::getType() {$/;"	f	class:Type
 help	cpp/cli.cpp	/^void help() {$/;"	f
 init	cpp/node.cpp	/^node &init() {$/;"	f
 inittables	target/cpp/gust.tab.c	/^void inittables() {$/;"	f
-key	cpp/node.h	/^    Object *key, *value;$/;"	m	class:Object
+isDefined	target/cpp/gust.tab.c	/^bool isDefined(string name) {$/;"	f
+isInScope	target/cpp/gust.tab.c	/^bool isInScope(string name) {$/;"	f
+isSymbol	target/cpp/gust.tab.c	/^bool isSymbol(string name) {$/;"	f
+isType	target/cpp/gust.tab.c	/^bool isType(string name) {$/;"	f
+last	target/cpp/gust.tab.c	/^Data* last(Data*ptr) {$/;"	f
 main	cpp/ast.cpp	/^int main(int argc, char **argv) {$/;"	f
 main	cpp/lexer.cpp	/^int main(int argc, char **argv) {$/;"	f
 main	cpp/parser.cpp	/^int main(int argc, char **argv) {$/;"	f
-members	cpp/node.h	/^    unordered_map<string, Object*> members;$/;"	m	class:Object
-name	cpp/node.h	/^    char name[100] = {0};$/;"	m	struct:node
-name	cpp/node.h	/^    string name = "";$/;"	m	class:Object
+memNames	cpp/type.h	/^    vector<string> memNames;$/;"	m	struct:StructType
+memTypes	cpp/type.h	/^    vector<Type *> memTypes;$/;"	m	struct:StructType
+name	cpp/node.h	/^    string name = "";$/;"	m	struct:Data
+name	cpp/node.h	/^    string name;$/;"	m	struct:node
+next	cpp/node.h	/^    Data *next = NULL;$/;"	m	struct:Data
 node	cpp/node.h	/^struct node {$/;"	s
 node_id	target/cpp/gust.tab.c	/^int node_id = 0;$/;"	v
+nt	cpp/node.h	/^    node *nt = NULL;$/;"	m	struct:child
 nt	target/cpp/gust.tab.c	/^    node* nt;$/;"	m	union:YYSTYPE	file:
 nt	target/cpp/gust.tab.h	/^    node* nt;$/;"	m	union:YYSTYPE
 operator +=	cpp/operand.cpp	/^Object &operator+=(Object &a, Object &b) {$/;"	f
@@ -433,27 +454,28 @@ parseCLI	cpp/cli.cpp	/^FILE *parseCLI(int argc, char **argv) {$/;"	f
 print	target/cpp/gust.tab.c	/^string print(node* n) {$/;"	f
 printTop	target/cpp/gust.tab.c	/^void printTop(node* n) {$/;"	f
 printtables	target/cpp/gust.tab.c	/^void printtables() {$/;"	f
-ret	cpp/node.h	/^    Object *ret;$/;"	m	class:Object
+retTypes	cpp/type.h	/^    vector<Type *> retTypes;$/;"	m	struct:FunctionType
 scope_id	target/cpp/gust.tab.c	/^int scope_id = 0;$/;"	v
 scope_prefix	target/cpp/gust.tab.c	/^string scope_prefix = "0-";$/;"	v
-short	target/cpp/gust.tab.c	298;"	d	file:
-stable	target/cpp/gust.tab.c	/^umap<string, Object*> stable; \/\/ symbols$/;"	v
+short	target/cpp/gust.tab.c	387;"	d	file:
+size	cpp/type.h	/^    int size;$/;"	m	struct:ArrayType
+stable	target/cpp/gust.tab.c	/^umap<string, Type*> stable; \/\/ symbols (a is an int)$/;"	v
 std	target/cpp/gust.tab.c	/^using namespace std;$/;"	v
 std	target/cpp/gust.yy.c	/^using namespace std;$/;"	v
-string	target/cpp/gust.tab.c	/^umap<string, Object*> stable; \/\/ symbols$/;"	v
-string	target/cpp/gust.tab.c	/^umap<string, Object*> ttable; \/\/ types$/;"	v
+string	target/cpp/gust.tab.c	/^umap<string, Type*> stable; \/\/ symbols (a is an int)$/;"	v
+string	target/cpp/gust.tab.c	/^umap<string, Type*> ttable; \/\/ types (due to typedef or predeclared)$/;"	v
 sval	target/cpp/gust.tab.c	/^    char *sval;$/;"	m	union:YYSTYPE	file:
 sval	target/cpp/gust.tab.h	/^    char *sval;$/;"	m	union:YYSTYPE
-tableinsert	target/cpp/gust.tab.c	/^void tableinsert(umap<string, Object*> &table,$/;"	f
+symInsert	target/cpp/gust.tab.c	/^void symInsert(string name, Type* tp) {$/;"	f
+t	cpp/node.h	/^    string t = "";$/;"	m	struct:child
 tostring	cpp/operand.cpp	/^string Object::tostring() {$/;"	f	class:Object
 tstr	target/cpp/gust.tab.c	/^string tstr(char *s) {$/;"	f
-ttable	target/cpp/gust.tab.c	/^umap<string, Object*> ttable; \/\/ types$/;"	v
-types	cpp/node.h	/^    vector<Object*> types;$/;"	m	class:Object
-umap	target/cpp/gust.tab.c	78;"	d	file:
+ttable	target/cpp/gust.tab.c	/^umap<string, Type*> ttable; \/\/ types (due to typedef or predeclared)$/;"	v
+type	cpp/node.h	/^    Type *type;$/;"	m	struct:node
+type	cpp/node.h	/^    int type = 0;  \/\/ 0 for NT (node*), 1 for T (string)$/;"	m	struct:child
+typeInsert	target/cpp/gust.tab.c	/^void typeInsert(string name, Type* tp) {$/;"	f
+umap	cpp/node.h	9;"	d
 unput	target/cpp/gust.yy.c	254;"	d	file:
-value	cpp/node.h	/^    Object *key, *value;$/;"	m	class:Object
-what	cpp/node.h	/^    What what = GoType;$/;"	m	class:Object
-where	cpp/node.h	/^    Where where = NULL;$/;"	m	class:Object
 yy_accept	target/cpp/gust.yy.c	/^static const flex_int16_t yy_accept[224] =$/;"	v	file:
 yy_at_bol	target/cpp/gust.yy.c	/^	int yy_at_bol;$/;"	m	struct:yy_buffer_state	file:
 yy_base	target/cpp/gust.yy.c	/^static const flex_int16_t yy_base[231] =$/;"	v	file:
@@ -530,7 +552,7 @@ yyalloc	target/cpp/gust.yy.c	/^void *yyalloc (yy_size_t  size )$/;"	f
 yyalloc	target/cpp/gust.yy.c	77;"	d	file:
 yychar	target/cpp/gust.tab.c	/^int yychar;$/;"	v
 yycheck	target/cpp/gust.tab.c	/^static const yytype_int16 yycheck[] =$/;"	v	file:
-yyclearin	target/cpp/gust.tab.c	1102;"	d	file:
+yyclearin	target/cpp/gust.tab.c	1165;"	d	file:
 yyconst	target/cpp/gust.yy.c	170;"	d	file:
 yydebug	cpp/ast.cpp	/^extern "C" int yydebug;$/;"	v
 yydebug	cpp/lexer.cpp	/^extern "C" int yydebug;$/;"	v
@@ -541,7 +563,7 @@ yydefgoto	target/cpp/gust.tab.c	/^static const yytype_int16 yydefgoto[] =$/;"	v	
 yydestruct	target/cpp/gust.tab.c	/^yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep)$/;"	f	file:
 yyensure_buffer_stack	target/cpp/gust.yy.c	/^static void yyensure_buffer_stack (void)$/;"	f	file:
 yyensure_buffer_stack	target/cpp/gust.yy.c	39;"	d	file:
-yyerrok	target/cpp/gust.tab.c	1101;"	d	file:
+yyerrok	target/cpp/gust.tab.c	1164;"	d	file:
 yyerror	cpp/ast.cpp	/^void yyerror(const char *s) {$/;"	f
 yyerror	cpp/lexer.cpp	/^void yyerror(const char *s) {$/;"	f
 yyerror	cpp/parser.cpp	/^void yyerror(const char *s) {$/;"	f
@@ -583,7 +605,7 @@ yynoreturn	target/cpp/gust.yy.c	175;"	d	file:
 yyout	target/cpp/gust.yy.c	/^FILE *yyin = NULL, *yyout = NULL;$/;"	v
 yyout	target/cpp/gust.yy.c	89;"	d	file:
 yypact	target/cpp/gust.tab.c	/^static const yytype_int16 yypact[] =$/;"	v	file:
-yypact_value_is_default	target/cpp/gust.tab.c	669;"	d	file:
+yypact_value_is_default	target/cpp/gust.tab.c	758;"	d	file:
 yyparse	target/cpp/gust.tab.c	/^yyparse (void)$/;"	f
 yypgoto	target/cpp/gust.tab.c	/^static const yytype_int16 yypgoto[] =$/;"	v	file:
 yypop_buffer_state	target/cpp/gust.yy.c	/^void yypop_buffer_state (void)$/;"	f
@@ -609,12 +631,12 @@ yyset_out	target/cpp/gust.yy.c	65;"	d	file:
 yyss_alloc	target/cpp/gust.tab.c	/^  yytype_int16 yyss_alloc;$/;"	m	union:yyalloc	file:
 yystos	target/cpp/gust.tab.c	/^static const yytype_uint8 yystos[] =$/;"	v	file:
 yystpcpy	target/cpp/gust.tab.c	/^yystpcpy (char *yydest, const char *yysrc)$/;"	f	file:
-yystpcpy	target/cpp/gust.tab.c	1303;"	d	file:
+yystpcpy	target/cpp/gust.tab.c	1366;"	d	file:
 yystrlen	target/cpp/gust.tab.c	/^yystrlen (const char *yystr)$/;"	f	file:
-yystrlen	target/cpp/gust.tab.c	1287;"	d	file:
+yystrlen	target/cpp/gust.tab.c	1350;"	d	file:
 yysyntax_error	target/cpp/gust.tab.c	/^yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,$/;"	f	file:
 yytable	target/cpp/gust.tab.c	/^static const yytype_int16 yytable[] =$/;"	v	file:
-yytable_value_is_error	target/cpp/gust.tab.c	674;"	d	file:
+yytable_value_is_error	target/cpp/gust.tab.c	763;"	d	file:
 yyterminate	target/cpp/gust.yy.c	894;"	d	file:
 yytext	cpp/lexer.cpp	/^extern "C" char *yytext;$/;"	v
 yytext	target/cpp/gust.yy.c	/^char *yytext;$/;"	v

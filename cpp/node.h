@@ -15,14 +15,21 @@ class Object;
 struct node;
 struct child {
     int type = 0;  // 0 for NT (node*), 1 for T (string)
-    node *nt = 0;
+    node *nt = NULL;
     string t = "";
+};
+
+struct Data {
+    string name = "";
+    Data *next = NULL;
+    Data *child = NULL;
 };
 
 struct node {
     string name;
     vector<child> children;
     Type *type;
+    Data *data;
 };
 
 node &operator<<(node &l, node *r);

@@ -7,7 +7,7 @@ node &operator<<(node &l, node *r) {
 }
 
 node &operator<<(node &l, char *r) {
-    l.children.push_back(child{1, 0, strdup(r)});
+    l.children.push_back(child{1, NULL, strdup(r)});
     return l;
 }
 

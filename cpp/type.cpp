@@ -25,6 +25,10 @@ string BasicType::getType() {
     return base;
 }
 
+BasicType::BasicType(string _base) {
+    base = _base;
+}
+
 string ArrayType::getType() {
     // '[5]int'  <- returned string
     return "[" + to_string(size) + "]" + base->getType();
