@@ -146,18 +146,25 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType) {
 
     int pos = 1;
     auto fxnTypeCasted = dynamic_cast<FunctionType*>(fxnType);
-    for (auto argT: fxnTypeCasted->argTypes) {
+    for (auto reqArgT: fxnTypeCasted->argTypes) {
         if (argType == NULL) {
             cout << "Insufficient arguments for application of function type "
                  << fxnType->getType() << endl;
             exit(1);
         }
-        if (argType->getType() != argT->getType()) {
-            cout << "Needed type " << argT->getType() << " at " << pos <<
+        if (argType->getType() != reqArgT->getType()) {
+            cout << "Needed type " << reqArgT->getType() << " at " << pos <<
                 "-th position of function application of type " <<
                 fxnType->getType() << "; got " << argType->getType() << endl;
             exit(1);
         }
+        argType = argType->next;
+        pos = pos + 1;
+    }
+
+    if (argType != NULL) {
+        cout << "Extra arguments provided to function: " << argType->getType() << endl;
+        exit(1);
     }
 
     return vectorToLinkedList(fxnTypeCasted->retTypes);
