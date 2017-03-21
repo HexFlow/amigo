@@ -248,7 +248,7 @@ Assignment:
                 exit(1);
             }
             if(lhs == NULL || rhs == NULL) {
-                ERROR(":= must have equal operands on LHS and RHS", "");
+                ERROR("= must have equal operands on LHS and RHS", "");
                 exit(1);
             }
             if(!isValidIdent(varLeft)) {
@@ -1071,7 +1071,20 @@ PrimaryExpr:
         $$->type = $1->type;
     }
     | PrimaryExpr Selector { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
-    | PrimaryExpr Index { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
+    | PrimaryExpr Index {
+        $$ = &(init() << $1 << $2 >> "PrimaryExpr");
+        Type*tp = $1->type;
+        if(tp->classType == SLICE_TYPE) {
+            SliceType *tp = (SliceType*) $1->type;
+            $$->type = tp->base->clone();
+        }else if(tp->classType == ARRAY_TYPE) {
+            ArrayType *tp = (ArrayType*) $1->type;
+            $$->type = tp->base->clone();
+        } else {
+            ERROR("It is not possible to use index on something of type: ", toString(tp->classType) + tp->getType());
+            exit(1);
+        }
+    }
     | PrimaryExpr Slice  { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr TypeAssertion { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr Arguments { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
@@ -1105,7 +1118,9 @@ Selector:
     ;
 
 Index:
-    '[' Expression ']'  { $$ = &(init() << $2 >> "Index"); }
+    '[' Expression ']'  {
+        $$ = &(init() << $2 >> "Index");
+    }
     ;
 
 Slice:

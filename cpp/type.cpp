@@ -32,6 +32,7 @@ Type *BasicType::clone() {
 
 BasicType::BasicType(string _base) {
     base = _base;
+    classType = BASIC_TYPE;
 }
 
 string ArrayType::getType() {
@@ -41,6 +42,9 @@ string ArrayType::getType() {
 Type *ArrayType::clone() {
     return (new ArrayType(*this));
 }
+ArrayType::ArrayType(int _size, Type *_base) : size(_size), base(_base) {
+    classType = ARRAY_TYPE;
+}
 
 string SliceType::getType() {
     // '[5]int'  <- returned string
@@ -48,6 +52,9 @@ string SliceType::getType() {
 }
 Type *SliceType::clone() {
     return (new SliceType(*this));
+}
+SliceType::SliceType(Type *_base) : base(_base) {
+    classType = SLICE_TYPE;
 }
 
 string StructType::getType() {
@@ -63,6 +70,10 @@ string StructType::getType() {
 }
 Type *StructType::clone() {
     return (new StructType(*this));
+}
+StructType::StructType(vector<string> _memNames, vector<Type *> _memTypes)
+    : memNames(_memNames), memTypes(_memTypes) {
+    classType = STRUCT_TYPE;
 }
 
 string FunctionType::getType() {
@@ -81,4 +92,8 @@ string FunctionType::getType() {
 }
 Type *FunctionType::clone() {
     return (new FunctionType(*this));
+}
+FunctionType::FunctionType(vector<Type *> _argTypes, vector<Type *> _retTypes)
+    : argTypes(_argTypes), retTypes(_retTypes) {
+    classType = FUNCTION_TYPE;
 }

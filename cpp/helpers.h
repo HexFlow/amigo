@@ -36,4 +36,5 @@ string print(node *n);
 void printTop(node *n);
 bool isValidIdent(string name);
 ostream &operator<<(ostream &os, Data *m);
+string toString(ClassType tp);
 #endif

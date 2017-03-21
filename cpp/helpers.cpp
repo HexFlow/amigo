@@ -13,6 +13,25 @@ ostream &operator<<(ostream &os, Data *m) {
     return os;
 }
 
+string toString(ClassType tp) {
+    switch (tp) {
+        case NULL_TYPE:
+            return "NULL_TYPE";
+        case BASIC_TYPE:
+            return "BASIC_TYPE";
+        case ARRAY_TYPE:
+            return "ARRAY_TYPE";
+        case SLICE_TYPE:
+            return "SLICE_TYPE";
+        case STRUCT_TYPE:
+            return "STRUCT_TYPE";
+        case FUNCTION_TYPE:
+            return "FUNCTION_TYPE";
+        case POINTER_TYPE:
+            return "POINTER_TYPE";
+    }
+};
+
 bool isValidIdent(string name) {
     // TODO
     return true;
