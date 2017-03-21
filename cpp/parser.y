@@ -244,6 +244,7 @@ Assignment:
         $$ = &(init() << $1 << $2 << $3 >> "Assignment");
         Data*lhs = $1->data;
         Type*rhs = $3->type;
+        Data*rhsd = $3->data;
         while(lhs != NULL || rhs != NULL) {
             if(lhs == NULL || rhs == NULL) {
                 ERROR_N("= must have equal operands on LHS and RHS", "", @$);
@@ -258,6 +259,10 @@ Assignment:
                 ERROR_N(varLeft, " is not a valid Identifier", @1);
                 exit(1);
             }
+            if(rhs->getType() == "undefined") {
+                ERROR_N("Identifier in RHS has not yet been defined: ", string(rhsd->name), @3)
+                exit(1);
+            }
             if(getSymType(varLeft) != NULL) {
                 if(getSymType(varLeft)->getType() != rhs->getType()) {
                     ERROR_N(varLeft, " has a different type than RHS " + rhs->getType(), @1);
@@ -269,6 +274,7 @@ Assignment:
             }
             lhs = lhs->next;
             rhs = rhs->next;
+            rhsd = rhsd->next;
         }
         Data* parentleft = new Data("list");
         Data* parentright = new Data("list");
@@ -286,6 +292,7 @@ ShortVarDecl:
         bool newVar = false;
         Data*lhs = $1->data;
         Type*rhs = $3->type;
+        Data*rhsd = $3->data;
         while(lhs != NULL || rhs != NULL) {
             if(lhs == NULL || rhs == NULL) {
                 ERROR_N(":= must have equal operands on LHS and RHS", "", @$);
@@ -300,6 +307,10 @@ ShortVarDecl:
                 ERROR_N(varLeft, " is not a valid Identifier", @1);
                 exit(1);
             }
+            if(rhs->getType() == "undefined") {
+                ERROR_N("Identifier in RHS has not yet been defined: ", string(rhsd->name), @3)
+                exit(1);
+            }
             if(isInScope(varLeft)) {
                 if(getSymType(varLeft)->getType() != rhs->getType()) {
                     ERROR_N(varLeft, " has a different type than RHS", @1);
@@ -311,6 +322,7 @@ ShortVarDecl:
             }
             lhs = lhs->next;
             rhs = rhs->next;
+            rhsd = rhsd->next;
         }
         if(newVar == false) {
             ERROR_N("No new variables found to the left of := ", "", @1);
@@ -373,18 +385,23 @@ VarSpec:
         $$ = &(init() << $1 << $3 >> "VarSpec");
         Data*lhs = $1->data;
         Type*rhs = $3->type;
+        Data*rhsd = $3->data;
         while(lhs != NULL || rhs != NULL) {
+            if(lhs == NULL || rhs == NULL) {
+                ERROR_N(":= must have equal operands on LHS and RHS", "", @$);
+                exit(1);
+            }
             string varLeft = lhs->name;
             if(lhs->child != NULL) {
                 ERROR_N("Non identifier to left of :=", "", @1);
                 exit(1);
             }
-            if(lhs == NULL || rhs == NULL) {
-                ERROR_N(":= must have equal operands on LHS and RHS", "", @$);
-                exit(1);
-            }
             if(!isValidIdent(varLeft)) {
                 ERROR_N(varLeft, " is not a valid Identifier", @1);
+                exit(1);
+            }
+            if(rhs->getType() == "undefined") {
+                ERROR_N("Identifier in RHS has not yet been defined: ", string(rhsd->name), @3)
                 exit(1);
             }
             if(isInScope(varLeft)) {
@@ -395,6 +412,7 @@ VarSpec:
             }
             lhs = lhs->next;
             rhs = rhs->next;
+            rhsd = rhsd->next;
         }
         Data* parentleft = new Data("list");
         Data* parentright = new Data("list");

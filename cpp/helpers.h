@@ -10,9 +10,10 @@
 #include "node.h"
 #include "type.h"
 #define ERROR(a, b) cout << "[ERROR] " << (a) << (b) << endl
-#define ERROR_N(a, b, c)                      \
-    cout << "[ERROR] " << (a) << (b) << endl; \
-    prettyError(c.first_line, c.first_column, c.last_column);
+#define ERROR_N(a, b, c)                                      \
+    cout << endl << "[ERROR] " << (a) << (b) << endl;         \
+    prettyError(c.first_line, c.first_column, c.last_column); \
+    exit(1);
 #define WARN(a, b) cout << "[WARN] " << (a) << (b) << endl
 using namespace std;
 
@@ -34,7 +35,7 @@ bool isInScope(string name);
 Type *getSymType(string name);
 Type *isValidMemberOn(Data *, Data *);
 Type *resultOfFunctionApp(Type *fxnType, Type *argType);
-Type *vectorToLinkedList(vector<Type*>& typs);
+Type *vectorToLinkedList(vector<Type *> &typs);
 bool isDefined(string name);
 void inittables();
 void printtables();
