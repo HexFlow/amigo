@@ -613,13 +613,17 @@ CompositeLit:
 LiteralType:
     StructType                 { $$ = &(init() << $1 >> "LiteralType"); }
     | ArrayType                { $$ = &(init() << $1 >> "LiteralType"); }
-    | '[' DOTS ']' Operand        { $$ = &(init() << $2 << $4 >> "LiteralType"); }
+    | '[' DOTS ']' Operand     { $$ = &(init() << $2 << $4 >> "LiteralType"); }
     | SliceType                {
         $$ = &(init() << $1 >> "LiteralType");
         $$->data = $1->data;
         $$->type = $1->type;
     }
-    | MapType                  { $$ = &(init() << $1 >> "LiteralType"); }
+    | MapType                  {
+        $$ = &(init() << $1 >> "LiteralType");
+        $$->data = $1->data;
+        $$->type = $1->type;
+    }
     ;
 
 Type:
@@ -779,13 +783,6 @@ GotoStmt:
         $$ = &(init() << $2 >> "GotoStmt");
         $$->data = new Data(string($1));
         $$->data->child = new Data($2);
-    }
-    ;
-
-FallthroughStmt:
-    FALL         {
-        $$ = &(init() >> "FallthroughStmt");
-        $$->data = new Data(string($1));
     }
     ;
 
@@ -1088,13 +1085,28 @@ KeyValList:
     | Expression ':' Expression ',' KeyValList { $$ = &(init() << $1 << $3 << $5 >> "KeyValList"); }
 
 MakeExpr:
-    MAKE '(' Type ',' ExpressionList ')' {
+    MAKE '(' Type ',' Expression ',' Expression ')' {
+        $$ = &(init() << $3 << $5 << $7 >> "MakeExpr");
+        $$->type = $3->type;
+        $$->data = new Data("Make");
+        $$->data->child = $5->data;
+        $$->data->child->next = $7->data;
+    }
+    | MAKE '(' Type ',' Expression ')' {
         $$ = &(init() << $3 << $5 >> "MakeExpr");
         $$->type = $3->type;
+        $$->data = new Data("Make");
+        $$->data->child = $5->data;
+    }
+    | MAKE '(' Type ')' {
+        $$ = &(init() << $3 >> "MakeExpr");
+        $$->type = $3->type;
+        $$->data = new Data("Make");
     }
     | NEW '(' Type ')' {
         $$ = &(init() << $3 >> "NewExpr");
         $$->type = $3->type;
+        $$->data = new Data("New");
     }
     ;
 
@@ -1151,7 +1163,10 @@ ExpressionList:
     ;
 
 MapType:
-    MAP '[' Type ']' Type { $$ = &(init() << $1 << $3 << $5 >> "MapType"); }
+    MAP '[' Type ']' Type {
+        $$ = &(init() << $1 << $3 << $5 >> "MapType");
+        $$->type = new MapType($3->type, $5->type);
+    }
     ;
 
 StructType:

@@ -49,6 +49,9 @@ func main(a, c bool, b int) int {
 	for a, b := range 2 {
 		b = 123
 	}
+
+	b = make(int)
+	c := make(map[int]int)
 }
 
 func someotherfunc(a int) (bool, int, string) {

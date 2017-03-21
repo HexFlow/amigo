@@ -53,16 +53,31 @@ Type *SliceType::clone() {
 string StructType::getType() {
     // 'struct { a int; b string; }'  <- returned string
 
-    assert(memTypes.size() == memNames.size());
     string mems = "";
-    for (int i = 0; i < memNames.size(); i++) {
-        mems += " " + memNames[i] + " " + memTypes[i]->getType() + ";";
+
+    for (auto &elem: members) {
+        mems += elem.first + " " + elem.second->getType() + ";";
     }
 
     return "struct {" + mems + " }";
 }
 Type *StructType::clone() {
     return (new StructType(*this));
+}
+
+MapType::MapType(Type *_key, Type *_value) {
+    key = _key;
+    value = _value;
+    classType = MAP_TYPE;
+}
+
+string MapType::getType() {
+    // 'map[int]bool'  <- returned string
+    return "map[" + key->getType() + "]" + value->getType();
+}
+
+Type *MapType::clone() {
+    return (new MapType(*this));
 }
 
 string FunctionType::getType() {
