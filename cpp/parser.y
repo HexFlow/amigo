@@ -118,10 +118,13 @@ Statement:
     | GotoStmt        { $$ = &(init() << $1 >> "Statement"); }
     | FallthroughStmt { $$ = &(init() << $1 >> "Statement"); }
     | Block           { $$ = &(init() << $1 >> "Statement"); }
-    | IfStmt          { $$ = &(init() << $1 >> "Statement"); }
+    | IfStmt          {
+        $$ = &(init() << $1 >> "Statement");
+        $$->data = $1->data;
+    }
     /* | SwitchStmt      { $$ = &(init() << $1 >> "Statement"); } */
     /* | SelectStmt      { $$ = &(init() << $1 >> "Statement"); } */
-    | ForStmt         { $$ = &(init() << $1 >> "Statement"); }
+    | ForStmt         { $$ = &(init() << $1 >> "Statement"); $$->data = $1->data; }
     | DeferStmt       { $$ = &(init() << $1 >> "Statement"); }
     ;
 
@@ -670,43 +673,172 @@ FallthroughStmt:
     ;
 
 IfStmt:
-    IF OPENB Expression Block CLOSEB { $$ = &(init() << $3 << $4 >> "IfStmt"); }
-    | IF OPENB SimpleStmt ';' Expression Block CLOSEB { $$ = &(init() << $3 << $5 << $6 >> "IfStmt"); }
-    | IF OPENB Expression Block ELSE Block CLOSEB { $$ = &(init() << $3 << $4 << $6 >> "IfStmt"); }
-    | IF OPENB Expression Block ELSE IfStmt CLOSEB { $$ = &(init() << $3 << $4 << $6 >> "IfStmt"); }
-    | IF OPENB SimpleStmt ';' Expression Block ELSE IfStmt CLOSEB { $$ = &(init() << $3 << $5 << $6 << $8 >> "IfStmt"); }
-    | IF OPENB SimpleStmt ';' Expression Block ELSE Block CLOSEB { $$ = &(init() << $3 << $5 << $6 << $8 >> "IfStmt"); }
+    IF OPENB Expression Block CLOSEB {
+        $$ = &(init() << $3 << $4 >> "IfStmt");
+        $$->type = NULL;
+        $$->data = new Data("If");
+        Data *ptr = $$->data;
+        ptr->child = new Data("Condition"); ptr = ptr->child;
+        ptr->child = $3->data;
+        ptr->next = new Data("Body"); ptr = ptr->next;
+        ptr->child = $4->data;
+    }
+    | IF OPENB SimpleStmt ';' Expression Block CLOSEB {
+        $$ = &(init() << $3 << $5 << $6 >> "IfStmt");
+        $$->data = new Data("If");
+        Data *ptr = $$->data;
+        ptr->child = new Data("Statement"); ptr = ptr->child;
+        ptr->child = $3->data;
+        ptr->next = new Data("Condition"); ptr = ptr->next;
+        ptr->child = $5->data;
+        ptr->next = new Data("Body"); ptr = ptr->next;
+        ptr->child = $6->data;
+    }
+    | IF OPENB Expression Block ELSE Block CLOSEB {
+        $$ = &(init() << $3 << $4 << $6 >> "IfStmt");
+        $$->data = new Data("If");
+        Data *ptr = $$->data;
+        ptr->child = new Data("Condition"); ptr = ptr->child;
+        ptr->child = $3->data;
+        ptr->next = new Data("Body"); ptr = ptr->next;
+        ptr->child = $4->data;
+        ptr->next = new Data("Else"); ptr = ptr->next;
+        ptr->child = $6->data;
+    }
+    | IF OPENB Expression Block ELSE IfStmt CLOSEB {
+        $$ = &(init() << $3 << $4 << $6 >> "IfStmt");
+        $$->data = new Data("If");
+        Data *ptr = $$->data;
+        ptr->child = new Data("Condition"); ptr = ptr->child;
+        ptr->child = $3->data;
+        ptr->next = new Data("Body"); ptr = ptr->next;
+        ptr->child = $4->data;
+        ptr->next = new Data("Else"); ptr = ptr->next;
+        ptr->child = $6->data;
+    }
+    | IF OPENB SimpleStmt ';' Expression Block ELSE IfStmt CLOSEB {
+        $$ = &(init() << $3 << $5 << $6 << $8 >> "IfStmt");
+        $$->data = new Data("If");
+        Data *ptr = $$->data;
+        ptr->child = new Data("Statement"); ptr = ptr->child;
+        ptr->child = $3->data;
+        ptr->next = new Data("Condition"); ptr = ptr->next;
+        ptr->child = $5->data;
+        ptr->next = new Data("Body"); ptr = ptr->next;
+        ptr->child = $6->data;
+        ptr->next = new Data("Else"); ptr = ptr->next;
+        ptr->child = $8->data;
+    }
+    | IF OPENB SimpleStmt ';' Expression Block ELSE Block CLOSEB {
+        $$ = &(init() << $3 << $5 << $6 << $8 >> "IfStmt");
+        $$->data = new Data("If");
+        Data *ptr = $$->data;
+        ptr->child = new Data("Statement"); ptr = ptr->child;
+        ptr->child = $3->data;
+        ptr->next = new Data("Condition"); ptr = ptr->next;
+        ptr->child = $5->data;
+        ptr->next = new Data("Body"); ptr = ptr->next;
+        ptr->child = $6->data;
+        ptr->next = new Data("Else"); ptr = ptr->next;
+        ptr->child = $8->data;
+    }
     ;
 
 ForStmt:
-    FOR Block { $$ = &(init() << $2 >> "ForStmt"); }
-    | FOR OPENB Condition Block CLOSEB { $$ = &(init() << $3 << $4 >> "ForStmt"); }
-    | FOR OPENB ForClause Block CLOSEB { $$ = &(init() << $3 << $4 >> "ForStmt"); }
-    | FOR OPENB RangeClause Block CLOSEB { $$ = &(init() << $3 << $4 >> "ForStmt"); }
+    FOR Block {
+        $$ = &(init() << $2 >> "ForStmt");
+        $$->data = new Data("For");
+        $$->data->child = $2->data;
+    }
+    | FOR OPENB Expression Block CLOSEB {
+        $$ = &(init() << $3 << $4 >> "ForStmt");
+        $$->data = new Data("For");
+        Data *ptr = $$->data;
+        ptr->child = new Data("Condition"); ptr = ptr->child;
+        ptr->child = $3->data;
+        ptr->next = new Data("Body"); ptr = ptr->next;
+        ptr->child = $4->data;
+    }
+    | FOR OPENB ForClause Block CLOSEB {
+        $$ = &(init() << $3 << $4 >> "ForStmt");
+        $$->data = new Data("For");
+        Data *ptr = $$->data;
+        ptr->child = $3->data;
+        ptr->next = new Data("Body"); ptr = ptr->next;
+        ptr->child = $4->data;
+    }
+    | FOR OPENB RangeClause Block CLOSEB {
+        $$ = &(init() << $3 << $4 >> "ForStmt");
+        $$->data = new Data("For");
+        Data *ptr = $$->data;
+        ptr->child = $3->data;
+        ptr->next = new Data("Body"); ptr = ptr->next;
+        ptr->child = $4->data;
+    }
     ;
 
 ForClause:
-    InitStmt ';'  ';' PostStmt  { $$ = &(init() << $1 << $4 >> "ForClause"); }
-    | InitStmt ';' Condition ';' PostStmt  { $$ = &(init() << $1 << $3  << $5 >> "ForClause"); }
+    SimpleStmt ';'  ';' SimpleStmt  {
+        $$ = &(init() << $1 << $4 >> "ForClause");
+        $$->data = new Data("ForClause");
+        Data *ptr = $$->data;
+        ptr->child = new Data("InitClause"); ptr = ptr->child;
+        ptr->child = $1->data;
+        ptr->next = new Data("PostClause"); ptr = ptr->next;
+        ptr->child = $4->data;
+    }
+    | SimpleStmt ';' Expression ';' SimpleStmt  {
+        $$ = &(init() << $1 << $3  << $5 >> "ForClause");
+        $$->data = new Data("ForClause");
+        Data *ptr = $$->data;
+        ptr->child = new Data("InitClause"); ptr = ptr->child;
+        ptr->child = $1->data;
+        ptr->next = new Data("ConditionClause"); ptr = ptr->next;
+        ptr->child = $3->data;
+        ptr->next = new Data("PostClause"); ptr = ptr->next;
+        ptr->child = $5->data;
+    }
     ;
 
 RangeClause:
-    RANGE Expression  { $$ = &(init() << $2 >> "RangeClause"); }
-    | ExpressionList DECL RANGE Expression  { $$ = &(init() << $1 << $4 >> "RangeClause"); }
-    | ExpressionList '=' RANGE Expression  { $$ = &(init() << $1 << $4 >> "RangeClause"); }
+    RANGE Expression  {
+        $$ = &(init() << $2 >> "RangeClause");
+        $$->data = new Data("RangeClause");
+        Data *ptr = $$->data;
+        ptr->child = new Data("Expression"); ptr = ptr->child;
+        ptr->child = $2->data;
+    }
+    | ExpressionList DECL RANGE Expression  {
+        $$ = &(init() << $1 << $4 >> "RangeClause");
+        $$->data = new Data("RangeClause");
+        Data *ptr = $$->data;
+        ptr->child = new Data("NewExpressionList"); ptr = ptr->child;
+        ptr->child = $1->data;
+        ptr->next = new Data("RangeExpr"); ptr = ptr->next;
+        ptr->child = $4->data;
+    }
+    | ExpressionList '=' RANGE Expression  {
+        $$ = &(init() << $1 << $4 >> "RangeClause");
+        $$->data = new Data("RangeClause");
+        Data *ptr = $$->data;
+        ptr->child = new Data("ExpressionList"); ptr = ptr->child;
+        ptr->child = $1->data;
+        ptr->next = new Data("RangeExpr"); ptr = ptr->next;
+        ptr->child = $4->data;
+    }
     ;
 
-InitStmt:
-    SimpleStmt  { $$ = &(init() << $1 >> "InitStmt"); }
-    ;
+// InitStmt:
+//     SimpleStmt  { $$ = &(init() << $1 >> "InitStmt"); $$->data = $1->data; }
+//     ;
 
-PostStmt:
-    SimpleStmt  { $$ = &(init() << $1 >> "PostStmt"); }
-    ;
+// PostStmt:
+//     SimpleStmt  { $$ = &(init() << $1 >> "PostStmt"); $$->data = $1->data; }
+//     ;
 
-Condition:
-    Expression  { $$ = &(init() << $1 >> "Condition"); }
-    ;
+// Condition:
+//     Expression  { $$ = &(init() << $1 >> "Condition"); $$->data = $1->data; }
+//     ;
 
 DeferStmt:
     DEFER Expression  { $$ = &(init() << $2 >> "DeferStmt"); }

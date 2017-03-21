@@ -17,6 +17,12 @@ struct child {
     int type = 0;  // 0 for NT (node*), 1 for T (string)
     node *nt = NULL;
     string t = "";
+
+    child(int _type, node *_nt, string _t) {
+        type = _type;
+        nt = _nt;
+        t = _t;
+    }
 };
 
 struct Data {
