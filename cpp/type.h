@@ -34,6 +34,7 @@ struct BasicType : Type {
 struct ArrayType : Type {
     int size;
     Type *base;
+
     string getType();
     Type *clone();
     ClassType classType = ARRAY_TYPE;
@@ -41,14 +42,17 @@ struct ArrayType : Type {
 
 struct SliceType : Type {
     Type *base;
+
     string getType();
     Type *clone();
+    SliceType(Type *b) : base(b){};
     ClassType classType = SLICE_TYPE;
 };
 
 struct StructType : Type {
     vector<string> memNames;
     vector<Type *> memTypes;
+
     string getType();
     Type *clone();
     ClassType classType = STRUCT_TYPE;
@@ -57,6 +61,7 @@ struct StructType : Type {
 struct FunctionType : Type {
     vector<Type *> argTypes;
     vector<Type *> retTypes;
+
     string getType();
     FunctionType(vector<Type *> args, vector<Type *> rets)
         : argTypes(args), retTypes(rets){};

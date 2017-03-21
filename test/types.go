@@ -3,7 +3,9 @@ package main
 import "fmt"
 
 func main() {
+	var m, n = 1, "hello"
 	a := 0
+	var kl [45 + 56]int
 	b := "abc"
 	c := 0.0
 	d := func(a int, b int) (float64, int) {
@@ -16,5 +18,5 @@ func main() {
 		a int
 		b string
 	}{3, "hi"}
-	fmt.Printf("'%T'\n'%T'\n'%T'\n'%T'\n'%T'\n'%T'\n", a, b, c, d, e, f)
+	fmt.Printf("'%T'\n'%T'\n'%T'\n'%T'\n'%T'\n'%T'\n'%T'\n'%T'\n'%T'\n", a, b, c, d, e, f, m, n, kl)
 }

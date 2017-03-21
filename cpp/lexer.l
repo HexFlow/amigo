@@ -139,10 +139,15 @@ ECURLY (;)
 {DECIMAL}\.{DECIMAL}?{EXP}?            { yylval.sval = strdup(yytext); return FLOAT; }
 {DECIMAL}{EXP}                         { yylval.sval = strdup(yytext); return FLOAT; }
 \.{DECIMAL}{EXP}?                      { yylval.sval = strdup(yytext); return FLOAT; }
+{OR}                                   { yylval.sval = strdup(yytext); return B1; }
+{AND}                                  { yylval.sval = strdup(yytext); return B2; }
+{REL_OP}                               { yylval.sval = strdup(yytext); return B3; }
+\|                                     { yylval.sval = strdup(yytext); return B4; }
+\+|-|\^                                { yylval.sval = strdup(yytext); return D4; }
 \*                                     { yylval.sval = strdup(yytext); return STAR; }
-\+|-|\^|\*|&                           { yylval.sval = strdup(yytext); return DUAL_OP; }
+{MUL_OP}                               { yylval.sval = strdup(yytext); return B5; }
+&                                      { yylval.sval = strdup(yytext); return D5; }
 \+|-|!|\^|\*|&|{LEFT}                  { yylval.sval = strdup(yytext); return UN_OP; }
-{OR}|{AND}|{REL_OP}|{ADD_OP}|{MUL_OP}  { yylval.sval = strdup(yytext); return BIN_OP; }
 {ASN_OP}                               { yylval.sval = strdup(yytext); return ASN_OP; }
 
 {RAW_ST}/[\n]                          { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return RAW_ST; }
@@ -155,3 +160,7 @@ ECURLY (;)
 [ \t\n]                                { ; }
 .                                      { return yytext[0]; }
 %%
+/*\*                                     { yylval.sval = strdup(yytext); return STAR; }*/
+//\+|-|\^|\*|&                           { yylval.sval = strdup(yytext); return DUAL_OP; }
+//\+|-|!|\^|\*|&|{LEFT}                  { yylval.sval = strdup(yytext); return UN_OP; }
+//{OR}|{AND}|{REL_OP}|{ADD_OP}|{MUL_OP}  { yylval.sval = strdup(yytext); return BIN_OP; }
