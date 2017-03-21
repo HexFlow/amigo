@@ -10,6 +10,9 @@
 #include "node.h"
 #include "type.h"
 #define ERROR(a, b) cout << "[ERROR] " << (a) << (b) << endl
+#define ERROR_N(a, b, c)                      \
+    cout << "[ERROR] " << (a) << (b) << endl; \
+    prettyError(c.first_line, c.first_column, c.last_column);
 #define WARN(a, b) cout << "[WARN] " << (a) << (b) << endl
 using namespace std;
 
@@ -17,6 +20,7 @@ extern int node_id;
 extern string scope_prefix;
 extern umap<string, Type *> stable;  // symbols (a is an int)
 extern umap<string, Type *> ttable;  // types (due to typedef or predeclared)
+extern string filepath;
 
 string tstr(char *s);
 Data *last(Data *ptr);
@@ -39,4 +43,5 @@ void printTop(Data *n);
 bool isValidIdent(string name);
 ostream &operator<<(ostream &os, Data *m);
 string toString(ClassType tp);
+void prettyError(int line, int col1, int col2);
 #endif

@@ -2,9 +2,25 @@
 #include <iostream>
 #include "../../cpp/node.h"
 #include "gust.tab.h"
+int yycolumn = 1;
+
+#define YY_USER_ACTION                                                   \
+  start_line = prev_yylineno; start_column = yycolumn;                   \
+  if (yylineno == prev_yylineno) yycolumn += yyleng;                     \
+  else {                                                                 \
+    for (yycolumn = 1; yytext[yyleng - yycolumn] != '\n'; ++yycolumn) {} \
+    prev_yylineno = yylineno;                                            \
+  }                                                                      \
+  yylloc.first_line = yylloc.last_line = yylineno;                       \
+  yylloc.last_column = yycolumn;                                         \
+  yylloc.first_column = yycolumn - yyleng;                               
+
+
 using namespace std;
 #define YY_DECL extern "C" int yylex()
 %}
+%option yylineno
+
 NEWLINE [\n]
 UNICHAR [^\n]
 UNILETR [A-Za-z]
@@ -75,6 +91,9 @@ ECURLY (;)
 %x SEMIMODE
 
 %%
+   int start_line, start_column;
+   int prev_yylineno = yylineno;
+
 <SEMIMODE>{NEWLINE}                    { BEGIN(INITIAL); return ';'; }
 [}]/[\n]                               { BEGIN(SEMIMODE); return '}'; }
 []]/[\n]                               { BEGIN(SEMIMODE); return ']'; }

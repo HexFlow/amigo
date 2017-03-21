@@ -224,3 +224,32 @@ void printTop(node *n) {
     print(n);
     printf("\n}");
 }
+
+void prettyError(int line, int col1, int col2) {
+    FILE *f = fopen(filepath.c_str(), "r");
+    char c = 'a';
+    int lno = 1;
+    cout << "Line number: " << line << endl << endl;
+
+    while ((c = fgetc(f)) != EOF) {
+        if (c == '\t')
+            c = ' ';
+        if (lno == line) {
+            printf("%c", c);
+        }
+        if (lno > line)
+            break;
+        if (c == '\n')
+            lno++;
+    }
+    cout << "\033[1;31m";
+    for (int i = 1; i <= col2; i++) {
+        if (i >= col1 && i < col2) {
+            printf("^");
+        } else {
+            printf(" ");
+        }
+    }
+    cout << "\033[0m\n";
+    printf("\n");
+}

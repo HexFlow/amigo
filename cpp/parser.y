@@ -10,23 +10,22 @@
 #include "type.h"
 #include "helpers.h"
 #define YYDEBUG 1
-#define HANDLE_BIN_OP(A, B, C, D) \
-    A->data = new Data(string(C) + "binary");                                               \
-    A->data->child = B->data;                                                               \
-    last(A->data->child)->next = D->data;                                                   \
-    if(B->type == NULL) {                                                                   \
-        ERROR("Missing type info in node", B->data->name);                                  \
-        exit(1);                                                                            \
-    }                                                                                       \
-    if(D->type == NULL) {                                                                   \
-        ERROR("Missing type info in node", D->data->name);                                  \
-        exit(1);                                                                            \
-    }                                                                                       \
-    if(D->type->getType() != B->type->getType()) {                                          \
-        ERROR("Mismatched types with binary operator not allowed: \n", B->type->getType()); \
-        ERROR(D->type->getType(), "");                                                      \
-        exit(1);                                                                            \
-    }                                                                                       \
+#define HANDLE_BIN_OP(A, B, C, D, aA, aB, aC, aD)                                                  \
+    A->data = new Data(string(C) + "binary");                                                      \
+    A->data->child = B->data;                                                                      \
+    last(A->data->child)->next = D->data;                                                          \
+    if(B->type == NULL) {                                                                          \
+        ERROR_N("Missing type info in node", B->data->name, aB);                                   \
+        exit(1);                                                                                   \
+    }                                                                                              \
+    if(D->type == NULL) {                                                                          \
+        ERROR_N("Missing type info in node", D->data->name, aD);                                   \
+        exit(1);                                                                                   \
+    }                                                                                              \
+    if(D->type->getType() != B->type->getType()) {                                                 \
+        ERROR_N("Mismatched types : ", B->type->getType() + " and " + D->type->getType(), aD);     \
+        exit(1);                                                                                   \
+    }                                                                                              \
     A->type = B->type;
 
 using namespace std;
@@ -48,6 +47,7 @@ umap<string, Type*> stable; // symbols (a is an int)
 umap<string, Type*> ttable; // types (due to typedef or predeclared)
 
 %}
+%locations
 
 %union {
     node* nt;
@@ -112,7 +112,7 @@ StatementList:
         $$ = &(init() << $1 >> "StatementList");
         $$->data = new Data("list");
         if($1->data == NULL) {
-            ERROR("No AST attached", "");
+            ERROR_N("No AST attached", "", @1);
             exit(1);
         }
         $$->data->child = $1->data;
@@ -242,26 +242,26 @@ Assignment:
         Data*lhs = $1->data;
         Type*rhs = $3->type;
         while(lhs != NULL || rhs != NULL) {
-            string varLeft = lhs->name;
-            if(lhs->child != NULL) {
-                ERROR("Non identifier to left of =", "");
+            if(lhs == NULL || rhs == NULL) {
+                ERROR_N("= must have equal operands on LHS and RHS", "", @$);
                 exit(1);
             }
-            if(lhs == NULL || rhs == NULL) {
-                ERROR("= must have equal operands on LHS and RHS", "");
+            string varLeft = lhs->name;
+            if(lhs->child != NULL) {
+                ERROR_N("Non identifier to left of =", "", @1);
                 exit(1);
             }
             if(!isValidIdent(varLeft)) {
-                ERROR(varLeft, " is not a valid Identifier");
+                ERROR_N(varLeft, " is not a valid Identifier", @1);
                 exit(1);
             }
             if(getSymType(varLeft) != NULL) {
                 if(getSymType(varLeft)->getType() != rhs->getType()) {
-                    ERROR(varLeft, " has a different type than RHS " + rhs->getType());
+                    ERROR_N(varLeft, " has a different type than RHS " + rhs->getType(), @1);
                     exit(1);
                 }
             } else {
-                ERROR(varLeft, " variable has not been declared.");
+                ERROR_N(varLeft, " variable has not been declared.", @1);
                 exit(1);
             }
             lhs = lhs->next;
@@ -284,22 +284,22 @@ ShortVarDecl:
         Data*lhs = $1->data;
         Type*rhs = $3->type;
         while(lhs != NULL || rhs != NULL) {
-            string varLeft = lhs->name;
-            if(lhs->child != NULL) {
-                ERROR("Non identifier to left of :=", "");
+            if(lhs == NULL || rhs == NULL) {
+                ERROR_N(":= must have equal operands on LHS and RHS", "", @$);
                 exit(1);
             }
-            if(lhs == NULL || rhs == NULL) {
-                ERROR(":= must have equal operands on LHS and RHS", "");
+            string varLeft = lhs->name;
+            if(lhs->child != NULL) {
+                ERROR_N("Non identifier to left of :=", "", @1);
                 exit(1);
             }
             if(!isValidIdent(varLeft)) {
-                ERROR(varLeft, " is not a valid Identifier");
+                ERROR_N(varLeft, " is not a valid Identifier", @1);
                 exit(1);
             }
             if(isInScope(varLeft)) {
                 if(getSymType(varLeft)->getType() != rhs->getType()) {
-                    ERROR(varLeft, " has a different type than RHS");
+                    ERROR_N(varLeft, " has a different type than RHS", @1);
                     exit(1);
                 }
             } else {
@@ -310,7 +310,7 @@ ShortVarDecl:
             rhs = rhs->next;
         }
         if(newVar == false) {
-            ERROR("No new variables found to the left of := ", "");
+            ERROR_N("No new variables found to the left of := ", "", @1);
             exit(1);
         }
         Data* parentleft = new Data("list");
@@ -337,7 +337,7 @@ VarSpec:
         Data *data = $1->data;
         while(data != 0) {
             if(isInScope(data->name)) {
-                ERROR(data->name, " is already defined in this scope");
+                ERROR_N(data->name, " is already defined in this scope", @1);
                 exit(1);
             }
             cout << "// " << $2->type << __LINE__ << endl;
@@ -352,7 +352,7 @@ VarSpec:
         Data *data = $1->data;
         while(data != 0) {
             if(isInScope(data->name)) {
-                ERROR(data->name, " is already defined in this scope");
+                ERROR_N(data->name, " is already defined in this scope", @1);
                 exit(1);
             }
             symInsert(scope_prefix+data->name, $2->type);
@@ -373,19 +373,19 @@ VarSpec:
         while(lhs != NULL || rhs != NULL) {
             string varLeft = lhs->name;
             if(lhs->child != NULL) {
-                ERROR("Non identifier to left of :=", "");
+                ERROR_N("Non identifier to left of :=", "", @1);
                 exit(1);
             }
             if(lhs == NULL || rhs == NULL) {
-                ERROR(":= must have equal operands on LHS and RHS", "");
+                ERROR_N(":= must have equal operands on LHS and RHS", "", @$);
                 exit(1);
             }
             if(!isValidIdent(varLeft)) {
-                ERROR(varLeft, " is not a valid Identifier");
+                ERROR_N(varLeft, " is not a valid Identifier", @1);
                 exit(1);
             }
             if(isInScope(varLeft)) {
-                ERROR("Redeclaration of variable: ", varLeft);
+                ERROR_N("Redeclaration of variable: ", varLeft, @1);
                 exit(1);
             } else {
                 symInsert(scope_prefix+varLeft, rhs); //TODO check rhs type not "undefined"
@@ -539,7 +539,7 @@ ParameterDecl:
         $$->data = data;
         while(data != 0) {
             if(isInScope(data->name)) {
-                ERROR(data->name, " is already defined in this scope");
+                ERROR_N(data->name, " is already defined in this scope", @1);
                 exit(1);
             }
             cout << "//" << $2->type << __LINE__ << " " << data->name << endl;
@@ -635,7 +635,7 @@ Type:
         $$->data = $1->data;
         $$->type = new BasicType($1->data->name);
         if(!isType($1->data->name)) {
-            ERROR("Invalid Type: ", $1->data->name);
+            ERROR_N("Invalid Type: ", $1->data->name, @1);
             exit(1);
         }
     }
@@ -972,7 +972,7 @@ Expression:
 Expression1:
     Expression1 B1 Expression2 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression1");
-        HANDLE_BIN_OP($$, $1, $2, $3);
+        HANDLE_BIN_OP($$, $1, $2, $3, @$, @1, @2, @3);
     }
     | Expression2 {
         $$ = &(init() << $1 >> "Expression2");
@@ -984,7 +984,7 @@ Expression1:
 Expression2:
     Expression2 B2 Expression3 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression2");
-        HANDLE_BIN_OP($$, $1, $2, $3);
+        HANDLE_BIN_OP($$, $1, $2, $3, @$, @1, @2, @3);
     }
     | Expression3 {
         $$ = &(init() << $1 >> "Expression2");
@@ -996,7 +996,7 @@ Expression2:
 Expression3:
     Expression3 B3 Expression4 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression3");
-        HANDLE_BIN_OP($$, $1, $2, $3);
+        HANDLE_BIN_OP($$, $1, $2, $3, @$, @1, @2, @3);
     }
     | Expression4 {
         $$ = &(init() << $1 >> "Expression3");
@@ -1008,11 +1008,11 @@ Expression3:
 Expression4:
     Expression4 B4 Expression5 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression4");
-        HANDLE_BIN_OP($$, $1, $2, $3);
+        HANDLE_BIN_OP($$, $1, $2, $3, @$, @1, @2, @3);
     }
     | Expression4 D4 Expression5 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression4");
-        HANDLE_BIN_OP($$, $1, $2, $3);
+        HANDLE_BIN_OP($$, $1, $2, $3, @$, @1, @2, @3);
     }
     | Expression5 {
         $$ = &(init() << $1 >> "Expression4");
@@ -1024,15 +1024,15 @@ Expression4:
 Expression5:
     Expression5 B5 PrimaryExpr {
         $$ = &(init() << $1 << $2 << $3 >> "Expression5");
-        HANDLE_BIN_OP($$, $1, $2, $3);
+        HANDLE_BIN_OP($$, $1, $2, $3, @$, @1, @2, @3);
     }
     | Expression5 D5 PrimaryExpr {
         $$ = &(init() << $1 << $2 << $3 >> "Expression5");
-        HANDLE_BIN_OP($$, $1, $2, $3);
+        HANDLE_BIN_OP($$, $1, $2, $3, @$, @1, @2, @3);
     }
     | Expression5 STAR PrimaryExpr {
         $$ = &(init() << $1 << $2 << $3 >> "Expression5");
-        HANDLE_BIN_OP($$, $1, $2, $3);
+        HANDLE_BIN_OP($$, $1, $2, $3, @$, @1, @2, @3);
     }
     | UnaryExpr {
         $$ = &(init() << $1 >> "Expression5");
@@ -1074,7 +1074,7 @@ PrimaryExpr:
             SliceType *tp = (SliceType*) $1->type;
             $$->type = tp->base->clone();
             if($2->type->getType() != "int") {
-                ERROR("Non integer index provided", "");
+                ERROR_N("Non integer index provided", "", @2);
                 exit(1);
             }
         } else if(tp->classType == ARRAY_TYPE) {
