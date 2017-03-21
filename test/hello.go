@@ -5,9 +5,6 @@ func main(a, c bool, b int) int {
 	j, t := 1-67, 2+34
 	i, j = j+56/34, i
 	var m, n = 1/4 + 5/6, 3.0
-	var k []int
-
-	j = k[0]
 
 	// 5 types of IfStmt for each rule
 	if 1 == 2 {
@@ -54,9 +51,10 @@ func main(a, c bool, b int) int {
 	}
 
 	b = make(int)
+	b = fmt.Hello
 	c := make(map[int]int)
 }
 
-func someotherfunc(a int) (bool, int, string) {
-	return true, 5, "hello"
-}
+//func someotherfunc(a int) (bool, int, string) {
+//return true, 5, "hello"
+//}

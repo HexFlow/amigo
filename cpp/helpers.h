@@ -28,6 +28,8 @@ bool isType(string name);
 bool isSymbol(string name);
 bool isInScope(string name);
 Type *getSymType(string name);
+Type *isValidMemberOn(Data *, Data *);
+Type *resultOfFunctionApp(Type *fxnType, Type *argType);
 bool isDefined(string name);
 void inittables();
 void printtables();

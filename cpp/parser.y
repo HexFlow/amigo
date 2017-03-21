@@ -10,6 +10,7 @@
 #include "type.h"
 #include "helpers.h"
 #define YYDEBUG 1
+#define COPS(A, B) { A->data = B->data; A->type = B->type; };
 #define HANDLE_BIN_OP(A, B, C, D) \
     A->data = new Data(string(C) + "binary");                                               \
     A->data->child = B->data;                                                               \
@@ -284,15 +285,15 @@ ShortVarDecl:
         Data*lhs = $1->data;
         Type*rhs = $3->type;
         while(lhs != NULL || rhs != NULL) {
-            string varLeft = lhs->name;
-            if(lhs->child != NULL) {
-                ERROR("Non identifier to left of :=", "");
-                exit(1);
-            }
             if(lhs == NULL || rhs == NULL) {
                 ERROR(":= must have equal operands on LHS and RHS", "");
                 exit(1);
             }
+            if(lhs->child != NULL) {
+                ERROR("Non identifier to left of :=", "");
+                exit(1);
+            }
+            string varLeft = lhs->name;
             if(!isValidIdent(varLeft)) {
                 ERROR(varLeft, " is not a valid Identifier");
                 exit(1);
@@ -676,10 +677,10 @@ OperandName:
         $$->data = new Data{$1};
         $$->type = getSymType($1)?getSymType($1):new BasicType("undefined");
     }
-    | QualifiedIdent {
-        $$ = &(init() << $1 >> "OperandName");
-        $$->data = $1->data;
-    }
+    /* | QualifiedIdent { */
+    /*     $$ = &(init() << $1 >> "OperandName"); */
+    /*     $$->data = $1->data; */
+    /* } */
     ;
 
 LiteralValue:
@@ -1067,7 +1068,13 @@ PrimaryExpr:
         $$->data = $1->data;
         $$->type = $1->type;
     }
-    | PrimaryExpr Selector { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
+    | PrimaryExpr Selector {
+        $$ = &(init() << $1 << $2 >> "PrimaryExpr");
+        $$->type = isValidMemberOn($1->data, $2->data);
+        $$->data = new Data("MemberAccess");
+        $$->data->child = $1->data;
+        $$->data->child->next = $2->data;
+    }
     | PrimaryExpr Index {
         $$ = &(init() << $1 << $2 >> "PrimaryExpr");
         Type*tp = $1->type;
@@ -1087,7 +1094,13 @@ PrimaryExpr:
     }
     | PrimaryExpr Slice  { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr TypeAssertion { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
-    | PrimaryExpr Arguments { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
+    | PrimaryExpr Arguments {
+        $$ = &(init() << $1 << $2 >> "PrimaryExpr");
+        $$->data = new Data("FunctionCall");
+        $$->data->child = $1->data;
+        $$->data->child->next = $2->data;
+        $$->type = resultOfFunctionApp($1->type, $2->type);
+    }
     | OperandName StructLiteral { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     ;
 
@@ -1129,6 +1142,7 @@ MakeExpr:
 Selector:
     '.' IDENT  {
         $$ = &(init() << $2 >> "Selector");
+        $$->data = new Data(string($2));
     }
     ;
 
@@ -1161,8 +1175,8 @@ TypeAssertion:
 
 Arguments:
     '(' ')'                       { $$ = &(init() >> "Arguments"); }
-    | '(' ExpressionList ')'      { $$ = &(init() << $2 >> "Arguments"); }
-    | '(' ExpressionList DOTS ')' { $$ = &(init() << $2 << $3 >> "Arguments"); }
+    | '(' ExpressionList ')'      { $$ = &(init() << $2 >> "Arguments"); COPS($$, $2); }
+    | '(' ExpressionList DOTS ')' { $$ = &(init() << $2 << $3 >> "Arguments"); COPS($$, $2); }
     ;
 
 ExpressionList:
