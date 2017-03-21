@@ -1,5 +1,7 @@
 #include "helpers.h"
 
+extern ostream *sout, *astout;
+
 ostream &operator<<(ostream &os, Data *m) {
     if (m && m->name == "")
         m = m->next;
@@ -200,16 +202,18 @@ void inittables() {
 }
 
 void printtables() {
-    cout << endl << endl << "Symbol table:" << endl;
+    cout << endl;
+    *sout << "Symbol table:" << endl;
     for (auto elem : stable) {
-        cout << elem.first << " :: ";
-        cout << elem.second->getType();
-        cout << endl;
+        *sout << elem.first << " :: ";
+        *sout << elem.second->getType();
+        *sout << endl;
     }
+    *sout << endl << "Type table:" << endl;
     for (auto elem : ttable) {
-        cout << elem.first << " :: ";
-        cout << elem.second->getType();
-        cout << endl;
+        *sout << elem.first << " :: ";
+        *sout << elem.second->getType();
+        *sout << endl;
     }
 }
 
@@ -276,17 +280,17 @@ string print(Data *n) {
     Data *child = n->child;
     while (child != NULL) {
         string ch_name = print(child);
-        cout << name << " -- " << ch_name << endl;
+        *astout << name << " -- " << ch_name << endl;
         child = child->next;
     }
-    cout << name << "[label=\"" << n->name << "\"]" << endl;
+    *astout << name << "[label=\"" << n->name << "\"]" << endl;
     return name;
 }
 
 void printTop(Data *n) {
-    printf("graph {\n");
+    *astout << "graph {\n";
     print(n);
-    printf("\n}");
+    *astout << "\n}\n\n";
 }
 
 void printTop(node *n) {

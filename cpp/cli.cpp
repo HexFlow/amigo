@@ -5,6 +5,8 @@
 using namespace std;
 
 string filepath = "";
+ostream *sout = &cout;
+ostream *astout = &cout;
 
 void help() {
     cerr << "No input files provided" << endl;
@@ -29,6 +31,24 @@ FILE *parseCLI(int argc, char **argv) {
                 i++;
             } else {
                 cerr << "No outfile file provided for -o flag" << endl;
+            }
+        } else if (strcmp(argv[i], "-st") == 0) {
+            if (i + 1 < argc) {
+                ofstream *outFile = new ofstream;
+                outFile->open(argv[i + 1]);
+                sout = outFile;
+                i++;
+            } else {
+                cerr << "No outfile file provided for symbol table flag" << endl;
+            }
+        } else if (strcmp(argv[i], "-ast") == 0) {
+            if (i + 1 < argc) {
+                ofstream *outFile = new ofstream;
+                outFile->open(argv[i + 1]);
+                astout = outFile;
+                i++;
+            } else {
+                cerr << "No outfile file provided for AST flag" << endl;
             }
         } else if (strcmp(argv[i], "--help") == 0) {
             help();

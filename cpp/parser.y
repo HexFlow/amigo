@@ -82,7 +82,7 @@ umap<string, Type*> ttable; // types (due to typedef or predeclared)
 %type <nt> QualifiedIdent PointerType IdentifierList
 %%
 SourceFile:
-    PackageClause ';' ImportDeclList TopLevelDeclList { $$ = &(init() << $1 << $3 << $4 >> "SourceFile"); printTop($$); }
+    PackageClause ';' ImportDeclList TopLevelDeclList { $$ = &(init() << $1 << $3 << $4 >> "SourceFile"); printTop($4->data); }
     ;
 
 Block:
@@ -439,10 +439,13 @@ FunctionDecl:
     FUNC IDENT OPENB Signature CLOSEB {
         $$ = &(init() << $2 << $4 >> "FunctionDecl");
         symInsert(scope_prefix+$2, $4->type);
+        $$->data = new Data("Function " + string($2));
     }
     | FUNC IDENT OPENB Function CLOSEB {
         $$ = &(init() << $2 << $4 >> "FunctionDecl");
         symInsert(scope_prefix+$2, $4->type);
+        $$->data = new Data("Function " + string($2));
+        $$->data->child = $4->data;
     }
     ;
 
@@ -450,8 +453,8 @@ Function:
     Signature { curFxnType = vectorToLinkedList(dynamic_cast<FunctionType*>($1->type)->retTypes); } Block {
         $$ = &(init() << $1 << $3 >> "Function");
         $$->type = $1->type;
-        $$->data = $3->data;
-        printTop($$->data);
+        $$->data = $1->data;
+        /* printTop($$->data); */
     }
     ;
 
@@ -620,9 +623,25 @@ Receiver:
     ;
 
 TopLevelDeclList:
-    /* empty */ { $$ = &(init() >> "TopLevelDeclList"); }
-    | TopLevelDeclList TopLevelDecl ';' { $$ = &(init() << $1 << $2 >> "TopLevelDeclList"); }
-    | TopLevelDecl ';' { $$ = &(init() << $1 >> "TopLevelDeclList"); }
+    /* empty */ { $$ = &(init() >> "TopLevelDeclList"); $$->data = NULL; }
+    | TopLevelDeclList TopLevelDecl ';' {
+        $$ = &(init() << $1 << $2 >> "TopLevelDeclList");
+        $$->data = $1->data;
+        if ($$->data == NULL) {
+            $$->data = $2->data;
+        } else {
+            Data *ptr = $$->data;
+            while (ptr->next != NULL) {
+                ptr = ptr->next;
+            }
+            ptr->next = $2->data;
+        }
+    }
+    | TopLevelDecl ';' {
+        $$ = &(init() << $1 >> "TopLevelDeclList");
+        $$->data = new Data("Decl");
+        $$->data->child = $1->data;
+    }
     ;
 
 CompositeLit:
@@ -740,7 +759,7 @@ Element:
 
 TopLevelDecl:
     Declaration    { $$ = &(init() << $1 >> "TopLevelDecl"); }
-    | FunctionDecl { $$ = &(init() << $1 >> "TopLevelDecl"); }
+    | FunctionDecl { $$ = &(init() << $1 >> "TopLevelDecl"); COPS($$, $1); }
     | MethodDecl   { $$ = &(init() << $1 >> "TopLevelDecl"); }
     ;
 
