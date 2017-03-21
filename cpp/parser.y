@@ -36,11 +36,12 @@ umap<string, Type*> ttable; // types (due to typedef or predeclared)
     char *sval;
 }
 
-%token <sval> INT FLOAT IDENT BIN_OP DUAL_OP REL_OP MUL_OP ADD_OP UN_OP ECURLY
+%token <sval> INT FLOAT IDENT B1 B2 B3 B4 B5 D4 D5 STAR ECURLY UN_OP
 %token <sval> RAW_ST INR_ST ASN_OP LEFT INC DEC DECL CONST DOTS FUNC MAP
-%token <sval> GO RETURN BREAK CONT GOTO FALL IF ELSE SWITCH CASE END STAR MAKE NEW
+%token <sval> GO RETURN BREAK CONT GOTO FALL IF ELSE SWITCH CASE END MAKE NEW
 %token <sval> DEFLT SELECT TYPE ISOF FOR RANGE DEFER VAR IMPORT PACKGE STRUCT
-%type <nt> SourceFile Expression Block StatementList Statement SimpleStmt
+%type <nt> SourceFile Expression Expression1 Expression2 Expression3
+%type <nt> Block StatementList Statement SimpleStmt Expression4 Expression5
 %type <nt> EmptyStmt ExpressionStmt SendStmt Channel IncDecStmt MapType
 %type <nt> Assignment ShortVarDecl Declaration ConstDecl ConstSpecList VarSpec
 %type <nt> Signature Result Parameters ParameterList ParameterDecl TypeList
@@ -51,7 +52,7 @@ umap<string, Type*> ttable; // types (due to typedef or predeclared)
 %type <nt> PostStmt Condition DeferStmt UnaryExpr PrimaryExpr
 %type <nt> Selector Index Slice TypeDecl TypeSpecList TypeSpec VarDecl
 %type <nt> TypeAssertion Arguments ExpressionList ArrayType CompositeLit
-%type <nt> LiteralValue ElementList KeyedElement Key Element
+%type <nt> LiteralValue ElementList KeyedElement Key Element ExpressionE
 %type <nt> Operand Literal BasicLit OperandName ImportSpec IfStmt
 %type <nt> UnaryOp BinaryOp String ImportPath SliceType LiteralType
 %type <nt> PackageClause ImportDeclList ImportDecl ImportSpecList TopLevelDeclList
@@ -298,7 +299,7 @@ VarSpec:
         }
         $$->data = new Data("");
     }
-    | IdentifierList Type '=' ExpressionList {
+    | IdentifierList Type ASN_OP ExpressionList {
         $$ = &(init() << $1 << $2 << $4 >> "VarSpec");
         Data *data = $1->data;
         while(data != 0) {
@@ -317,8 +318,40 @@ VarSpec:
         $$->data = new Data("=");
         $$->data->child = parentleft;
     }
-    | IdentifierList '=' ExpressionList      {
+    | IdentifierList ASN_OP ExpressionList      {
         $$ = &(init() << $1 << $3 >> "VarSpec");
+        Data*lhs = $1->data;
+        Type*rhs = $3->type;
+        while(lhs != NULL || rhs != NULL) {
+            string varLeft = lhs->name;
+            if(lhs->child != NULL) {
+                ERROR("Non identifier to left of :=", "");
+                exit(1);
+            }
+            if(lhs == NULL || rhs == NULL) {
+                ERROR(":= must have equal operands on LHS and RHS", "");
+                exit(1);
+            }
+            if(!isValidIdent(varLeft)) {
+                ERROR(varLeft, " is not a valid Identifier");
+                exit(1);
+            }
+            if(isInScope(varLeft)) {
+                ERROR("Redeclaration of variable: ", varLeft);
+                exit(1);
+            } else {
+                symInsert(scope_prefix+varLeft, rhs); //TODO check rhs type not "undefined"
+            }
+            lhs = lhs->next;
+            rhs = rhs->next;
+        }
+        Data* parentleft = new Data("list");
+        Data* parentright = new Data("list");
+        parentleft->child = $1->data;
+        parentright->child = $3->data;
+        parentleft->next = parentright;
+        $$->data = new Data{":="};
+        $$->data->child = parentleft;
       }
     ;
 
@@ -336,15 +369,12 @@ Declaration:
 FunctionDecl:
     FUNC IDENT Signature {
         $$ = &(init() << $2 << $3 >> "FunctionDecl");
+        symInsert(scope_prefix+$2, $3->type);
     }
     | FUNC IDENT Function {
         $$ = &(init() << $2 << $3 >> "FunctionDecl");
-        /*delete $$->ast;*/
-        /*$$->ast = new Object("FunctionDecl", GoExpr);*/
-        /*Object *tmp = new Object(tstr($2), AST($3).children[0]);*/
-        /*cout << tmp->base->tostring();*/
-        /*tableinsert(stable, scope_prefix + tstr($2), tmp);*/
-        /*AST($$) << *tmp;*/
+        symInsert(scope_prefix+$2, $3->type);
+        cout << $3->data << endl;
     }
     ;
 
@@ -352,8 +382,8 @@ Function:
     Signature Block {
         $$ = &(init() << $1 << $2 >> "Function");
         $$->type = $1->type;
-        $$->data = $1->data;
-        last($$->data)->next = $2->data;
+        $$->data = $2->data;
+        /*last($$->data)->next = $2->data;*/
     }
     ;
 
@@ -539,7 +569,8 @@ LiteralType:
     | '[' DOTS ']' Operand        { $$ = &(init() << $2 << $4 >> "LiteralType"); }
     | SliceType                {
         $$ = &(init() << $1 >> "LiteralType");
-        /*AST($$) <<= AST($1);*/
+        $$->data = $1->data;
+        $$->type = $1->type;
     }
     | MapType                  { $$ = &(init() << $1 >> "LiteralType"); }
     ;
@@ -548,6 +579,7 @@ Type:
     LiteralType          {
         $$ = &(init() << $1 >> "Type");
         $$->data = $1->data;
+        $$->type = $1->type;
     }
     | OperandName        {
         $$ = &(init() << $1 >> "Type");
@@ -558,7 +590,11 @@ Type:
             exit(1);
         }
     }
-    | PointerType        { $$ = &(init() << $1 >> "Type"); }
+    | PointerType        {
+        $$ = &(init() << $1 >> "Type");
+        $$->data = $1->data;
+        $$->type = $1->type;
+    }
     ;
 
 Operand:
@@ -605,10 +641,10 @@ LiteralValue:
     ;
 
 SliceType:
-    '[' ']' Operand  {
+    '[' ']' Type  {
         $$ = &(init() << $3 >> "SliceType");
-        /*AST($$).base = $3->ast;*/
-        /*AST($$).classtype = _ArrayType;*/
+        $$->type = new SliceType($3->type);
+        $$->data = new Data($$->type->getType());
     }
     ;
 
@@ -713,14 +749,17 @@ DeferStmt:
     ;
 
 Expression:
-    UnaryExpr {
+    Expression1 {
         $$ = &(init() << $1 >> "Expression");
         $$->data = $1->data;
         $$->type = $1->type;
     }
-    | Expression BinaryOp Expression {
-        $$ = &(init() << $1 << $2 << $3 >> "Expression");
-        $$->data = new Data($2->data->name + "binary");
+    ;
+
+Expression1:
+    Expression1 B1 Expression2 {
+        $$ = &(init() << $1 << $2 << $3 >> "Expression1");
+        $$->data = new Data(string($2) + "binary");
         $$->data->child = $1->data;
         last($$->data->child)->next = $3->data;
         if($1->type == NULL) {
@@ -736,6 +775,183 @@ Expression:
             ERROR($3->type->getType(), "");
             exit(1);
         }
+        $$->type = $1->type;
+    }
+    | Expression2 {
+        $$ = &(init() << $1 >> "Expression2");
+        $$->data = $1->data;
+        $$->type = $1->type;
+    }
+    ;
+
+Expression2:
+    Expression2 B2 Expression3 {
+        $$ = &(init() << $1 << $2 << $3 >> "Expression2");
+        $$->data = new Data(string($2) + "binary");
+        $$->data->child = $1->data;
+        last($$->data->child)->next = $3->data;
+        if($1->type == NULL) {
+            ERROR("Missing type info in node", $1->data->name);
+            exit(1);
+        }
+        if($3->type == NULL) {
+            ERROR("Missing type info in node", $3->data->name);
+            exit(1);
+        }
+        if($3->type->getType() != $1->type->getType()) {
+            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
+            ERROR($3->type->getType(), "");
+            exit(1);
+        }
+        $$->type = $1->type;
+    }
+    | Expression3 {
+        $$ = &(init() << $1 >> "Expression2");
+        $$->data = $1->data;
+        $$->type = $1->type;
+    }
+    ;
+
+Expression3:
+    Expression3 B3 Expression4 {
+        $$ = &(init() << $1 << $2 << $3 >> "Expression3");
+        $$->data = new Data(string($2) + "binary");
+        $$->data->child = $1->data;
+        last($$->data->child)->next = $3->data;
+        if($1->type == NULL) {
+            ERROR("Missing type info in node", $1->data->name);
+            exit(1);
+        }
+        if($3->type == NULL) {
+            ERROR("Missing type info in node", $3->data->name);
+            exit(1);
+        }
+        if($3->type->getType() != $1->type->getType()) {
+            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
+            ERROR($3->type->getType(), "");
+            exit(1);
+        }
+        $$->type = $1->type;
+    }
+    | Expression4 {
+        $$ = &(init() << $1 >> "Expression3");
+        $$->data = $1->data;
+        $$->type = $1->type;
+    }
+    ;
+
+Expression4:
+    Expression4 B4 Expression5 {
+        $$ = &(init() << $1 << $2 << $3 >> "Expression4");
+        $$->data = new Data(string($2) + "binary");
+        $$->data->child = $1->data;
+        last($$->data->child)->next = $3->data;
+        if($1->type == NULL) {
+            ERROR("Missing type info in node", $1->data->name);
+            exit(1);
+        }
+        if($3->type == NULL) {
+            ERROR("Missing type info in node", $3->data->name);
+            exit(1);
+        }
+        if($3->type->getType() != $1->type->getType()) {
+            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
+            ERROR($3->type->getType(), "");
+            exit(1);
+        }
+        $$->type = $1->type;
+    }
+    | Expression4 D4 Expression5 {
+        $$ = &(init() << $1 << $2 << $3 >> "Expression4");
+        $$->data = new Data(string($2) + "binary");
+        $$->data->child = $1->data;
+        last($$->data->child)->next = $3->data;
+        if($1->type == NULL) {
+            ERROR("Missing type info in node", $1->data->name);
+            exit(1);
+        }
+        if($3->type == NULL) {
+            ERROR("Missing type info in node", $3->data->name);
+            exit(1);
+        }
+        if($3->type->getType() != $1->type->getType()) {
+            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
+            ERROR($3->type->getType(), "");
+            exit(1);
+        }
+        $$->type = $1->type;
+    }
+    | Expression5 {
+        $$ = &(init() << $1 >> "Expression4");
+        $$->data = $1->data;
+        $$->type = $1->type;
+    }
+    ;
+
+Expression5:
+    Expression5 B5 PrimaryExpr {
+        $$ = &(init() << $1 << $2 << $3 >> "Expression5");
+        $$->data = new Data(string($2) + "binary");
+        $$->data->child = $1->data;
+        last($$->data->child)->next = $3->data;
+        if($1->type == NULL) {
+            ERROR("Missing type info in node", $1->data->name);
+            exit(1);
+        }
+        if($3->type == NULL) {
+            ERROR("Missing type info in node", $3->data->name);
+            exit(1);
+        }
+        if($3->type->getType() != $1->type->getType()) {
+            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
+            ERROR($3->type->getType(), "");
+            exit(1);
+        }
+        $$->type = $1->type;
+    }
+    | Expression5 D5 PrimaryExpr {
+        $$ = &(init() << $1 << $2 << $3 >> "Expression5");
+        $$->data = new Data(string($2) + "binary");
+        $$->data->child = $1->data;
+        last($$->data->child)->next = $3->data;
+        if($1->type == NULL) {
+            ERROR("Missing type info in node", $1->data->name);
+            exit(1);
+        }
+        if($3->type == NULL) {
+            ERROR("Missing type info in node", $3->data->name);
+            exit(1);
+        }
+        if($3->type->getType() != $1->type->getType()) {
+            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
+            ERROR($3->type->getType(), "");
+            exit(1);
+        }
+        $$->type = $1->type;
+    }
+    | Expression5 STAR PrimaryExpr {
+        $$ = &(init() << $1 << $2 << $3 >> "Expression5");
+        $$->data = new Data(string($2) + "binary");
+        $$->data->child = $1->data;
+        last($$->data->child)->next = $3->data;
+        if($1->type == NULL) {
+            ERROR("Missing type info in node", $1->data->name);
+            exit(1);
+        }
+        if($3->type == NULL) {
+            ERROR("Missing type info in node", $3->data->name);
+            exit(1);
+        }
+        if($3->type->getType() != $1->type->getType()) {
+            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
+            ERROR($3->type->getType(), "");
+            exit(1);
+        }
+        $$->type = $1->type;
+    }
+    | UnaryExpr {
+        $$ = &(init() << $1 >> "Expression5");
+        $$->data = $1->data;
         $$->type = $1->type;
     }
     ;
@@ -868,7 +1084,9 @@ PointerType:
     ;
 
 ArrayType:
-    '[' Expression ']' Operand  { $$ = &(init() << $2 << $4 >> "ArrayType"); }
+    '[' Expression ']' Operand  {
+        $$ = &(init() << $2 << $4 >> "ArrayType");
+    }
     ;
 
 Literal:
@@ -908,19 +1126,12 @@ UnaryOp:
         $$ = &(init() << $1 >> "UnaryOp");
         $$->data = new Data{$1};
     }
-    | DUAL_OP      {
+    | D4      {
         $$ = &(init() << $1 >> "UnaryOp");
         $$->data = new Data{$1};
     }
-    ;
-
-BinaryOp:
-    BIN_OP         {
-        $$ = &(init() << $1 >> "BinaryOp");
-        $$->data = new Data{$1};
-    }
-    | DUAL_OP      {
-        $$ = &(init() << $1 >> "BinaryOp");
+    | D5      {
+        $$ = &(init() << $1 >> "UnaryOp");
         $$->data = new Data{$1};
     }
     ;
