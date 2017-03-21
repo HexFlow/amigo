@@ -107,7 +107,6 @@ StatementList:
         $$ = &(init() << $1 << $2 >> "StatementList");
         $$->data = $1->data;
         last($$->data->child)->next = $2->data;
-        cout << "//" << $$->data << "LALALALALA" << endl;
     }
     | Statement ';' {
         $$ = &(init() << $1 >> "StatementList");
@@ -125,26 +124,54 @@ Statement:
         $$ = &(init() << $1 >> "Statement");
         $$->data = $1->data;
     }
-    | LabeledStmt     { $$ = &(init() << $1 >> "Statement"); }
+    | LabeledStmt     {
+        $$ = &(init() << $1 >> "Statement");
+        $$->data = $1->data;
+    }
     | SimpleStmt      {
         $$ = &(init() << $1 >> "Statement");
         $$->data = $1->data;
     }
-    | GoStmt          { $$ = &(init() << $1 >> "Statement"); }
-    | ReturnStmt      { $$ = &(init() << $1 >> "Statement"); }
-    | BreakStmt       { $$ = &(init() << $1 >> "Statement"); }
-    | ContinueStmt    { $$ = &(init() << $1 >> "Statement"); }
-    | GotoStmt        { $$ = &(init() << $1 >> "Statement"); }
-    | FallthroughStmt { $$ = &(init() << $1 >> "Statement"); }
-    | Block           { $$ = &(init() << $1 >> "Statement"); }
+    | GoStmt          {
+        $$ = &(init() << $1 >> "Statement");
+        $$->data = $1->data;
+    }
+    | ReturnStmt      {
+        $$ = &(init() << $1 >> "Statement");
+        $$->data = $1->data;
+    }
+    | BreakStmt       {
+        $$ = &(init() << $1 >> "Statement");
+        $$->data = $1->data;
+    }
+    | ContinueStmt    {
+        $$ = &(init() << $1 >> "Statement");
+        $$->data = $1->data;
+    }
+    | GotoStmt        {
+        $$ = &(init() << $1 >> "Statement");
+        $$->data = $1->data;
+    }
+    /*| FallthroughStmt {*/
+        /*$$ = &(init() << $1 >> "Statement");*/
+    /*}*/
+    | Block           {
+        $$ = &(init() << $1 >> "Statement");
+        $$->data = $1->data;
+    }
     | IfStmt          {
         $$ = &(init() << $1 >> "Statement");
         $$->data = $1->data;
     }
     /* | SwitchStmt      { $$ = &(init() << $1 >> "Statement"); } */
     /* | SelectStmt      { $$ = &(init() << $1 >> "Statement"); } */
-    | ForStmt         { $$ = &(init() << $1 >> "Statement"); $$->data = $1->data; }
-    | DeferStmt       { $$ = &(init() << $1 >> "Statement"); }
+    | ForStmt         {
+        $$ = &(init() << $1 >> "Statement");
+        $$->data = $1->data;
+    }
+    | DeferStmt       {
+        $$ = &(init() << $1 >> "Statement");
+    }
     ;
 
 SimpleStmt:
@@ -388,14 +415,14 @@ Declaration:
     ;
 
 FunctionDecl:
-    FUNC IDENT Signature {
-        $$ = &(init() << $2 << $3 >> "FunctionDecl");
-        symInsert(scope_prefix+$2, $3->type);
+    FUNC IDENT OPENB Signature CLOSEB {
+        $$ = &(init() << $2 << $4 >> "FunctionDecl");
+        symInsert(scope_prefix+$2, $4->type);
     }
-    | FUNC IDENT Function {
-        $$ = &(init() << $2 << $3 >> "FunctionDecl");
-        symInsert(scope_prefix+$2, $3->type);
-        cout << $3->data << endl;
+    | FUNC IDENT OPENB Function CLOSEB {
+        $$ = &(init() << $2 << $4 >> "FunctionDecl");
+        symInsert(scope_prefix+$2, $4->type);
+        cout << $4->data << endl;
     }
     ;
 
@@ -405,6 +432,7 @@ Function:
         $$->type = $1->type;
         $$->data = $2->data;
         /*last($$->data)->next = $2->data;*/
+        cout << "//" << $$->data << "LALALA" << endl;
     }
     ;
 
@@ -427,7 +455,6 @@ Signature:
             ptr = ptr->next;
         }
         $$->type = new FunctionType(args, rets);
-        cout << "//" << $$->type->getType() << "LALALA" << endl;
     }
     | Parameters Result {
         $$ = &(init() << $1 << $2 >> "Signature");
@@ -456,7 +483,6 @@ Signature:
         }
 
         $$->type = new FunctionType(args, rets);
-        cout << "//" << $$->type->getType() << "LALALA" << endl;
     }
     ;
 
@@ -696,34 +722,71 @@ TopLevelDecl:
     ;
 
 LabeledStmt:
-    IDENT ':' Statement { $$ = &(init() << $1 << $3 >> "LabeledStmt"); }
+    IDENT ':' Statement {
+        $$ = &(init() << $1 << $3 >> "LabeledStmt");
+        $$->data = new Data("label-" + string($1));
+        $$->data->child = $3->data;
+    }
     ;
 
 GoStmt:
-    GO Expression { $$ = &(init() << $2 >> "GoStmt"); }
+    GO Expression {
+        $$ = &(init() << $2 >> "GoStmt");
+        $$->data = new Data(string($1));
+        $$->data->child = $2->data;
+    }
     ;
 
 ReturnStmt:
-    RETURN { $$ = &(init() >> "ReturnStmt"); }
-    | RETURN ExpressionList { $$ = &(init() << $2 >> "ReturnStmt"); }
+    RETURN {
+        $$ = &(init() >> "ReturnStmt");
+        $$->data = new Data(string($1));
+        $$->data->child = NULL;
+    }
+    | RETURN ExpressionList {
+        $$ = &(init() << $2 >> "ReturnStmt");
+        $$->data = new Data(string($1));
+        $$->data->child = $2->data;
+    }
     ;
 
 BreakStmt:
-    BREAK         { $$ = &(init() >> "BreakStmt"); }
-    | BREAK IDENT { $$ = &(init() << $2 >> "BreakStmt"); }
+    BREAK         {
+        $$ = &(init() >> "BreakStmt");
+        $$->data = new Data(string($1));
+    }
+    | BREAK IDENT {
+        $$ = &(init() << $2 >> "BreakStmt");
+        $$->data = new Data(string($1));
+        $$->data->child = new Data($2);
+    }
     ;
 
 ContinueStmt:
-    CONT         { $$ = &(init() >> "ContinueStmt"); }
-    | CONT IDENT { $$ = &(init() << $2 >> "ContinueStmt"); }
+    CONT         {
+        $$ = &(init() >> "ContinueStmt");
+        $$->data = new Data(string($1));
+    }
+    | CONT IDENT {
+        $$ = &(init() << $2 >> "ContinueStmt");
+        $$->data = new Data(string($1));
+        $$->data->child = new Data($2);
+    }
     ;
 
 GotoStmt:
-    GOTO IDENT   { $$ = &(init() << $2 >> "GotoStmt"); }
+    GOTO IDENT   {
+        $$ = &(init() << $2 >> "GotoStmt");
+        $$->data = new Data(string($1));
+        $$->data->child = new Data($2);
+    }
     ;
 
 FallthroughStmt:
-    FALL         { $$ = &(init() >> "FallthroughStmt"); }
+    FALL         {
+        $$ = &(init() >> "FallthroughStmt");
+        $$->data = new Data(string($1));
+    }
     ;
 
 IfStmt:
@@ -895,7 +958,11 @@ RangeClause:
 //     ;
 
 DeferStmt:
-    DEFER Expression  { $$ = &(init() << $2 >> "DeferStmt"); }
+    DEFER Expression  {
+        $$ = &(init() << $2 >> "DeferStmt");
+        $$->data = new Data(string($1));
+        $$->data->child = $2->data;
+    }
     ;
 
 Expression:
@@ -998,7 +1065,11 @@ PrimaryExpr:
         $$->data = $1->data;
         $$->type = $1->type;
     }
-    | MakeExpr { $$ = &(init() << $1 >> "PrimaryExpr"); }
+    | MakeExpr {
+        $$ = &(init() << $1 >> "PrimaryExpr");
+        $$->data = $1->data;
+        $$->type = $1->type;
+    }
     | PrimaryExpr Selector { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr Index { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr Slice  { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
@@ -1017,12 +1088,20 @@ KeyValList:
     | Expression ':' Expression ',' KeyValList { $$ = &(init() << $1 << $3 << $5 >> "KeyValList"); }
 
 MakeExpr:
-    MAKE '(' Type ',' ExpressionList ')' { $$ = &(init() << $3 << $5 >> "MakeExpr"); }
-    | NEW  '(' Type ')' { $$ = &(init() << $3 >> "NewExpr"); }
+    MAKE '(' Type ',' ExpressionList ')' {
+        $$ = &(init() << $3 << $5 >> "MakeExpr");
+        $$->type = $3->type;
+    }
+    | NEW '(' Type ')' {
+        $$ = &(init() << $3 >> "NewExpr");
+        $$->type = $3->type;
+    }
     ;
 
 Selector:
-    '.' IDENT  { $$ = &(init() << $2 >> "Selector"); }
+    '.' IDENT  {
+        $$ = &(init() << $2 >> "Selector");
+    }
     ;
 
 Index:

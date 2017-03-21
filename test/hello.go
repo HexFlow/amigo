@@ -49,8 +49,8 @@ func main(a, c bool, b int) int {
 	for a, b := range 2 {
 		b = 123
 	}
+}
 
-	//fmt.Println("Hello, world!", a)
-	//a[2] = 1
-	//a = b
+func someotherfunc(a int) (bool, int, string) {
+	return true, 5, "hello"
 }
