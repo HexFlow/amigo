@@ -1,11 +1,35 @@
 #include "helpers.h"
 
+ostream &operator<<(ostream &os, Data *m) {
+    if (m && m->name == "")
+        m = m->next;
+    if (m == NULL)
+        return os;
+    os << m->name;
+    if (m->child != NULL) {
+        os << '(' << m->child << ')';
+    }
+    os << (m->next ? ", " : "") << m->next;
+    return os;
+}
+
+bool isValidIdent(string name) {
+    // TODO
+    return true;
+}
+
 string tstr(char *s) {
     return string(s, strlen(s));
 }
 
 Data *last(Data *ptr) {
-    while (ptr->next != 0)
+    while (ptr->next != NULL)
+        ptr = ptr->next;
+    return ptr;
+}
+
+Type *last(Type *ptr) {
+    while (ptr->next != NULL)
         ptr = ptr->next;
     return ptr;
 }
@@ -25,7 +49,8 @@ void typeInsert(string name, Type *tp) {
         ERROR(name, " already declared as a type");
         exit(1);
     } else {
-        ttable[name] = tp;
+        ttable[name] = tp->clone();
+        ttable[name]->next = NULL;
     }
 }
 
@@ -39,7 +64,8 @@ void symInsert(string name, Type *tp) {
             ERROR("Type shouldn't be null: ", tp);
             exit(1);
         }
-        stable[name] = tp;
+        stable[name] = tp->clone();
+        stable[name]->next = NULL;
     }
 }
 
@@ -58,20 +84,20 @@ bool isInScope(string name) {
     return false;
 }
 
-string getSymType(string name) {
+Type *getSymType(string name) {
     string cur_prefix = scope_prefix;
     while (cur_prefix != "") {
         string id = cur_prefix + name;
         if (isSymbol(id)) {
-            return stable[id]->getType();
+            return stable[id]->clone();
         }
         cur_prefix = cur_prefix.substr(cur_prefix.find("-") + 1);
     }
-    return "Undefined";
+    return NULL;
 }
 
 bool isDefined(string name) {
-    return (getSymType(name) != string("Undefined"));
+    return (getSymType(name) != NULL);
 }
 
 void inittables() {

@@ -21,3 +21,8 @@ node &init() {
     // n->ast = new Object("");
     return *n;
 }
+
+Data::Data(string abc) {
+    name = abc;
+    next = child = NULL;
+}

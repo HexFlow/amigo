@@ -10,6 +10,7 @@
 #include "type.h"
 #include "helpers.h"
 #define YYDEBUG 1
+
 using namespace std;
 
 // stuff from flex that bison needs to know about:
@@ -28,25 +29,6 @@ string scope_prefix = "0-";
 umap<string, Type*> stable; // symbols (a is an int)
 umap<string, Type*> ttable; // types (due to typedef or predeclared)
 
-/*
-void tableinsert(umap<string, Object*> &table, string name, Object *obj) {
-    bool found = false;
-    found = (stable.find(name) != stable.end());
-    if (!found) {
-        found = (ttable.find(name) != ttable.end());
-        if (!found) {
-            table.insert({name, obj});
-        } else {
-            ERROR << name << " already declared as a type in this scope" << endl;
-        }
-    }
-    else {
-        ERROR << name << " already declared as a symbol in this scope" << endl;
-    }
-}
-*/
-
-
 %}
 
 %union {
@@ -61,7 +43,7 @@ void tableinsert(umap<string, Object*> &table, string name, Object *obj) {
 %type <nt> SourceFile Expression Block StatementList Statement SimpleStmt
 %type <nt> EmptyStmt ExpressionStmt SendStmt Channel IncDecStmt MapType
 %type <nt> Assignment ShortVarDecl Declaration ConstDecl ConstSpecList VarSpec
-%type <nt> Signature Result Parameters ParameterList ParameterDecl
+%type <nt> Signature Result Parameters ParameterList ParameterDecl TypeList
 %type <nt> ConstSpec MethodDecl Receiver TopLevelDecl LabeledStmt
 %type <nt> GoStmt ReturnStmt BreakStmt ContinueStmt GotoStmt StructType
 %type <nt> FunctionDecl FunctionName VarSpecList FallthroughStmt
@@ -82,7 +64,10 @@ SourceFile:
     ;
 
 Block:
-    ECURLY OPENB StatementList CLOSEB '}' { $$ = &(init() << $3 >> "Block"); }
+    ECURLY OPENB StatementList CLOSEB '}' {
+        $$ = &(init() << $3 >> "Block");
+        $$->data = $3->data;
+    }
     ;
 
 OPENB:
@@ -99,14 +84,33 @@ CLOSEB:
     ;
 
 StatementList:
-    StatementList Statement ';' { $$ = &(init() << $1 << $2 >> "StatementList"); }
-    | Statement ';' { $$ = &(init() << $1 >> "StatementList"); }
+    StatementList Statement ';' {
+        $$ = &(init() << $1 << $2 >> "StatementList");
+        $$->data = $1->data;
+        last($$->data->child)->next = $2->data;
+        cout << "//" << $$->data << "LALALALALA" << endl;
+    }
+    | Statement ';' {
+        $$ = &(init() << $1 >> "StatementList");
+        $$->data = new Data("list");
+        if($1->data == NULL) {
+            ERROR("No AST attached", "");
+            exit(1);
+        }
+        $$->data->child = $1->data;
+    }
     ;
 
 Statement:
-    Declaration       { $$ = &(init() << $1 >> "Statement"); }
+    Declaration       {
+        $$ = &(init() << $1 >> "Statement");
+        $$->data = $1->data;
+    }
     | LabeledStmt     { $$ = &(init() << $1 >> "Statement"); }
-    | SimpleStmt      { $$ = &(init() << $1 >> "Statement"); }
+    | SimpleStmt      {
+        $$ = &(init() << $1 >> "Statement");
+        $$->data = $1->data;
+    }
     | GoStmt          { $$ = &(init() << $1 >> "Statement"); }
     | ReturnStmt      { $$ = &(init() << $1 >> "Statement"); }
     | BreakStmt       { $$ = &(init() << $1 >> "Statement"); }
@@ -122,20 +126,44 @@ Statement:
     ;
 
 SimpleStmt:
-    EmptyStmt        { $$ = &(init() << $1 >> "SimpleStmt"); }
-    | ExpressionStmt { $$ = &(init() << $1 >> "SimpleStmt"); }
-    | SendStmt       { $$ = &(init() << $1 >> "SimpleStmt"); }
-    | IncDecStmt     { $$ = &(init() << $1 >> "SimpleStmt"); }
-    | Assignment     { $$ = &(init() << $1 >> "SimpleStmt"); }
-    | ShortVarDecl   { $$ = &(init() << $1 >> "SimpleStmt"); }
+    EmptyStmt        {
+        $$ = &(init() << $1 >> "SimpleStmt");
+        $$->data = $1->data;
+    }
+    | ExpressionStmt {
+        $$ = &(init() << $1 >> "SimpleStmt");
+        $$->data = $1->data;
+    }
+    | SendStmt       {
+        $$ = &(init() << $1 >> "SimpleStmt");
+        $$->data = $1->data;
+    }
+    | IncDecStmt     {
+        $$ = &(init() << $1 >> "SimpleStmt");
+        $$->data = $1->data;
+    }
+    | Assignment     {
+        $$ = &(init() << $1 >> "SimpleStmt");
+        $$->data = $1->data;
+    }
+    | ShortVarDecl   {
+        $$ = &(init() << $1 >> "SimpleStmt");
+        $$->data = $1->data;
+    }
     ;
 
 EmptyStmt:
-    /* blank */ { $$ = &(init() >> "EmptyStmt"); }
+    /* blank */ {
+        $$ = &(init() >> "EmptyStmt");
+        $$->data = new Data("");
+    }
     ;
 
 ExpressionStmt:
-    Expression { $$ = &(init() << $1 >> "ExpressionStmt"); }
+    Expression {
+        $$ = &(init() << $1 >> "ExpressionStmt");
+        $$->data = $1->data;
+    }
     ;
 
 SendStmt:
@@ -147,42 +175,111 @@ Channel:
     ;
 
 IncDecStmt:
-    Expression INC   { $$ = &(init() << $1 << $2 >> "IncDecStmt"); }
-    | Expression DEC { $$ = &(init() << $1 << $2 >> "IncDecStmt"); }
+    Expression INC   {
+        $$ = &(init() << $1 << $2 >> "IncDecStmt");
+        $$->data = new Data(string($2)+"unary");
+        $$->data->child = $1->data;
+    }
+    | Expression DEC {
+        $$ = &(init() << $1 << $2 >> "IncDecStmt");
+        $$->data = new Data(string($2)+"unary");
+        $$->data->child = $1->data;
+    }
     ;
 
 Assignment:
-    ExpressionList ASN_OP ExpressionList { $$ = &(init() << $1 << $2 << $3 >> "Assignment"); }
+    ExpressionList ASN_OP ExpressionList {
+        $$ = &(init() << $1 << $2 << $3 >> "Assignment");
+        Data*lhs = $1->data;
+        Type*rhs = $3->type;
+        while(lhs != NULL || rhs != NULL) {
+            string varLeft = lhs->name;
+            if(lhs->child != NULL) {
+                ERROR("Non identifier to left of =", "");
+                exit(1);
+            }
+            if(lhs == NULL || rhs == NULL) {
+                ERROR(":= must have equal operands on LHS and RHS", "");
+                exit(1);
+            }
+            if(!isValidIdent(varLeft)) {
+                ERROR(varLeft, " is not a valid Identifier");
+                exit(1);
+            }
+            if(getSymType(varLeft) != NULL) {
+                if(getSymType(varLeft)->getType() != rhs->getType()) {
+                    ERROR(varLeft, " has a different type than RHS " + rhs->getType());
+                    exit(1);
+                }
+            } else {
+                ERROR(varLeft, " variable has not been declared.");
+                exit(1);
+            }
+            lhs = lhs->next;
+            rhs = rhs->next;
+        }
+        Data* parentleft = new Data("list");
+        Data* parentright = new Data("list");
+        parentleft->child = $1->data;
+        parentright->child = $3->data;
+        parentleft->next = parentright;
+        $$->data = new Data{$2};
+        $$->data->child = parentleft;
+    }
     ;
 
 ShortVarDecl:
     ExpressionList DECL ExpressionList   {
         $$ = &(init() << $1  << $3 >> "ShortVarDecl");
- //     auto s1 = AST($1).children;
- //     auto s2 = AST($3).children;
-
- //     /* TODO: Remove the false when next TODO is finished */
- //     if (s1.size() != s2.size() && false) {
- //         ERROR << "Expected " << s1.size()
- //               << " items on right of :=, found " << s2.size() << endl;
- //     } else {
- //         for (int i=0; i<s1.size(); i++) {
- //             if (s1[i]->classtype != _BasicType) {
- //                 ERROR << "Expected identifier list on left side of :="
- //                       << endl;
- //                 break;
- //             }
- //             /* TODO: We need to pick type from RHS */
- //             tableinsert(stable, scope_prefix + s1[i]->name,
- //                         new Object(s1[i]->name, ttable["int"]));
- //         }
- //     }
+        bool newVar = false;
+        Data*lhs = $1->data;
+        Type*rhs = $3->type;
+        while(lhs != NULL || rhs != NULL) {
+            string varLeft = lhs->name;
+            if(lhs->child != NULL) {
+                ERROR("Non identifier to left of :=", "");
+                exit(1);
+            }
+            if(lhs == NULL || rhs == NULL) {
+                ERROR(":= must have equal operands on LHS and RHS", "");
+                exit(1);
+            }
+            if(!isValidIdent(varLeft)) {
+                ERROR(varLeft, " is not a valid Identifier");
+                exit(1);
+            }
+            if(isInScope(varLeft)) {
+                if(getSymType(varLeft)->getType() != rhs->getType()) {
+                    ERROR(varLeft, " has a different type than RHS");
+                    exit(1);
+                }
+            } else {
+                newVar = true;
+                symInsert(scope_prefix+varLeft, rhs); //TODO check rhs type not "undefined"
+            }
+            lhs = lhs->next;
+            rhs = rhs->next;
+        }
+        if(newVar == false) {
+            ERROR("No new variables found to the left of := ", "");
+            exit(1);
+        }
+        Data* parentleft = new Data("list");
+        Data* parentright = new Data("list");
+        parentleft->child = $1->data;
+        parentright->child = $3->data;
+        parentleft->next = parentright;
+        $$->data = new Data{$2};
+        $$->data->child = parentleft;
     }
     ;
 
 VarDecl:
     /* VAR '(' VarSpecList ')' { $$ = &(init() << $3 >> "VarDecl"); } */
-    VAR VarSpec           { $$ = &(init() << $2 >> "VarDecl"); }
+    VAR VarSpec           {
+        $$ = &(init() << $2 >> "VarDecl");
+        $$->data = $2->data;
+    }
     ;
 
 VarSpec:
@@ -194,11 +291,12 @@ VarSpec:
                 ERROR(data->name, " is already defined in this scope");
                 exit(1);
             }
-            cout << $2->type << __LINE__ << endl;
+            cout << "// " << $2->type << __LINE__ << endl;
             symInsert(scope_prefix+data->name, $2->type);
             $$->type = $2->type;
             data = data->next;
         }
+        $$->data = new Data("");
     }
     | IdentifierList Type '=' ExpressionList {
         $$ = &(init() << $1 << $2 << $4 >> "VarSpec");
@@ -208,10 +306,16 @@ VarSpec:
                 ERROR(data->name, " is already defined in this scope");
                 exit(1);
             }
-            cout << $2->type << __LINE__ << endl;
             symInsert(scope_prefix+data->name, $2->type);
             $$->type = $2->type;
         }
+        Data* parentleft = new Data("list");
+        Data* parentright = new Data("list");
+        parentleft->child = $1->data;
+        parentright->child = $4->data;
+        parentleft->next = parentright;
+        $$->data = new Data("=");
+        $$->data->child = parentleft;
     }
     | IdentifierList '=' ExpressionList      {
         $$ = &(init() << $1 << $3 >> "VarSpec");
@@ -219,12 +323,20 @@ VarSpec:
     ;
 
 Declaration:
-    TypeDecl { $$ = &(init() << $1 >> "Declaration"); }
-    | VarDecl  { $$ = &(init() << $1 >> "Declaration"); }
+    TypeDecl {
+        $$ = &(init() << $1 >> "Declaration");
+        $$->data = $1->data;
+    }
+    | VarDecl  {
+        $$ = &(init() << $1 >> "Declaration");
+        $$->data = $1->data;
+    }
     ;
 
 FunctionDecl:
-    FUNC IDENT Signature { $$ = &(init() << $2 << $3 >> "FunctionDecl"); }
+    FUNC IDENT Signature {
+        $$ = &(init() << $2 << $3 >> "FunctionDecl");
+    }
     | FUNC IDENT Function {
         $$ = &(init() << $2 << $3 >> "FunctionDecl");
         /*delete $$->ast;*/
@@ -239,52 +351,107 @@ FunctionDecl:
 Function:
     Signature Block {
         $$ = &(init() << $1 << $2 >> "Function");
-        /*delete $$->ast;*/
-        /*$$->ast = new Object("Function", GoExpr);*/
-        /*AST($$) << AST($1);*/
+        $$->type = $1->type;
+        $$->data = $1->data;
+        last($$->data)->next = $2->data;
     }
     ;
 
 Signature:
     Parameters          {
         $$ = &(init() << $1 >> "Signature");
-        /*AST($$) <<= AST($1);*/
-        /*AST($$).ret = ttable["void"];*/
+        $$->data = new Data("params");
+        $$->data->child = $1->data;
+        $$->data->next = new Data("return");
+        $$->data->next->child = NULL;
+
+        vector<Type*> args;
+        vector<Type*> rets;
+
+        Type*ptr = $1->type;
+        while(ptr != NULL) {
+            Type* tmp = ptr->clone();
+            tmp->next = NULL;
+            args.push_back(tmp);
+            ptr = ptr->next;
+        }
+        $$->type = new FunctionType(args, rets);
+        cout << "//" << $$->type->getType() << "LALALA" << endl;
     }
-    | Parameters Result { $$ = &(init() << $1 << $2 >> "Signature"); }
+    | Parameters Result {
+        $$ = &(init() << $1 << $2 >> "Signature");
+        $$->data = new Data("params");
+        $$->data->child = $1->data;
+        $$->data->next = new Data("return");
+        $$->data->next->child = $2->data;
+
+        vector<Type*> args;
+        vector<Type*> rets;
+
+        Type*ptr = $1->type;
+        while(ptr != NULL) {
+            Type* tmp = ptr->clone();
+            tmp->next = NULL;
+            args.push_back(tmp);
+            ptr = ptr->next;
+        }
+
+        ptr = $2->type;
+        while(ptr != NULL) {
+            Type* tmp = ptr->clone();
+            tmp->next = NULL;
+            rets.push_back(tmp);
+            ptr = ptr->next;
+        }
+
+        $$->type = new FunctionType(args, rets);
+        cout << "//" << $$->type->getType() << "LALALA" << endl;
+    }
     ;
 
 Result:
-    Parameters { $$ = &(init() << $1 >> "Result"); }
-    | Type { $$ = &(init() << $1 >> "Result"); }
+    '(' TypeList ')' {
+        $$ = &(init() << $2 >> "Result");
+        $$->data = $2->data;
+        $$->type = $2->type;
+    }
+    | Type {
+        $$ = &(init() << $1 >> "Result");
+        $$->data = $1->data;
+        $$->type = $1->type;
+    }
     ;
 
 Parameters:
     '('  ')'                    {
         $$ = &(init() >> "Parameters");
-        /*$$->ast = ttable["void"];*/
+        $$->data = NULL;
+        $$->type = NULL;
     }
     | '(' ParameterList  ')'    {
         $$ = &(init() << $2 >> "Parameters");
-        /*AST($$).args = AST($2).children;*/
-        /*AST($$).classtype = _FunctionType;*/
+        $$->data = $2->data;
+        $$->type = $2->type;
       }
     | '(' ParameterList ',' ')' {
         $$ = &(init() << $2 >> "Parameters");
-        /*AST($$).args = AST($2).children;*/
-        /*AST($$).classtype = _FunctionType;*/
+        $$->data = $2->data;
+        $$->type = $2->type;
       }
     ;
 
 ParameterList:
     ParameterDecl {
         $$ = &(init() << $1 >> "ParameterList");
-        /*AST($$) << AST($1);*/
+        $$->data = $1->data;
+        $$->type = $1->type;
     }
     | ParameterList ',' ParameterDecl {
         $$ = &(init() << $1 << $3 >> "ParameterList");
-        /*AST($$) += AST($1);*/
-        /*AST($$) << AST($3);*/
+        $$->data = $1->data;
+        $$->type = $1->type;
+        last($$->data)->next = $3->data;
+        last($$->type)->next = $3->type;
     }
     ;
 
@@ -292,16 +459,35 @@ ParameterDecl:
     IdentifierList Type {
         $$ = &(init() << $1 << $2 >> "ParameterDecl");
         Data *data = $1->data;
+        Type *type = $2->type->clone();
+        $$->type = type;
+        $$->data = data;
         while(data != 0) {
             if(isInScope(data->name)) {
                 ERROR(data->name, " is already defined in this scope");
                 exit(1);
             }
-            cout << $2->type << __LINE__ <<" " << data->name << endl;
+            cout << "//" << $2->type << __LINE__ << " " << data->name << endl;
             symInsert(scope_prefix+data->name, $2->type);
-            $$->type = $2->type;
+            type->next = data->next ? type->clone() : NULL;
+            type = type->next;
             data = data->next;
         }
+    }
+    ;
+
+TypeList:
+    TypeList ',' Type {
+        $$ = &(init() << $1 << $3 >> "TypeList");
+        $$->type = $1->type;
+        $$->data = $1->data;
+        $$->data->next = $3->data;
+        $$->type->next = $3->type;
+    }
+    | Type {
+        $$ = &(init() << $1 >> "TypeList");
+        $$->type = $1->type;
+        $$->data = $1->data;
     }
     ;
 
@@ -309,10 +495,14 @@ IdentifierList:
     IDENT {
         $$ = &(init() << $1 >> "IdentifierList");
         $$->data = new Data{$1};
+        $$->type = getSymType($1)?getSymType($1):new BasicType("undefined");
+
     }
     | IdentifierList ',' IDENT {
         $$ = &(init() << $1 << $3 >> "IdentifierList");
         last($1->data)->next = new Data{$3};
+        last($1->type)->next = (getSymType($3))?(getSymType($3)):(new BasicType("undefined"));
+        $$->type = $1->type;
         $$->data = $1->data;
       }
     ;
@@ -355,7 +545,10 @@ LiteralType:
     ;
 
 Type:
-    LiteralType          { $$ = &(init() << $1 >> "Type"); }
+    LiteralType          {
+        $$ = &(init() << $1 >> "Type");
+        $$->data = $1->data;
+    }
     | OperandName        {
         $$ = &(init() << $1 >> "Type");
         $$->data = $1->data;
@@ -371,7 +564,8 @@ Type:
 Operand:
     Literal              {
         $$ = &(init() << $1 >> "Operand");
-        /*AST($$) <<= AST($1);*/
+        $$->type = $1->type;
+        $$->data = $1->data;
     }
     | PointerType        {
         $$ = &(init() << $1 >> "Operand");
@@ -379,11 +573,13 @@ Operand:
     }
     | OperandName        {
         $$ = &(init() << $1 >> "Operand");
-        /*AST($$) <<= AST($1);*/
+        $$->data = $1->data;
+        $$->type = $1->type;
     }
     | '(' Expression ')' {
         $$ = &(init() << $2 >> "Operand");
-        /*AST($$) <<= AST($2);*/
+        $$->type = $2->type;
+        $$->data = $2->data;
       }
     ;
 
@@ -391,6 +587,7 @@ OperandName:
     IDENT            {
         $$ = &(init() << $1 >> "OperandName");
         $$->data = new Data{$1};
+        $$->type = getSymType($1)?getSymType($1):new BasicType("undefined");
     }
     | QualifiedIdent {
         $$ = &(init() << $1 >> "OperandName");
@@ -516,17 +713,53 @@ DeferStmt:
     ;
 
 Expression:
-    UnaryExpr { $$ = &(init() << $1 >> "Expression"); }
-    | Expression BinaryOp Expression {$$ = &(init() << $1 << $2 << $3 >> "Expression");}
+    UnaryExpr {
+        $$ = &(init() << $1 >> "Expression");
+        $$->data = $1->data;
+        $$->type = $1->type;
+    }
+    | Expression BinaryOp Expression {
+        $$ = &(init() << $1 << $2 << $3 >> "Expression");
+        $$->data = new Data($2->data->name + "binary");
+        $$->data->child = $1->data;
+        last($$->data->child)->next = $3->data;
+        if($1->type == NULL) {
+            ERROR("Missing type info in node", $1->data->name);
+            exit(1);
+        }
+        if($3->type == NULL) {
+            ERROR("Missing type info in node", $3->data->name);
+            exit(1);
+        }
+        if($3->type->getType() != $1->type->getType()) {
+            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
+            ERROR($3->type->getType(), "");
+            exit(1);
+        }
+        $$->type = $1->type;
+    }
     ;
 
 UnaryExpr:
-    PrimaryExpr { $$ = &(init() << $1 >> "UnaryExpr"); }
-    | UnaryOp PrimaryExpr { $$ = &(init() << $1 << $2 >> "UnaryExpr"); }
+    PrimaryExpr {
+        $$ = &(init() << $1 >> "UnaryExpr");
+        $$->data = $1->data;
+        $$->type = $1->type;
+    }
+    | UnaryOp PrimaryExpr {
+        $$ = &(init() << $1 << $2 >> "UnaryExpr");
+        $$->data = new Data($1->data->name + "unary");
+        $$->data->child = $2->data;
+        $$->type = $1->type;
+    }
     ;
 
 PrimaryExpr:
-    Operand { $$ = &(init() << $1 >> "PrimaryExpr"); }
+    Operand {
+        $$ = &(init() << $1 >> "PrimaryExpr");
+        $$->data = $1->data;
+        $$->type = $1->type;
+    }
     | MakeExpr { $$ = &(init() << $1 >> "PrimaryExpr"); }
     | PrimaryExpr Selector { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr Index { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
@@ -588,12 +821,15 @@ Arguments:
 ExpressionList:
     Expression                      {
         $$ = &(init() << $1 >> "ExpressionList");
-        /*AST($$) << AST($1);*/
+        $$->data = $1->data;
+        $$->type = $1->type;
     }
     | ExpressionList ',' Expression {
         $$ = &(init() << $1 << $3 >> "ExpressionList");
-        /*AST($$) += AST($1);*/
-        /*AST($$) << AST($3);*/
+        $$->data = $1->data;
+        last($$->data)->next = $3->data;
+        $$->type = $1->type;
+        last($$->type)->next = $3->type;
     }
     ;
 
@@ -612,8 +848,14 @@ FieldDeclList:
     ;
 
 FieldDecl:
-    IdentifierList Type String { $$ = &(init() << $1 << $2 << $3 >> "FieldDecl"); }
-    | IdentifierList Type { $$ = &(init() << $1 << $2 >> "FieldDecl"); }
+    IdentifierList Type String {
+        $$ = &(init() << $1 << $2 << $3 >> "FieldDecl");
+        Type* ptr = $1->type;
+        // HERE TODO
+    }
+    | IdentifierList Type {
+        $$ = &(init() << $1 << $2 >> "FieldDecl");
+    }
     /* | AnonymousField Tag { $$ = &(init() << $1 << $2 >> "FieldDecl"); } */
     /* | AnonymousField { $$ = &(init() << $1 >> "FieldDecl"); } */
     ;
@@ -630,39 +872,68 @@ ArrayType:
     ;
 
 Literal:
-    BasicLit { $$ = &(init() << $1 >> "Literal"); }
-    | CompositeLit { $$ = &(init() << $1 >> "Literal"); }
+    BasicLit {
+        $$ = &(init() << $1 >> "Literal");
+        $$->type = $1->type;
+        $$->data = $1->data;
+    }
+    | CompositeLit {
+        $$ = &(init() << $1 >> "Literal");
+        $$->type = $1->type;
+        $$->data = $1->data;
+    }
     /* | FunctionLit */
     ;
 
 BasicLit:
     INT         {
         $$ = &(init() << $1 >> "BasicLit");
-        /*$$->ast = new Object(tstr($1), ttable["int"]);*/
+        $$->data = new Data{$1};
+        $$->type = new BasicType("int");
     }
     | FLOAT     {
         $$ = &(init() << $1 >> "BasicLit");
-        /*$$->ast = new Object(tstr($1), ttable["float"]);*/
+        $$->data = new Data{$1};
+        $$->type = new BasicType("float");
     }
     | String    {
         $$ = &(init() << $1 >> "BasicLit");
-        /**($$->ast) = $1->ast;*/
+        $$->data = $1->data;
+        $$->type = new BasicType("string");
     }
     ;
 
 UnaryOp:
-    UN_OP          { $$ = &(init() << $1 >> "UnaryOp"); }
-    | DUAL_OP      { $$ = &(init() << $1 >> "UnaryOp"); }
+    UN_OP          {
+        $$ = &(init() << $1 >> "UnaryOp");
+        $$->data = new Data{$1};
+    }
+    | DUAL_OP      {
+        $$ = &(init() << $1 >> "UnaryOp");
+        $$->data = new Data{$1};
+    }
     ;
 
 BinaryOp:
-    BIN_OP         { $$ = &(init() << $1 >> "BinaryOp"); }
-    | DUAL_OP      { $$ = &(init() << $1 >> "BinaryOp"); }
+    BIN_OP         {
+        $$ = &(init() << $1 >> "BinaryOp");
+        $$->data = new Data{$1};
+    }
+    | DUAL_OP      {
+        $$ = &(init() << $1 >> "BinaryOp");
+        $$->data = new Data{$1};
+    }
     ;
 
 String:
-    RAW_ST         { $$ = &(init() << $1 >> "String"); }
-    | INR_ST       { $$ = &(init() << $1 >> "String"); }
+    RAW_ST         {
+        $$ = &(init() << $1 >> "String");
+        $$->data = new Data{$1};
+    }
+    | INR_ST       {
+        $$ = &(init() << $1 >> "String");
+        $$->data = new Data{$1};
+    }
     ;
 
 PackageClause:

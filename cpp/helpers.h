@@ -20,18 +20,20 @@ extern umap<string, Type *> ttable;  // types (due to typedef or predeclared)
 
 string tstr(char *s);
 Data *last(Data *ptr);
+Type *last(Type *ptr);
 char *concat(char *a, char *b);
 void typeInsert(string name, Type *tp);
 void symInsert(string name, Type *tp);
 bool isType(string name);
 bool isSymbol(string name);
 bool isInScope(string name);
-string getSymType(string name);
+Type *getSymType(string name);
 bool isDefined(string name);
 void inittables();
 void printtables();
 string escape_json(const string &s);
 string print(node *n);
 void printTop(node *n);
-
+bool isValidIdent(string name);
+ostream &operator<<(ostream &os, Data *m);
 #endif

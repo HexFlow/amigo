@@ -1,28 +1,33 @@
 #include "type.h"
 
-inline string className(const string &prettyFunction) {
-    size_t colons = prettyFunction.find("::");
-    if (colons == string::npos)
-        return "::";
-    size_t begin = prettyFunction.substr(0, colons).rfind(" ") + 1;
-    size_t end = colons - begin;
+// inline string className(const string &prettyFunction) {
+// size_t colons = prettyFunction.find("::");
+// if (colons == string::npos)
+// return "::";
+// size_t begin = prettyFunction.substr(0, colons).rfind(" ") + 1;
+// size_t end = colons - begin;
 
-    return prettyFunction.substr(begin, end);
-}
+// return prettyFunction.substr(begin, end);
+//}
 
 string Type::getType() {
     printf("This VIRTUAL function should never be called.");
     exit(1);
     return "";
 }
-
-string Type::getClass() {
-    return __CLASS_NAME__;
+Type *Type::clone() {
+    printf("This VIRTUAL function should never be called.");
+    exit(1);
+    return NULL;
 }
 
 string BasicType::getType() {
     // 'int'  <- returned string
     return base;
+}
+
+Type *BasicType::clone() {
+    return (new BasicType(*this));
 }
 
 BasicType::BasicType(string _base) {
@@ -33,10 +38,16 @@ string ArrayType::getType() {
     // '[5]int'  <- returned string
     return "[" + to_string(size) + "]" + base->getType();
 }
+Type *ArrayType::clone() {
+    return (new ArrayType(*this));
+}
 
 string SliceType::getType() {
     // '[5]int'  <- returned string
     return "[]" + base->getType();
+}
+Type *SliceType::clone() {
+    return (new SliceType(*this));
 }
 
 string StructType::getType() {
@@ -49,6 +60,9 @@ string StructType::getType() {
     }
 
     return "struct {" + mems + " }";
+}
+Type *StructType::clone() {
+    return (new StructType(*this));
 }
 
 string FunctionType::getType() {
@@ -64,4 +78,7 @@ string FunctionType::getType() {
     }
 
     return "func (" + argStr + ") (" + retStr + ")";
+}
+Type *FunctionType::clone() {
+    return (new FunctionType(*this));
 }

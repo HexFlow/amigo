@@ -23,6 +23,8 @@ struct Data {
     string name = "";
     Data *next = NULL;
     Data *child = NULL;
+
+    Data(string);
 };
 
 struct node {
