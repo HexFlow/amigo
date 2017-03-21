@@ -151,14 +151,20 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType) {
             exit(1);
         }
         if (argType->getType() != argT->getType()) {
-            cout << "Needed type " << argT->getType() << " at " << pos << "-th position of function application of type " << fxnType->getType() << "; got " << argType->getType() << endl;
+            cout << "Needed type " << argT->getType() << " at " << pos <<
+                "-th position of function application of type " <<
+                fxnType->getType() << "; got " << argType->getType() << endl;
             exit(1);
         }
     }
 
+    return vectorToLinkedList(fxnTypeCasted->retTypes);
+}
+
+Type *vectorToLinkedList(vector<Type*>& typs) {
     Type *newLink = new BasicType("");
     Type *retType = newLink;
-    for (auto retT: fxnTypeCasted->retTypes) {
+    for (auto retT: typs) {
         newLink->next = retT;
         newLink = newLink->next;
     }

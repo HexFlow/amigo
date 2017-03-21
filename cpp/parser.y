@@ -45,6 +45,8 @@ int node_id = 0;
 int scope_id = 0;
 string scope_prefix = "0-";
 
+Type *curFxnType = NULL;
+
 umap<string, Type*> stable; // symbols (a is an int)
 umap<string, Type*> ttable; // types (due to typedef or predeclared)
 
@@ -428,10 +430,10 @@ FunctionDecl:
     ;
 
 Function:
-    Signature Block {
-        $$ = &(init() << $1 << $2 >> "Function");
+    Signature { curFxnType = vectorToLinkedList(dynamic_cast<FunctionType*>($1->type)->retTypes); } Block {
+        $$ = &(init() << $1 << $3 >> "Function");
         $$->type = $1->type;
-        $$->data = $2->data;
+        $$->data = $3->data;
         /*last($$->data)->next = $2->data;*/
         cout << "//" << $$->data << "LALALA" << endl;
     }
@@ -747,11 +749,32 @@ ReturnStmt:
         $$ = &(init() >> "ReturnStmt");
         $$->data = new Data(string($1));
         $$->data->child = NULL;
+        if (curFxnType != NULL) {
+            ERROR("Function has a return type, cannot use untyped return", "");
+            exit(1);
+        }
     }
     | RETURN ExpressionList {
         $$ = &(init() << $2 >> "ReturnStmt");
         $$->data = new Data(string($1));
         $$->data->child = $2->data;
+        if (curFxnType == NULL) {
+            ERROR("Function has no return type provided", "");
+            exit(1);
+        }
+        Type *rT = curFxnType, *eT = $2->type;
+        while (rT != NULL || eT != NULL) {
+            if (rT == NULL || eT == NULL) {
+                ERROR("Different number of return values than expected", "");
+                exit(1);
+            }
+            if (rT->getType() != eT->getType()) {
+                ERROR("Mismatching return types. Expected " + rT->getType() + " and got ", eT->getType());
+                exit(1);
+            }
+            rT = rT->next;
+            eT = eT->next;
+        }
     }
     ;
 
