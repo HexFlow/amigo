@@ -290,21 +290,14 @@ string print(Data *n) {
         *astout << name << " -- " << ch_name << endl;
         child = child->next;
     }
-    *astout << name << "[label=\"" << n->name << "\"]" << endl;
+    *astout << name << "[label=\"" << escape_json(n->name) << "\"]" << endl;
     return name;
 }
 
 void printTop(Data *n) {
     *astout << "graph {\n";
     print(n);
-    *astout << "\n}\n\n";
-}
-
-void printTop(node *n) {
-    return;
-    printf("graph {\n");
-    print(n);
-    printf("\n}");
+    *astout << "}" << endl;
 }
 
 void prettyError(int line, int col1, int col2) {

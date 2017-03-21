@@ -29,11 +29,18 @@ clean:
 	rm -rf $(BUILD) $(DOTDIR) $(BIN)
 	rm -f dot*.ps
 
-# For running tests
-%: test/%.go
+# For drawing parse tree
+parse-%: test/%.go
 	make parser
 	mkdir -p $(DOTDIR)
-	./bin/parser test/$@.go -o $(DOTDIR)/$@
+	./bin/parser test/$*.go -o $(DOTDIR)/$@
+	dot -Tps $(DOTDIR)/$@ -o dot-$@.ps
+
+# For drawing AST
+ast-%: test/%.go
+	make ast
+	mkdir -p $(DOTDIR)
+	./bin/ast test/$*.go -ast $(DOTDIR)/$@
 	dot -Tps $(DOTDIR)/$@ -o dot-$@.ps
 
 # Run all tests

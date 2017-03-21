@@ -82,7 +82,12 @@ umap<string, Type*> ttable; // types (due to typedef or predeclared)
 %type <nt> QualifiedIdent PointerType IdentifierList
 %%
 SourceFile:
-    PackageClause ';' ImportDeclList TopLevelDeclList { $$ = &(init() << $1 << $3 << $4 >> "SourceFile"); printTop($4->data); }
+    PackageClause ';' ImportDeclList TopLevelDeclList {
+        $$ = &(init() << $1 << $3 << $4 >> "SourceFile");
+        $$->data = new Data("SourceFile");
+        $$->data->child = $4->data;
+        printTop($$->data);
+    }
     ;
 
 Block:
@@ -623,24 +628,14 @@ Receiver:
     ;
 
 TopLevelDeclList:
-    /* empty */ { $$ = &(init() >> "TopLevelDeclList"); $$->data = NULL; }
-    | TopLevelDeclList TopLevelDecl ';' {
+    TopLevelDeclList TopLevelDecl ';' {
         $$ = &(init() << $1 << $2 >> "TopLevelDeclList");
         $$->data = $1->data;
-        if ($$->data == NULL) {
-            $$->data = $2->data;
-        } else {
-            Data *ptr = $$->data;
-            while (ptr->next != NULL) {
-                ptr = ptr->next;
-            }
-            ptr->next = $2->data;
-        }
+        last($$->data)->next = $2->data;
     }
     | TopLevelDecl ';' {
         $$ = &(init() << $1 >> "TopLevelDeclList");
-        $$->data = new Data("Decl");
-        $$->data->child = $1->data;
+        $$->data = $1->data;
     }
     ;
 
@@ -759,7 +754,10 @@ Element:
 
 TopLevelDecl:
     Declaration    { $$ = &(init() << $1 >> "TopLevelDecl"); }
-    | FunctionDecl { $$ = &(init() << $1 >> "TopLevelDecl"); COPS($$, $1); }
+    | FunctionDecl {
+        $$ = &(init() << $1 >> "TopLevelDecl");
+        COPS($$, $1);
+    }
     | MethodDecl   { $$ = &(init() << $1 >> "TopLevelDecl"); }
     ;
 

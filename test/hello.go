@@ -7,7 +7,6 @@ func main(a, c bool, b int) int {
 	var m, n = 1/4 + 5/6, 3.0
 	var k []int
 
-	k = ll
 	// 5 types of IfStmt for each rule
 	if 1 == 2 {
 		b = 7
