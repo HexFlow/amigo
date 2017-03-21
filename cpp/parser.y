@@ -10,6 +10,24 @@
 #include "type.h"
 #include "helpers.h"
 #define YYDEBUG 1
+#define HANDLE_BIN_OP(A, B, C, D) \
+    A->data = new Data(string(C) + "binary");                                               \
+    A->data->child = B->data;                                                               \
+    last(A->data->child)->next = D->data;                                                   \
+    if(B->type == NULL) {                                                                   \
+        ERROR("Missing type info in node", B->data->name);                                  \
+        exit(1);                                                                            \
+    }                                                                                       \
+    if(D->type == NULL) {                                                                   \
+        ERROR("Missing type info in node", D->data->name);                                  \
+        exit(1);                                                                            \
+    }                                                                                       \
+    if(D->type->getType() != B->type->getType()) {                                          \
+        ERROR("Mismatched types with binary operator not allowed: \n", B->type->getType()); \
+        ERROR(D->type->getType(), "");                                                      \
+        exit(1);                                                                            \
+    }                                                                                       \
+    A->type = B->type;
 
 using namespace std;
 
@@ -759,23 +777,7 @@ Expression:
 Expression1:
     Expression1 B1 Expression2 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression1");
-        $$->data = new Data(string($2) + "binary");
-        $$->data->child = $1->data;
-        last($$->data->child)->next = $3->data;
-        if($1->type == NULL) {
-            ERROR("Missing type info in node", $1->data->name);
-            exit(1);
-        }
-        if($3->type == NULL) {
-            ERROR("Missing type info in node", $3->data->name);
-            exit(1);
-        }
-        if($3->type->getType() != $1->type->getType()) {
-            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
-            ERROR($3->type->getType(), "");
-            exit(1);
-        }
-        $$->type = $1->type;
+        HANDLE_BIN_OP($$, $1, $2, $3);
     }
     | Expression2 {
         $$ = &(init() << $1 >> "Expression2");
@@ -787,23 +789,7 @@ Expression1:
 Expression2:
     Expression2 B2 Expression3 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression2");
-        $$->data = new Data(string($2) + "binary");
-        $$->data->child = $1->data;
-        last($$->data->child)->next = $3->data;
-        if($1->type == NULL) {
-            ERROR("Missing type info in node", $1->data->name);
-            exit(1);
-        }
-        if($3->type == NULL) {
-            ERROR("Missing type info in node", $3->data->name);
-            exit(1);
-        }
-        if($3->type->getType() != $1->type->getType()) {
-            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
-            ERROR($3->type->getType(), "");
-            exit(1);
-        }
-        $$->type = $1->type;
+        HANDLE_BIN_OP($$, $1, $2, $3);
     }
     | Expression3 {
         $$ = &(init() << $1 >> "Expression2");
@@ -815,23 +801,7 @@ Expression2:
 Expression3:
     Expression3 B3 Expression4 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression3");
-        $$->data = new Data(string($2) + "binary");
-        $$->data->child = $1->data;
-        last($$->data->child)->next = $3->data;
-        if($1->type == NULL) {
-            ERROR("Missing type info in node", $1->data->name);
-            exit(1);
-        }
-        if($3->type == NULL) {
-            ERROR("Missing type info in node", $3->data->name);
-            exit(1);
-        }
-        if($3->type->getType() != $1->type->getType()) {
-            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
-            ERROR($3->type->getType(), "");
-            exit(1);
-        }
-        $$->type = $1->type;
+        HANDLE_BIN_OP($$, $1, $2, $3);
     }
     | Expression4 {
         $$ = &(init() << $1 >> "Expression3");
@@ -843,43 +813,11 @@ Expression3:
 Expression4:
     Expression4 B4 Expression5 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression4");
-        $$->data = new Data(string($2) + "binary");
-        $$->data->child = $1->data;
-        last($$->data->child)->next = $3->data;
-        if($1->type == NULL) {
-            ERROR("Missing type info in node", $1->data->name);
-            exit(1);
-        }
-        if($3->type == NULL) {
-            ERROR("Missing type info in node", $3->data->name);
-            exit(1);
-        }
-        if($3->type->getType() != $1->type->getType()) {
-            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
-            ERROR($3->type->getType(), "");
-            exit(1);
-        }
-        $$->type = $1->type;
+        HANDLE_BIN_OP($$, $1, $2, $3);
     }
     | Expression4 D4 Expression5 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression4");
-        $$->data = new Data(string($2) + "binary");
-        $$->data->child = $1->data;
-        last($$->data->child)->next = $3->data;
-        if($1->type == NULL) {
-            ERROR("Missing type info in node", $1->data->name);
-            exit(1);
-        }
-        if($3->type == NULL) {
-            ERROR("Missing type info in node", $3->data->name);
-            exit(1);
-        }
-        if($3->type->getType() != $1->type->getType()) {
-            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
-            ERROR($3->type->getType(), "");
-            exit(1);
-        }
-        $$->type = $1->type;
+        HANDLE_BIN_OP($$, $1, $2, $3);
     }
     | Expression5 {
         $$ = &(init() << $1 >> "Expression4");
@@ -891,63 +829,15 @@ Expression4:
 Expression5:
     Expression5 B5 PrimaryExpr {
         $$ = &(init() << $1 << $2 << $3 >> "Expression5");
-        $$->data = new Data(string($2) + "binary");
-        $$->data->child = $1->data;
-        last($$->data->child)->next = $3->data;
-        if($1->type == NULL) {
-            ERROR("Missing type info in node", $1->data->name);
-            exit(1);
-        }
-        if($3->type == NULL) {
-            ERROR("Missing type info in node", $3->data->name);
-            exit(1);
-        }
-        if($3->type->getType() != $1->type->getType()) {
-            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
-            ERROR($3->type->getType(), "");
-            exit(1);
-        }
-        $$->type = $1->type;
+        HANDLE_BIN_OP($$, $1, $2, $3);
     }
     | Expression5 D5 PrimaryExpr {
         $$ = &(init() << $1 << $2 << $3 >> "Expression5");
-        $$->data = new Data(string($2) + "binary");
-        $$->data->child = $1->data;
-        last($$->data->child)->next = $3->data;
-        if($1->type == NULL) {
-            ERROR("Missing type info in node", $1->data->name);
-            exit(1);
-        }
-        if($3->type == NULL) {
-            ERROR("Missing type info in node", $3->data->name);
-            exit(1);
-        }
-        if($3->type->getType() != $1->type->getType()) {
-            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
-            ERROR($3->type->getType(), "");
-            exit(1);
-        }
-        $$->type = $1->type;
+        HANDLE_BIN_OP($$, $1, $2, $3);
     }
     | Expression5 STAR PrimaryExpr {
         $$ = &(init() << $1 << $2 << $3 >> "Expression5");
-        $$->data = new Data(string($2) + "binary");
-        $$->data->child = $1->data;
-        last($$->data->child)->next = $3->data;
-        if($1->type == NULL) {
-            ERROR("Missing type info in node", $1->data->name);
-            exit(1);
-        }
-        if($3->type == NULL) {
-            ERROR("Missing type info in node", $3->data->name);
-            exit(1);
-        }
-        if($3->type->getType() != $1->type->getType()) {
-            ERROR("Mismatched types with binary operator not allowed:\n", $1->type->getType());
-            ERROR($3->type->getType(), "");
-            exit(1);
-        }
-        $$->type = $1->type;
+        HANDLE_BIN_OP($$, $1, $2, $3);
     }
     | UnaryExpr {
         $$ = &(init() << $1 >> "Expression5");
