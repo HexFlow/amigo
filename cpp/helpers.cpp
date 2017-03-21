@@ -197,7 +197,29 @@ string print(node *n) {
     return name;
 }
 
+int data_id = 0;
+
+string print(Data *n) {
+    int id1 = 0, id2 = 0;
+    string name = "_" + to_string(data_id++);
+    Data *child = n->child;
+    while (child != NULL) {
+        string ch_name = print(child);
+        cout << name << " -- " << ch_name << endl;
+        child = child->next;
+    }
+    cout << name << "[label=\"" << n->name << "\"]" << endl;
+    return name;
+}
+
+void printTop(Data *n) {
+    printf("graph {\n");
+    print(n);
+    printf("\n}");
+}
+
 void printTop(node *n) {
+    return;
     printf("graph {\n");
     print(n);
     printf("\n}");

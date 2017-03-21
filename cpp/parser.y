@@ -422,7 +422,6 @@ FunctionDecl:
     | FUNC IDENT OPENB Function CLOSEB {
         $$ = &(init() << $2 << $4 >> "FunctionDecl");
         symInsert(scope_prefix+$2, $4->type);
-        cout << $4->data << endl;
     }
     ;
 
@@ -431,8 +430,7 @@ Function:
         $$ = &(init() << $1 << $2 >> "Function");
         $$->type = $1->type;
         $$->data = $2->data;
-        /*last($$->data)->next = $2->data;*/
-        cout << "//" << $$->data << "LALALA" << endl;
+        printTop($$->data);
     }
     ;
 
@@ -862,7 +860,8 @@ ForStmt:
     FOR Block {
         $$ = &(init() << $2 >> "ForStmt");
         $$->data = new Data("For");
-        $$->data->child = $2->data;
+        $$->data->child = new Data("Body");
+        $$->data->child->child = $2->data;
     }
     | FOR OPENB Expression Block CLOSEB {
         $$ = &(init() << $3 << $4 >> "ForStmt");
@@ -1074,16 +1073,33 @@ PrimaryExpr:
         if(tp->classType == SLICE_TYPE) {
             SliceType *tp = (SliceType*) $1->type;
             $$->type = tp->base->clone();
+            if($2->type->getType() != "int") {
+                ERROR("Non integer index provided", "");
+                exit(1);
+            }
         } else if(tp->classType == ARRAY_TYPE) {
             ArrayType *tp = (ArrayType*) $1->type;
             $$->type = tp->base->clone();
+            if($2->type->getType() != "int") {
+                ERROR("Non integer index provided", "");
+                exit(1);
+            }
         } else if(tp->classType == MAP_TYPE) {
             MapType *tp = (MapType*) $1->type;
+            if($2->type->getType() != tp->key->getType()) {
+                ERROR("Index of type " + $2->type->getType() + " provided, when needed was: ", tp->key->getType());
+                exit(1);
+            }
             /*$$->type = tp->base->clone();*/
-        }else {
+        } else {
             ERROR("It is not possible to use index on something of type: ", tp->getType());
             exit(1);
         }
+        $$->data = new Data("methodcall");
+        $$->data->child = $1->data;
+        $$->data->child->next = new Data("__VALUE_AT__");
+        $$->data->child->next->next = $2->data;
+
     }
     | PrimaryExpr Slice  { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr TypeAssertion { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
@@ -1135,6 +1151,8 @@ Selector:
 Index:
     '[' Expression ']'  {
         $$ = &(init() << $2 >> "Index");
+        $$->data = $2->data;
+        $$->type = $2->type;
     }
     ;
 
