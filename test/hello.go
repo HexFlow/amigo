@@ -7,7 +7,7 @@ func main(a, c bool, b int) int {
 	var m, n = 1/4 + 5/6, 3.0
 	var k []int
 
-	j = j[0]
+	j = k[0]
 
 	// 5 types of IfStmt for each rule
 	if 1 == 2 {
@@ -52,6 +52,9 @@ func main(a, c bool, b int) int {
 	for a, b := range 2 {
 		b = 123
 	}
+
+	b = make(int)
+	c := make(map[int]int)
 }
 
 func someotherfunc(a int) (bool, int, string) {

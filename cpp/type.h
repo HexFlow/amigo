@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <assert.h>
 using namespace std;
 
@@ -12,6 +13,7 @@ enum ClassType {
     ARRAY_TYPE,
     SLICE_TYPE,
     STRUCT_TYPE,
+    MAP_TYPE,
     FUNCTION_TYPE,
     POINTER_TYPE
 };
@@ -49,12 +51,20 @@ struct SliceType : Type {
 };
 
 struct StructType : Type {
-    vector<string> memNames;
-    vector<Type *> memTypes;
+    unordered_map<string, Type *> members;
 
     string getType();
-    StructType(vector<string>, vector<Type *>);
+    StructType(unordered_map<string, Type *>);
     Type *clone();
+};
+
+struct MapType : Type {
+    Type *key, *value;
+
+    string getType();
+    Type *clone();
+    MapType(Type *, Type *);
+    ClassType classType = MAP_TYPE;
 };
 
 struct FunctionType : Type {
