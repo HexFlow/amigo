@@ -10,6 +10,7 @@
 #include "type.h"
 #include "helpers.h"
 #define YYDEBUG 1
+#define COPS(A, B) { A->data = B->data; A->type = B->type; };
 #define HANDLE_BIN_OP(A, B, C, D, aA, aB, aC, aD)                                                  \
     A->data = new Data(string(C) + "binary");                                                      \
     A->data->child = B->data;                                                                      \
@@ -42,6 +43,8 @@ void yyerror(const char *s);
 int node_id = 0;
 int scope_id = 0;
 string scope_prefix = "0-";
+
+Type *curFxnType = NULL;
 
 umap<string, Type*> stable; // symbols (a is an int)
 umap<string, Type*> ttable; // types (due to typedef or predeclared)
@@ -426,10 +429,10 @@ FunctionDecl:
     ;
 
 Function:
-    Signature Block {
-        $$ = &(init() << $1 << $2 >> "Function");
+    Signature { curFxnType = vectorToLinkedList(dynamic_cast<FunctionType*>($1->type)->retTypes); } Block {
+        $$ = &(init() << $1 << $3 >> "Function");
         $$->type = $1->type;
-        $$->data = $2->data;
+        $$->data = $3->data;
         printTop($$->data);
     }
     ;
@@ -674,10 +677,10 @@ OperandName:
         $$->data = new Data{$1};
         $$->type = getSymType($1)?getSymType($1):new BasicType("undefined");
     }
-    | QualifiedIdent {
-        $$ = &(init() << $1 >> "OperandName");
-        $$->data = $1->data;
-    }
+    /* | QualifiedIdent { */
+    /*     $$ = &(init() << $1 >> "OperandName"); */
+    /*     $$->data = $1->data; */
+    /* } */
     ;
 
 LiteralValue:
@@ -744,11 +747,32 @@ ReturnStmt:
         $$ = &(init() >> "ReturnStmt");
         $$->data = new Data(string($1));
         $$->data->child = NULL;
+        if (curFxnType != NULL) {
+            ERROR("Function has a return type, cannot use untyped return", "");
+            exit(1);
+        }
     }
     | RETURN ExpressionList {
         $$ = &(init() << $2 >> "ReturnStmt");
         $$->data = new Data(string($1));
         $$->data->child = $2->data;
+        if (curFxnType == NULL) {
+            ERROR("Function has no return type provided", "");
+            exit(1);
+        }
+        Type *rT = curFxnType, *eT = $2->type;
+        while (rT != NULL || eT != NULL) {
+            if (rT == NULL || eT == NULL) {
+                ERROR("Different number of return values than expected", "");
+                exit(1);
+            }
+            if (rT->getType() != eT->getType()) {
+                ERROR("Mismatching return types. Expected " + rT->getType() + " and got ", eT->getType());
+                exit(1);
+            }
+            rT = rT->next;
+            eT = eT->next;
+        }
     }
     ;
 
@@ -1066,7 +1090,13 @@ PrimaryExpr:
         $$->data = $1->data;
         $$->type = $1->type;
     }
-    | PrimaryExpr Selector { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
+    | PrimaryExpr Selector {
+        $$ = &(init() << $1 << $2 >> "PrimaryExpr");
+        $$->type = isValidMemberOn($1->data, $2->data);
+        $$->data = new Data("MemberAccess");
+        $$->data->child = $1->data;
+        $$->data->child->next = $2->data;
+    }
     | PrimaryExpr Index {
         $$ = &(init() << $1 << $2 >> "PrimaryExpr");
         Type*tp = $1->type;
@@ -1103,7 +1133,13 @@ PrimaryExpr:
     }
     | PrimaryExpr Slice  { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr TypeAssertion { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
-    | PrimaryExpr Arguments { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
+    | PrimaryExpr Arguments {
+        $$ = &(init() << $1 << $2 >> "PrimaryExpr");
+        $$->data = new Data("FunctionCall");
+        $$->data->child = $1->data;
+        $$->data->child->next = $2->data;
+        $$->type = resultOfFunctionApp($1->type, $2->type);
+    }
     | OperandName StructLiteral { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     ;
 
@@ -1145,6 +1181,7 @@ MakeExpr:
 Selector:
     '.' IDENT  {
         $$ = &(init() << $2 >> "Selector");
+        $$->data = new Data(string($2));
     }
     ;
 
@@ -1179,8 +1216,8 @@ TypeAssertion:
 
 Arguments:
     '(' ')'                       { $$ = &(init() >> "Arguments"); }
-    | '(' ExpressionList ')'      { $$ = &(init() << $2 >> "Arguments"); }
-    | '(' ExpressionList DOTS ')' { $$ = &(init() << $2 << $3 >> "Arguments"); }
+    | '(' ExpressionList ')'      { $$ = &(init() << $2 >> "Arguments"); COPS($$, $2); }
+    | '(' ExpressionList DOTS ')' { $$ = &(init() << $2 << $3 >> "Arguments"); COPS($$, $2); }
     ;
 
 ExpressionList:

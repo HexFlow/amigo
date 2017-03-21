@@ -54,9 +54,10 @@ func main(a, c bool, b int) int {
 	}
 
 	b = make(int)
+	b = fmt.Hello
 	c := make(map[int]int)
 }
 
-func someotherfunc(a int) (bool, int, string) {
-	return true, 5, "hello"
-}
+//func someotherfunc(a int) (bool, int, string) {
+//return true, 5, "hello"
+//}

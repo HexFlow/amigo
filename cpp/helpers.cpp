@@ -104,15 +104,71 @@ bool isInScope(string name) {
 }
 
 Type *getSymType(string name) {
-    string cur_prefix = scope_prefix;
+    string cur_prefix = scope_prefix, id;
     while (cur_prefix != "") {
-        string id = cur_prefix + name;
-        if (isSymbol(id)) {
-            return stable[id]->clone();
-        }
+        id = cur_prefix + name;
+        if (isSymbol(id)) return stable[id]->clone();
         cur_prefix = cur_prefix.substr(cur_prefix.find("-") + 1);
     }
+    id = cur_prefix + name;
+    if (isSymbol(id)) return stable[id]->clone();
     return NULL;
+}
+
+Type *isValidMemberOn(Data *base, Data *method) {
+    auto symType = getSymType(base->name);
+    if (symType == NULL) {
+        cout << base->name << " is not declared in this scope" << endl;
+        exit(1);
+    }
+    if (symType->classType != STRUCT_TYPE) {
+        cout << base->name << " is not a struct type" << endl;
+        exit(1);
+    }
+
+    StructType *baseStruct = dynamic_cast<StructType*>(symType);
+
+    auto memType = baseStruct->members.find(method->name);
+    if (memType == baseStruct->members.end()) {
+        cout << method->name
+             << " is not a member of type " << symType->getType() << endl;
+    }
+    return memType->second;
+}
+
+Type *resultOfFunctionApp(Type *fxnType, Type *argType) {
+    if (fxnType->classType != FUNCTION_TYPE) {
+        cout << fxnType->getType() << " is not a function" << endl;
+        exit(1);
+    }
+
+    int pos = 1;
+    auto fxnTypeCasted = dynamic_cast<FunctionType*>(fxnType);
+    for (auto argT: fxnTypeCasted->argTypes) {
+        if (argType == NULL) {
+            cout << "Insufficient arguments for application of function type "
+                 << fxnType->getType() << endl;
+            exit(1);
+        }
+        if (argType->getType() != argT->getType()) {
+            cout << "Needed type " << argT->getType() << " at " << pos <<
+                "-th position of function application of type " <<
+                fxnType->getType() << "; got " << argType->getType() << endl;
+            exit(1);
+        }
+    }
+
+    return vectorToLinkedList(fxnTypeCasted->retTypes);
+}
+
+Type *vectorToLinkedList(vector<Type*>& typs) {
+    Type *newLink = new BasicType("");
+    Type *retType = newLink;
+    for (auto retT: typs) {
+        newLink->next = retT;
+        newLink = newLink->next;
+    }
+    return retType->next;
 }
 
 bool isDefined(string name) {
@@ -126,6 +182,21 @@ void inittables() {
     typeInsert("byte", new BasicType("byte"));
     typeInsert("float", new BasicType("float"));
     typeInsert("string", new BasicType("string"));
+
+    unordered_map<string, Type*> fmtMap = {
+        {"PrintString",
+         new FunctionType(
+             vector<Type*>{new BasicType("string")},
+             vector<Type*>{})
+        },
+        {"IOCall",
+         new FunctionType(
+             vector<Type*>{},
+             vector<Type*>{new BasicType("string"), new BasicType("int")})
+        },
+        {"Hello", new BasicType("int")}
+    };
+    symInsert("fmt", new StructType(fmtMap));
 }
 
 void printtables() {
