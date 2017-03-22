@@ -63,7 +63,7 @@ string StructType::getType() {
     string mems = "";
 
     for (auto &elem : members) {
-        mems += elem.first + " " + elem.second->getType() + ";";
+        mems += " " + elem.first + " " + elem.second->getType() + ";";
     }
 
     return "struct {" + mems + " }";

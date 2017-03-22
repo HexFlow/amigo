@@ -5,7 +5,14 @@ func main(a, c bool, b int) int {
 	//j, t := 1-67+"hello", 2+34
 	i, j = j+56/34, i
 	var m, n = 1/4 + 5/6, 3.0
-	var k []int
+	var k [9034]int
+	var lop struct {
+		a int
+		b struct {
+			qwe bool
+			swd bool
+		}
+	}
 
 	// 5 types of IfStmt for each rule
 	if 1 == 2 {

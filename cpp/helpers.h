@@ -39,6 +39,8 @@ Type *vectorToLinkedList(vector<Type *> &typs);
 bool isDefined(string name);
 void inittables();
 void printtables();
+bool isLiteral(node *n);
+int getIntValue(node *n);
 string escape_json(const string &s);
 string print(node *n);
 string print(Data *n);

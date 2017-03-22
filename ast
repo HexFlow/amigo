@@ -1,0 +1,77 @@
+graph {
+_5[label="a"]
+_4 -- _5
+_6[label="b"]
+_4 -- _6
+_4[label="list"]
+_3 -- _4
+_10[label="fmt"]
+_9 -- _10
+_11[label="IOCall"]
+_9 -- _11
+_9[label="MemberAccess"]
+_8 -- _9
+_8[label="FunctionCall"]
+_7 -- _8
+_7[label="list"]
+_3 -- _7
+_3[label=":="]
+_2 -- _3
+_13[label="\"abcd\""]
+_12 -- _13
+_14[label="b"]
+_12 -- _14
+_12[label="return"]
+_2 -- _12
+_2[label="list"]
+_1 -- _2
+_1[label="Function kk"]
+_0 -- _1
+_19[label="fmt"]
+_18 -- _19
+_20[label="PrintString"]
+_18 -- _20
+_18[label="MemberAccess"]
+_17 -- _18
+_21[label="\"Abcd\""]
+_17 -- _21
+_17[label="FunctionCall"]
+_16 -- _17
+_24[label="a"]
+_23 -- _24
+_25[label="b"]
+_23 -- _25
+_23[label="list"]
+_22 -- _23
+_29[label="fmt"]
+_28 -- _29
+_30[label="IOCall"]
+_28 -- _30
+_28[label="MemberAccess"]
+_27 -- _28
+_27[label="FunctionCall"]
+_26 -- _27
+_26[label="list"]
+_22 -- _26
+_22[label=":="]
+_16 -- _22
+_33[label="c"]
+_32 -- _33
+_34[label="d"]
+_32 -- _34
+_32[label="list"]
+_31 -- _32
+_37[label="kk"]
+_36 -- _37
+_36[label="FunctionCall"]
+_35 -- _36
+_35[label="list"]
+_31 -- _35
+_31[label=":="]
+_16 -- _31
+_16[label="list"]
+_15 -- _16
+_15[label="Function main"]
+_0 -- _15
+_0[label="SourceFile"]
+}

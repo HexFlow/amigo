@@ -38,7 +38,6 @@ extern "C" FILE *yyin;
 
 void yyerror(const char *s);
 
-
 // SYMBOL TABLE CONSTRUCTS
 int node_id = 0;
 int scope_id = 0;
@@ -644,18 +643,24 @@ CompositeLit:
     ;
 
 LiteralType:
-    StructType                 { $$ = &(init() << $1 >> "LiteralType"); }
-    | ArrayType                { $$ = &(init() << $1 >> "LiteralType"); }
-    | '[' DOTS ']' Operand     { $$ = &(init() << $2 << $4 >> "LiteralType"); }
+    StructType                 {
+        $$ = &(init() << $1 >> "LiteralType");
+        COPS($$, $1);
+    }
+    | ArrayType                {
+        $$ = &(init() << $1 >> "LiteralType");
+        COPS($$, $1);
+    }
+    | '[' DOTS ']' Operand     {
+        $$ = &(init() << $2 << $4 >> "LiteralType");
+    }
     | SliceType                {
         $$ = &(init() << $1 >> "LiteralType");
-        $$->data = $1->data;
-        $$->type = $1->type;
+        COPS($$, $1);
     }
     | MapType                  {
         $$ = &(init() << $1 >> "LiteralType");
-        $$->data = $1->data;
-        $$->type = $1->type;
+        COPS($$, $1);
     }
     ;
 
@@ -664,6 +669,7 @@ Type:
         $$ = &(init() << $1 >> "Type");
         $$->data = $1->data;
         $$->type = $1->type;
+        $$->data = new Data($$->type->getType());
     }
     | OperandName        {
         $$ = &(init() << $1 >> "Type");
@@ -673,11 +679,13 @@ Type:
             ERROR_N("Invalid Type: ", $1->data->name, @1);
             exit(1);
         }
+        $$->data = new Data($$->type->getType());
     }
     | PointerType        {
         $$ = &(init() << $1 >> "Type");
         $$->data = $1->data;
         $$->type = $1->type;
+        $$->data = new Data($$->type->getType());
     }
     ;
 
@@ -686,10 +694,6 @@ Operand:
         $$ = &(init() << $1 >> "Operand");
         $$->type = $1->type;
         $$->data = $1->data;
-    }
-    | PointerType        {
-        $$ = &(init() << $1 >> "Operand");
-        /*AST($$) <<= AST($1);*/
     }
     | OperandName        {
         $$ = &(init() << $1 >> "Operand");
@@ -1278,23 +1282,71 @@ MapType:
     ;
 
 StructType:
-    STRUCT '{' FieldDeclList '}' { $$ = &(init() << $1 << $3 >> "StructType"); }
-    | STRUCT ECURLY FieldDeclList '}' { $$ = &(init() << $1 << $3 >> "StructType"); }
+    STRUCT '{' FieldDeclList '}' {
+        $$ = &(init() << $1 << $3 >> "StructType");
+        COPS($$, $3);
+    }
+    | STRUCT ECURLY FieldDeclList '}' {
+        $$ = &(init() << $1 << $3 >> "StructType");
+        COPS($$, $3);
+    }
+    | STRUCT '{' '}' {
+        $$ = &(init() << $1 >> "StructType");
+        $$->type = new StructType(*(new umap<string, Type*>));
+    }
+    | STRUCT ECURLY '}' {
+        $$ = &(init() << $1 >> "StructType");
+        $$->type = new StructType(*(new umap<string, Type*>));
+    }
     ;
 
 FieldDeclList:
-    /* empty */ { $$ = &(init() >> "FieldDeclList"); }
-    | FieldDeclList FieldDecl ';' { $$ = &(init() << $1 << $2 >> "FieldDeclList"); }
+    FieldDecl ';' {
+        $$ = &(init() >> "FieldDeclList");
+        COPS($$, $1);
+    }
+    | FieldDeclList FieldDecl ';' {
+        $$ = &(init() << $1 << $2 >> "FieldDeclList");
+        $$->data = $1->data;
+        umap<string, Type *> mem1 = ((StructType*)$1->type)->members;
+        umap<string, Type *> mem2 = ((StructType*)$2->type)->members;
+        for(auto& it: mem2) {
+            string key = it.first;
+            if(mem1.find(key) != mem1.end()) {
+                ERROR_N("Redeclaration of struct member: ", key, @2);
+            }
+            mem1[key] = it.second->clone();
+        }
+        $$->type = new StructType(mem1);
+    }
     ;
 
 FieldDecl:
     IdentifierList Type String {
         $$ = &(init() << $1 << $2 << $3 >> "FieldDecl");
-        Type* ptr = $1->type;
-        // HERE TODO
+        Type* tptr = $2->type;
+        tptr->next = NULL;
+
+        Data* lptr = $1->data;
+        umap<string, Type *> mem;
+        while(lptr != NULL) {
+            mem[lptr->name] = tptr->clone();
+            lptr = lptr->next;
+        }
+        $$->type = new StructType(mem);
     }
     | IdentifierList Type {
         $$ = &(init() << $1 << $2 >> "FieldDecl");
+        Type* tptr = $2->type;
+        tptr->next = NULL;
+
+        Data* lptr = $1->data;
+        umap<string, Type *> mem;
+        while(lptr != NULL) {
+            mem[lptr->name] = tptr->clone();
+            lptr = lptr->next;
+        }
+        $$->type = new StructType(mem);
     }
     /* | AnonymousField Tag { $$ = &(init() << $1 << $2 >> "FieldDecl"); } */
     /* | AnonymousField { $$ = &(init() << $1 >> "FieldDecl"); } */
@@ -1308,8 +1360,20 @@ PointerType:
     ;
 
 ArrayType:
-    '[' Expression ']' Operand  {
+    '[' Expression ']' Type  {
         $$ = &(init() << $2 << $4 >> "ArrayType");
+        if($2->type->getType() == "int") {
+            if(isLiteral($2)) {
+                int n = getIntValue($2);
+                Type* tp = $2->type->clone();
+                $$->type = new ArrayType(n, tp);
+            } else {
+                ERROR_N("Array Index is not a constant literal:\n",
+                                        "\t\tMaybe you need a slice?", @2);
+            }
+        } else {
+            ERROR_N("Index is not of type int", "", @2);
+        }
     }
     ;
 

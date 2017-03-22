@@ -17,6 +17,9 @@ func main() {
 	f := struct {
 		a int
 		b string
-	}{3, "hi"}
+		c string
+	}{a: 4, c: "3", b: "hi"}
+
+	fmt.Println([6]int{3: 1, 2, 3})
 	fmt.Printf("'%T'\n'%T'\n'%T'\n'%T'\n'%T'\n'%T'\n'%T'\n'%T'\n'%T'\n", a, b, c, d, e, f, m, n, kl)
 }

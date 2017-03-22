@@ -109,11 +109,13 @@ Type *getSymType(string name) {
     string cur_prefix = scope_prefix, id;
     while (cur_prefix != "") {
         id = cur_prefix + name;
-        if (isSymbol(id)) return stable[id]->clone();
+        if (isSymbol(id))
+            return stable[id]->clone();
         cur_prefix = cur_prefix.substr(cur_prefix.find("-") + 1);
     }
     id = cur_prefix + name;
-    if (isSymbol(id)) return stable[id]->clone();
+    if (isSymbol(id))
+        return stable[id]->clone();
     return NULL;
 }
 
@@ -128,12 +130,12 @@ Type *isValidMemberOn(Data *base, Data *method) {
         exit(1);
     }
 
-    StructType *baseStruct = dynamic_cast<StructType*>(symType);
+    StructType *baseStruct = dynamic_cast<StructType *>(symType);
 
     auto memType = baseStruct->members.find(method->name);
     if (memType == baseStruct->members.end()) {
-        cout << method->name
-             << " is not a member of type " << symType->getType() << endl;
+        cout << method->name << " is not a member of type "
+             << symType->getType() << endl;
     }
     return memType->second;
 }
@@ -145,17 +147,18 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType) {
     }
 
     int pos = 1;
-    auto fxnTypeCasted = dynamic_cast<FunctionType*>(fxnType);
-    for (auto reqArgT: fxnTypeCasted->argTypes) {
+    auto fxnTypeCasted = dynamic_cast<FunctionType *>(fxnType);
+    for (auto reqArgT : fxnTypeCasted->argTypes) {
         if (argType == NULL) {
             cout << "Insufficient arguments for application of function type "
                  << fxnType->getType() << endl;
             exit(1);
         }
         if (argType->getType() != reqArgT->getType()) {
-            cout << "Needed type " << reqArgT->getType() << " at " << pos <<
-                "-th position of function application of type " <<
-                fxnType->getType() << "; got " << argType->getType() << endl;
+            cout << "Needed type " << reqArgT->getType() << " at " << pos
+                 << "-th position of function application of type "
+                 << fxnType->getType() << "; got " << argType->getType()
+                 << endl;
             exit(1);
         }
         argType = argType->next;
@@ -163,17 +166,18 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType) {
     }
 
     if (argType != NULL) {
-        cout << "Extra arguments provided to function: " << argType->getType() << endl;
+        cout << "Extra arguments provided to function: " << argType->getType()
+             << endl;
         exit(1);
     }
 
     return vectorToLinkedList(fxnTypeCasted->retTypes);
 }
 
-Type *vectorToLinkedList(vector<Type*>& typs) {
+Type *vectorToLinkedList(vector<Type *> &typs) {
     Type *newLink = new BasicType("");
     Type *retType = newLink;
-    for (auto retT: typs) {
+    for (auto retT : typs) {
         newLink->next = retT;
         newLink = newLink->next;
     }
@@ -192,19 +196,14 @@ void inittables() {
     typeInsert("float", new BasicType("float"));
     typeInsert("string", new BasicType("string"));
 
-    unordered_map<string, Type*> fmtMap = {
+    unordered_map<string, Type *> fmtMap = {
         {"PrintString",
-         new FunctionType(
-             vector<Type*>{new BasicType("string")},
-             vector<Type*>{})
-        },
-        {"IOCall",
-         new FunctionType(
-             vector<Type*>{},
-             vector<Type*>{new BasicType("string"), new BasicType("int")})
-        },
-        {"Hello", new BasicType("int")}
-    };
+         new FunctionType(vector<Type *>{new BasicType("string")},
+                          vector<Type *>{})},
+        {"IOCall", new FunctionType(vector<Type *>{},
+                                    vector<Type *>{new BasicType("string"),
+                                                   new BasicType("int")})},
+        {"Hello", new BasicType("int")}};
     symInsert("fmt", new StructType(fmtMap));
 }
 
@@ -222,6 +221,26 @@ void printtables() {
         *sout << elem.second->getType();
         *sout << endl;
     }
+}
+
+bool isLiteral(node *n) {
+    if (n) {
+        cout << n->name << "LALALA" << endl;
+    }
+    if (n && n->name == "BasicLit")
+        return true;
+    if (n == NULL || n->children.size() != 1)
+        return false;
+    return isLiteral(n->children[0].nt);
+}
+
+int getIntValue(node *n) {
+    if (!isLiteral(n)) {
+        ERROR("This is not a valid literal", "");
+    }
+    while (n->name != "BasicLit")
+        n = n->children[0].nt;
+    return atoi(n->data->name.c_str());
 }
 
 string escape_json(const string &s) {

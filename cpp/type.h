@@ -5,6 +5,7 @@
 #include <vector>
 #include <unordered_map>
 #include <assert.h>
+#define umap unordered_map
 using namespace std;
 
 enum ClassType {
@@ -51,10 +52,10 @@ struct SliceType : Type {
 };
 
 struct StructType : Type {
-    unordered_map<string, Type *> members;
+    umap<string, Type *> members;
 
     string getType();
-    StructType(unordered_map<string, Type *>);
+    StructType(umap<string, Type *>);
     Type *clone();
 };
 
