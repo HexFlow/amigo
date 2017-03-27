@@ -1,6 +1,6 @@
 %{
 #include <iostream>
-#include "../../cpp/node.h"
+#include "node.h"
 #include "gust.tab.h"
 int yycolumn = 1;
 

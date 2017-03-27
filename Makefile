@@ -3,8 +3,9 @@
 BUILD=./target/cpp
 BIN=./bin
 DOTDIR=./target/dot
-FLAGS=-g -std=c++14 -Wno-write-strings -I./cpp
-CPP=./cpp
+CPP=./src
+INCLUDE=-I./src
+FLAGS=-g -std=c++14 -Wno-write-strings $(INCLUDE)
 
 all:
 	mkdir -p $(BUILD) $(BIN)
