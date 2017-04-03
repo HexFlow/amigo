@@ -1,10 +1,10 @@
 #ifndef _NODE_H
 #define _NODE_H
-#include <iostream>
-#include <vector>
 #include <string.h>
+#include <iostream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 #include "type.h"
 #define umap unordered_map
 

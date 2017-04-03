@@ -2,6 +2,12 @@
 
 extern ostream *sout, *astout;
 
+string to_std_string(int a) {
+    stringstream ss;
+    ss << a;
+    return ss.str();
+}
+
 ostream &operator<<(ostream &os, Data *m) {
     if (m && m->name == "")
         m = m->next;
@@ -39,9 +45,7 @@ bool isValidIdent(string name) {
     return true;
 }
 
-string tstr(char *s) {
-    return string(s, strlen(s));
-}
+string tstr(char *s) { return string(s, strlen(s)); }
 
 Data *last(Data *ptr) {
     while (ptr->next != NULL)
@@ -90,13 +94,9 @@ void symInsert(string name, Type *tp) {
     }
 }
 
-bool isType(string name) {
-    return (ttable.find(name) != ttable.end());
-}
+bool isType(string name) { return (ttable.find(name) != ttable.end()); }
 
-bool isSymbol(string name) {
-    return (stable.find(name) != stable.end());
-}
+bool isSymbol(string name) { return (stable.find(name) != stable.end()); }
 
 bool isInScope(string name) {
     if (isSymbol(scope_prefix + name)) {
@@ -150,7 +150,8 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType) {
     auto fxnTypeCasted = dynamic_cast<FunctionType *>(fxnType);
     for (auto reqArgT : fxnTypeCasted->argTypes) {
         if (argType == NULL) {
-            cout << "Insufficient arguments for application of function type "
+            cout << "Insufficient arguments for application of function "
+                    "type "
                  << fxnType->getType() << endl;
             exit(1);
         }
@@ -166,8 +167,8 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType) {
     }
 
     if (argType != NULL) {
-        cout << "Extra arguments provided to function: " << argType->getType()
-             << endl;
+        cout << "Extra arguments provided to function: "
+             << argType->getType() << endl;
         exit(1);
     }
 
@@ -184,9 +185,7 @@ Type *vectorToLinkedList(vector<Type *> &typs) {
     return retType->next;
 }
 
-bool isDefined(string name) {
-    return (getSymType(name) != NULL);
-}
+bool isDefined(string name) { return (getSymType(name) != NULL); }
 
 void inittables() {
     typeInsert("void", new BasicType("void"));
@@ -270,7 +269,8 @@ string escape_json(const string &s) {
                 break;
             default:
                 if ('\x00' <= *c && *c <= '\x1f') {
-                    o << "\\u" << hex << setw(4) << setfill('0') << (int)*c;
+                    o << "\\u" << hex << setw(4) << setfill('0')
+                      << (int)*c;
                 } else {
                     o << *c;
                 }
@@ -281,17 +281,17 @@ string escape_json(const string &s) {
 
 string print(node *n) {
     int id1 = 0, id2 = 0;
-    string name = "_" + to_string(node_id++);
+    string name = "_" + to_std_string(node_id++);
     for (int i = 0; i < n->children.size(); i++) {
         child s = n->children[i];
         if (s.type == 0) {
             string child = print(s.nt);
             cout << name << " -- " << child << endl;
         } else {
-            cout << "_" + to_string(node_id) << "[label=\"" << escape_json(s.t)
-                 << "\"]" << endl;
+            cout << "_" + to_std_string(node_id) << "[label=\""
+                 << escape_json(s.t) << "\"]" << endl;
             cout << name << " -- "
-                 << "_" + to_string(node_id++) << endl;
+                 << "_" + to_std_string(node_id++) << endl;
         }
     }
     cout << name << "[label=\"" << n->name << "\"]" << endl;
@@ -302,14 +302,15 @@ int data_id = 0;
 
 string print(Data *n) {
     int id1 = 0, id2 = 0;
-    string name = "_" + to_string(data_id++);
+    string name = "_" + to_std_string(data_id++);
     Data *child = n->child;
     while (child != NULL) {
         string ch_name = print(child);
         *astout << name << " -- " << ch_name << endl;
         child = child->next;
     }
-    *astout << name << "[label=\"" << escape_json(n->name) << "\"]" << endl;
+    *astout << name << "[label=\"" << escape_json(n->name) << "\"]"
+            << endl;
     return name;
 }
 

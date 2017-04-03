@@ -99,7 +99,7 @@ Block:
 OPENB:
     /* empty */ {
         scope_id++;
-        scope_prefix = (to_string(scope_id) + "-" + scope_prefix);
+        scope_prefix = (to_std_string(scope_id) + "-" + scope_prefix);
     }
     ;
 

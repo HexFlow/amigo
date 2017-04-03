@@ -1,14 +1,15 @@
 #ifndef _HELPERS_H
 #define _HELPERS_H
 #include <cstdio>
-#include <sstream>
 #include <iomanip>
 #include <iostream>
-#include <vector>
+#include <sstream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 #include "node.h"
 #include "type.h"
+
 #define ERROR(a, b) cout << "[ERROR] " << (a) << (b) << endl
 #define ERROR_N(a, b, c)                                      \
     cout << endl << "[ERROR] " << (a) << (b) << endl;         \
@@ -17,10 +18,13 @@
 #define WARN(a, b) cout << "[WARN] " << (a) << (b) << endl
 using namespace std;
 
+string to_std_string(int a);
+
 extern int node_id;
 extern string scope_prefix;
 extern umap<string, Type *> stable;  // symbols (a is an int)
-extern umap<string, Type *> ttable;  // types (due to typedef or predeclared)
+extern umap<string, Type *>
+    ttable;  // types (due to typedef or predeclared)
 extern string filepath;
 
 string tstr(char *s);
