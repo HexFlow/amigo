@@ -6,11 +6,29 @@
 #include <unordered_map>
 #include <vector>
 #include "type.h"
+#include "tac.h"
 #define umap unordered_map
 
 using namespace std;
 
 class Object;
+
+/* Used to store location of variable in 3AC */
+class Place {
+private:
+    /* How many variables have been assigned till now */
+    static int _id;
+
+    /* Take type and return keyword for this type */
+    string nameFromSize(Type *type);
+
+public:
+    string name;                /* To show while printing */
+    Type *type;                 /* Needed to allocate space */
+
+    Place(Type *_type);
+    Place(Type *_type, string _name);
+};
 
 struct node;
 struct child {
@@ -38,6 +56,9 @@ struct node {
     vector<child> children;
     Type *type;
     Data *data;
+
+    Place *place;
+    vector<TAC::Instr*> code;
 };
 
 node &operator<<(node &l, node *r);

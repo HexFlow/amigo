@@ -27,7 +27,9 @@
         ERROR_N("Mismatched types : ", B->type->getType() + " and " + D->type->getType(), aD);     \
         exit(1);                                                                                   \
     }                                                                                              \
-    A->type = B->type;
+    A->type = B->type;                                                                             \
+    A->place = new Place(A->type);                                                                 \
+    A->code = concatVec(B->code, D->code);
 
 using namespace std;
 
@@ -37,6 +39,15 @@ extern "C" int yyparse();
 extern "C" FILE *yyin;
 
 void yyerror(const char *s);
+
+template<typename T>
+vector<T> concatVec(vector<T> &A, vector<T> &B) {
+    vector<T> AB;
+    AB.reserve(A.size() + B.size());
+    AB.insert(AB.end(), A.begin(), A.end());
+    AB.insert(AB.end(), B.begin(), B.end());
+    return AB;
+}
 
 // SYMBOL TABLE CONSTRUCTS
 int node_id = 0;
