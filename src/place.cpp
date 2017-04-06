@@ -1,3 +1,4 @@
+#include "helpers.h"
 #include "node.h"
 #include "type.h"
 
@@ -5,7 +6,7 @@ int Place::_id = 0;
 
 Place::Place(Type *_type) {
     type = _type;
-    name = nameFromSize(type) + "-" + to_string(_id++);
+    name = nameFromSize(type) + "-" + to_std_string(_id++);
 }
 
 Place::Place(Type *_type, string _name) {
@@ -18,9 +19,11 @@ string Place::nameFromSize(Type *_type) {
         case BASIC_TYPE:
             return _type->getType();
         case ARRAY_TYPE:
-            return "Array-" + nameFromSize(dynamic_cast<ArrayType*>(_type)->base);
+            return "Array-" +
+                   nameFromSize(dynamic_cast<ArrayType *>(_type)->base);
         case SLICE_TYPE:
-            return "Slice-" + nameFromSize(dynamic_cast<SliceType*>(_type)->base);
+            return "Slice-" +
+                   nameFromSize(dynamic_cast<SliceType *>(_type)->base);
         case STRUCT_TYPE:
             return "Struct";
         case MAP_TYPE:

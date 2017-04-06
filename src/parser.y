@@ -8,29 +8,38 @@
 #include <unordered_map>
 #include "node.h"
 #include "type.h"
+#include "tac.h"
+#include "place.h"
 #include "helpers.h"
+
 #define YYDEBUG 1
-#define COPS(A, B) { A->data = B->data; A->type = B->type; };
-#define HANDLE_BIN_OP(A, B, C, D, aA, aB, aC, aD)               \
-    A->data = new Data(string(C) + "binary");                   \
-    A->data->child = B->data;                                   \
-    last(A->data->child)->next = D->data;                       \
-    if(B->type == NULL) {                                       \
-        ERROR_N("Missing type info in node", B->data->name, aB);\
-        exit(1);                                                \
-    }                                                           \
-    if(D->type == NULL) {                                       \
-        ERROR_N("Missing type info in node", D->data->name, aD);\
-        exit(1);                                                \
-    }                                                           \
-    if(D->type->getType() != B->type->getType()) {              \
-        ERROR_N("Mismatched types : ", B->type->getType() +     \
-        " and " + D->type->getType(), aD);                      \
-        exit(1);                                                \
-    }                                                           \
-    A->type = B->type;                                          \
-    A->place = new Place(A->type);                              \
-    A->code = concatVec(B->code, D->code);
+
+#define COPS(A, B) { A->data = B->data; A->type = B->type;                  \
+                     A->code = B->code; A->place = B->place; };
+
+typedef TAC::Instr Instr;
+
+#define HANDLE_BIN_OP(A, B, C, D, aA, aB, aC, aD)                           \
+    A->data = new Data(string(C) + "binary");                               \
+    A->data->child = B->data;                                               \
+    last(A->data->child)->next = D->data;                                   \
+    if(B->type == NULL) {                                                   \
+        ERROR_N("Missing type info in node", B->data->name, aB);            \
+        exit(1);                                                            \
+    }                                                                       \
+    if(D->type == NULL) {                                                   \
+        ERROR_N("Missing type info in node", D->data->name, aD);            \
+        exit(1);                                                            \
+    }                                                                       \
+    if(D->type->getType() != B->type->getType()) {                          \
+        ERROR_N("Mismatched types : ", B->type->getType() +                 \
+        " and " + D->type->getType(), aD);                                  \
+        exit(1);                                                            \
+    }                                                                       \
+    A->type = B->type;                                                      \
+    A->place = new Place(A->type);                                          \
+    A->code = TAC::Init() << B->code << D->code <<                          \
+      (new Instr(TAC::opToOpcode(C), A->place, B->place, D->place));
 
 using namespace std;
 
@@ -42,13 +51,25 @@ extern "C" FILE *yyin;
 void yyerror(const char *s);
 
 template<typename T>
-vector<T> concatVec(vector<T> &A, vector<T> &B) {
+vector<T> operator<<=(vector<T> &A, vector<T> &B) {
     vector<T> AB;
     AB.reserve(A.size() + B.size());
     AB.insert(AB.end(), A.begin(), A.end());
     AB.insert(AB.end(), B.begin(), B.end());
     return AB;
 }
+
+vector<Instr*> &operator<<(vector<Instr*> &v1,
+                     vector<Instr*> &v2) {
+    v1.insert(v1.end(), v2.begin(), v2.end());
+    return v1;
+}
+
+vector<Instr*> &operator<<(vector<Instr*> &v1, Instr* elem) {
+    v1.push_back(elem);
+    return v1;
+}
+
 
 // SYMBOL TABLE CONSTRUCTS
 int node_id = 0;
@@ -1039,8 +1060,7 @@ DeferStmt:
 Expression:
     Expression1 {
         $$ = &(init() << $1 >> "Expression");
-        $$->data = $1->data;
-        $$->type = $1->type;
+        COPS($$, $1);
     }
     ;
 
@@ -1051,8 +1071,7 @@ Expression1:
     }
     | Expression2 {
         $$ = &(init() << $1 >> "Expression2");
-        $$->data = $1->data;
-        $$->type = $1->type;
+        COPS($$, $1);
     }
     ;
 
@@ -1063,8 +1082,7 @@ Expression2:
     }
     | Expression3 {
         $$ = &(init() << $1 >> "Expression2");
-        $$->data = $1->data;
-        $$->type = $1->type;
+        COPS($$, $1);
     }
     ;
 
@@ -1075,8 +1093,7 @@ Expression3:
     }
     | Expression4 {
         $$ = &(init() << $1 >> "Expression3");
-        $$->data = $1->data;
-        $$->type = $1->type;
+        COPS($$, $1);
     }
     ;
 
@@ -1091,8 +1108,7 @@ Expression4:
     }
     | Expression5 {
         $$ = &(init() << $1 >> "Expression4");
-        $$->data = $1->data;
-        $$->type = $1->type;
+        COPS($$, $1);
     }
     ;
 
@@ -1111,35 +1127,35 @@ Expression5:
     }
     | UnaryExpr {
         $$ = &(init() << $1 >> "Expression5");
-        $$->data = $1->data;
-        $$->type = $1->type;
+        COPS($$, $1);
     }
     ;
 
 UnaryExpr:
     PrimaryExpr {
         $$ = &(init() << $1 >> "UnaryExpr");
-        $$->data = $1->data;
-        $$->type = $1->type;
+        COPS($$, $1);
     }
     | UnaryOp PrimaryExpr {
         $$ = &(init() << $1 << $2 >> "UnaryExpr");
         $$->data = new Data($1->data->name + "unary");
         $$->data->child = $2->data;
         $$->type = $1->type;
+
+        $$->place = new Place($1->type);
+        $$->code = TAC::Init() << $2->code <<
+            (new Instr(TAC::opToOpcode($1->data->name), $2->place));
     }
     ;
 
 PrimaryExpr:
     Operand {
         $$ = &(init() << $1 >> "PrimaryExpr");
-        $$->data = $1->data;
-        $$->type = $1->type;
+        COPS($$, $1);
     }
     | MakeExpr {
         $$ = &(init() << $1 >> "PrimaryExpr");
-        $$->data = $1->data;
-        $$->type = $1->type;
+        COPS($$, $1);
     }
     | PrimaryExpr Selector {
         $$ = &(init() << $1 << $2 >> "PrimaryExpr");
