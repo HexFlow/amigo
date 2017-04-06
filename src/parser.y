@@ -11,24 +11,25 @@
 #include "helpers.h"
 #define YYDEBUG 1
 #define COPS(A, B) { A->data = B->data; A->type = B->type; };
-#define HANDLE_BIN_OP(A, B, C, D, aA, aB, aC, aD)                                                  \
-    A->data = new Data(string(C) + "binary");                                                      \
-    A->data->child = B->data;                                                                      \
-    last(A->data->child)->next = D->data;                                                          \
-    if(B->type == NULL) {                                                                          \
-        ERROR_N("Missing type info in node", B->data->name, aB);                                   \
-        exit(1);                                                                                   \
-    }                                                                                              \
-    if(D->type == NULL) {                                                                          \
-        ERROR_N("Missing type info in node", D->data->name, aD);                                   \
-        exit(1);                                                                                   \
-    }                                                                                              \
-    if(D->type->getType() != B->type->getType()) {                                                 \
-        ERROR_N("Mismatched types : ", B->type->getType() + " and " + D->type->getType(), aD);     \
-        exit(1);                                                                                   \
-    }                                                                                              \
-    A->type = B->type;                                                                             \
-    A->place = new Place(A->type);                                                                 \
+#define HANDLE_BIN_OP(A, B, C, D, aA, aB, aC, aD)               \
+    A->data = new Data(string(C) + "binary");                   \
+    A->data->child = B->data;                                   \
+    last(A->data->child)->next = D->data;                       \
+    if(B->type == NULL) {                                       \
+        ERROR_N("Missing type info in node", B->data->name, aB);\
+        exit(1);                                                \
+    }                                                           \
+    if(D->type == NULL) {                                       \
+        ERROR_N("Missing type info in node", D->data->name, aD);\
+        exit(1);                                                \
+    }                                                           \
+    if(D->type->getType() != B->type->getType()) {              \
+        ERROR_N("Mismatched types : ", B->type->getType() +     \
+        " and " + D->type->getType(), aD);                      \
+        exit(1);                                                \
+    }                                                           \
+    A->type = B->type;                                          \
+    A->place = new Place(A->type);                              \
     A->code = concatVec(B->code, D->code);
 
 using namespace std;

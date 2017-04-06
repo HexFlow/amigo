@@ -4,7 +4,7 @@ BUILD=./target/cpp
 BIN=./bin
 DOTDIR=./target/dot
 CPP=./src
-INCLUDE=-I./src
+INCLUDE=-I./include
 FLAGS=-g -std=c++14 -Wno-write-strings $(INCLUDE)
 
 all:
