@@ -28,8 +28,10 @@ extern umap<string, Type *>
 extern string filepath;
 
 string tstr(char *s);
-Data *last(Data *ptr);
-Type *last(Type *ptr);
+/* template<typename T> */
+/* T* last(T* ptr); */
+/* Data *last(Data *ptr); */
+/* Type *last(Type *ptr); */
 char *concat(char *a, char *b);
 void typeInsert(string name, Type *tp);
 void symInsert(string name, Type *tp);
@@ -54,4 +56,15 @@ bool isValidIdent(string name);
 ostream &operator<<(ostream &os, Data *m);
 string toString(ClassType tp);
 void prettyError(int line, int col1, int col2);
+void printCode(vector<TAC::Instr*> v);
+
+// Has to be in header, otherwise template is not instantiated
+// http://stackoverflow.com/questions/8752837
+template<typename T>
+T *last(T *ptr) {
+    while (ptr->next != NULL)
+        ptr = ptr->next;
+    return ptr;
+}
+
 #endif

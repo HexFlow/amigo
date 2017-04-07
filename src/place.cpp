@@ -25,11 +25,11 @@ string Place::nameFromSize(Type *_type) {
             return "Slice-" +
                    nameFromSize(dynamic_cast<SliceType *>(_type)->base);
         case STRUCT_TYPE:
-            return "Struct";
+            return "Struct-";
         case MAP_TYPE:
-            return "Map";
+            return "Map-";
         case FUNCTION_TYPE:
-            return "Func";
+            return "Func-";
         // case POINTER_TYPE:
         //     return "Pointer-" +
         //         nameFromSize(dynamic_cast<PointerType*>(_type)->base);
@@ -37,4 +37,8 @@ string Place::nameFromSize(Type *_type) {
             cerr << "UNKNOWN TYPE ENCOUNTERED" << endl;
             assert(false);
     };
+}
+
+string Place::toString() {
+    return name;
 }

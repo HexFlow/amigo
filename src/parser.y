@@ -75,6 +75,11 @@ vector<Instr*> &operator<<(vector<Instr*> &v1, Instr* elem) {
 int node_id = 0;
 int scope_id = 0;
 string scope_prefix = "0-";
+int label_id = 1;
+
+string newlabel() {
+    return "label" + to_std_string(label_id);
+}
 
 Type *curFxnType = NULL;
 
@@ -119,13 +124,14 @@ SourceFile:
         $$->data = new Data("SourceFile");
         $$->data->child = $4->data;
         printTop($$->data);
+        printCode($4->code);
     }
     ;
 
 Block:
     ECURLY OPENB StatementList CLOSEB '}' {
         $$ = &(init() << $3 >> "Block");
-        $$->data = $3->data;
+        COPS($$, $3);
     }
     ;
 
@@ -147,6 +153,7 @@ StatementList:
         $$ = &(init() << $1 << $2 >> "StatementList");
         $$->data = $1->data;
         last($$->data->child)->next = $2->data;
+        $$->code = TAC::Init() << $1->code << $2->code;
     }
     | Statement ';' {
         $$ = &(init() << $1 >> "StatementList");
@@ -156,88 +163,90 @@ StatementList:
             exit(1);
         }
         $$->data->child = $1->data;
+        $$->code = TAC::Init() << $1->code;
     }
     ;
 
 Statement:
     Declaration       {
         $$ = &(init() << $1 >> "Statement");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | LabeledStmt     {
         $$ = &(init() << $1 >> "Statement");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | SimpleStmt      {
         $$ = &(init() << $1 >> "Statement");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | GoStmt          {
         $$ = &(init() << $1 >> "Statement");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | ReturnStmt      {
         $$ = &(init() << $1 >> "Statement");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | BreakStmt       {
         $$ = &(init() << $1 >> "Statement");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | ContinueStmt    {
         $$ = &(init() << $1 >> "Statement");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | GotoStmt        {
         $$ = &(init() << $1 >> "Statement");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     /*| FallthroughStmt {*/
         /*$$ = &(init() << $1 >> "Statement");*/
     /*}*/
     | Block           {
         $$ = &(init() << $1 >> "Statement");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | IfStmt          {
         $$ = &(init() << $1 >> "Statement");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     /* | SwitchStmt      { $$ = &(init() << $1 >> "Statement"); } */
     /* | SelectStmt      { $$ = &(init() << $1 >> "Statement"); } */
     | ForStmt         {
         $$ = &(init() << $1 >> "Statement");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | DeferStmt       {
         $$ = &(init() << $1 >> "Statement");
+        COPS($$, $1);
     }
     ;
 
 SimpleStmt:
     EmptyStmt        {
         $$ = &(init() << $1 >> "SimpleStmt");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | ExpressionStmt {
         $$ = &(init() << $1 >> "SimpleStmt");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | SendStmt       {
         $$ = &(init() << $1 >> "SimpleStmt");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | IncDecStmt     {
         $$ = &(init() << $1 >> "SimpleStmt");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | Assignment     {
         $$ = &(init() << $1 >> "SimpleStmt");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | ShortVarDecl   {
         $$ = &(init() << $1 >> "SimpleStmt");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     ;
 
@@ -281,7 +290,11 @@ Assignment:
         $$ = &(init() << $1 << $2 << $3 >> "Assignment");
         Data* lhs = $1->data;
         Type* rhs = $3->type;
+        Place*rplace = $3->place;
         Data* rhsd = $3->data;
+
+        $$->code = TAC::Init() << $3->code;
+
         while(lhs != NULL || rhs != NULL) {
             if(lhs == NULL || rhs == NULL) {
                 ERROR_N("= must have equal operands on LHS and RHS", "", @$);
@@ -309,8 +322,13 @@ Assignment:
                 ERROR_N(varLeft, " variable has not been declared.", @1);
                 exit(1);
             }
+
+            $$->code << new Instr(TAC::STOR,
+                new Place(rhs, lhs->name), rplace);
+
             lhs = lhs->next;
             rhs = rhs->next;
+            rplace = rplace?rplace->next:rplace;
             rhsd = rhsd?rhsd->next:rhsd;
         }
         Data* parentleft = new Data("list");
@@ -329,7 +347,11 @@ ShortVarDecl:
         bool newVar = false;
         Data*lhs = $1->data;
         Type*rhs = $3->type;
+        Place*rplace = $3->place;
         Data*rhsd = $3->data;
+
+        $$->code = TAC::Init() << $3->code;
+
         while(lhs != NULL || rhs != NULL) {
             if(lhs == NULL || rhs == NULL) {
                 ERROR_N(":= must have equal operands on LHS and RHS", "", @$);
@@ -357,8 +379,13 @@ ShortVarDecl:
                 newVar = true;
                 symInsert(scope_prefix+varLeft, rhs); //TODO check rhs type not "undefined"
             }
+
+            $$->code << new Instr(TAC::STOR,
+                new Place(rhs, lhs->name), rplace);
+
             lhs = lhs->next;
             rhs = rhs->next;
+            rplace = rplace?rplace->next:rplace;
             rhsd = rhsd?rhsd->next:rhsd;
         }
         if(newVar == false) {
@@ -483,6 +510,7 @@ FunctionDecl:
         symInsert(scope_prefix+$2, $4->type);
         $$->data = new Data("Function " + string($2));
         $$->data->child = $4->data;
+        $$->code = TAC::Init() << new Instr(TAC::LABL, $2) << $4->code;
     }
     ;
 
@@ -492,6 +520,7 @@ Function:
         $$->type = $1->type;
         $$->data = $3->data;
         /* printTop($$->data); */
+        $$->code = $3->code;
     }
     ;
 
@@ -632,7 +661,6 @@ IdentifierList:
         $$ = &(init() << $1 >> "IdentifierList");
         $$->data = new Data{$1};
         $$->type = getSymType($1)?getSymType($1):new BasicType("undefined");
-
     }
     | IdentifierList ',' IDENT {
         $$ = &(init() << $1 << $3 >> "IdentifierList");
@@ -664,10 +692,12 @@ TopLevelDeclList:
         $$ = &(init() << $1 << $2 >> "TopLevelDeclList");
         $$->data = $1->data;
         last($$->data)->next = $2->data;
+        $$->code = TAC::Init() << $1->code << $2->code;
     }
     | TopLevelDecl ';' {
         $$ = &(init() << $1 >> "TopLevelDeclList");
         $$->data = $1->data;
+        $$->code = TAC::Init() << $1->code;
     }
     ;
 
@@ -725,18 +755,15 @@ Type:
 Operand:
     Literal              {
         $$ = &(init() << $1 >> "Operand");
-        $$->type = $1->type;
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | OperandName        {
         $$ = &(init() << $1 >> "Operand");
-        $$->data = $1->data;
-        $$->type = $1->type;
+        COPS($$, $1);
     }
     | '(' Expression ')' {
         $$ = &(init() << $2 >> "Operand");
-        $$->type = $2->type;
-        $$->data = $2->data;
+        COPS($$, $2);
       }
     ;
 
@@ -745,6 +772,9 @@ OperandName:
         $$ = &(init() << $1 >> "OperandName");
         $$->data = new Data{$1};
         $$->type = getSymType($1)?getSymType($1):new BasicType("undefined");
+        cout << scope_prefix + $1 << endl;
+        $$->place = new Place($$->type, $1);
+        $$->code = TAC::Init();
     }
     /* | QualifiedIdent { */
     /*     $$ = &(init() << $1 >> "OperandName"); */
@@ -823,6 +853,7 @@ ReturnStmt:
             ERROR("Function has a return type, cannot use untyped return", "");
             exit(1);
         }
+        $$->code = TAC::Init() << new Instr(TAC::RET);
     }
     | RETURN ExpressionList {
         $$ = &(init() << $2 >> "ReturnStmt");
@@ -890,6 +921,12 @@ IfStmt:
         ptr->child = $3->data;
         ptr->next = new Data("Body"); ptr = ptr->next;
         ptr->child = $4->data;
+
+        $$->code = TAC::Init() << $3->code <<
+            new Instr(TAC::JEQZ, $3->place,
+                      new Place(NULL, newlabel())) << $4->code <<
+            new Instr(TAC::LABL, newlabel());
+        label_id++;
     }
     | IF OPENB SimpleStmt ';' Expression Block CLOSEB {
         $$ = &(init() << $3 << $5 << $6 >> "IfStmt");
@@ -1061,6 +1098,9 @@ Expression:
     Expression1 {
         $$ = &(init() << $1 >> "Expression");
         COPS($$, $1);
+        cout << "Printing expression:" << endl;
+        for (auto elem: $$->code) { cout << elem->toString() << endl; }
+        cout << "Done printing expression:" << endl;
     }
     ;
 
@@ -1290,8 +1330,7 @@ Arguments:
 ExpressionList:
     Expression                      {
         $$ = &(init() << $1 >> "ExpressionList");
-        $$->data = $1->data;
-        $$->type = $1->type;
+        COPS($$, $1);
     }
     | ExpressionList ',' Expression {
         $$ = &(init() << $1 << $3 >> "ExpressionList");
@@ -1299,6 +1338,9 @@ ExpressionList:
         last($$->data)->next = $3->data;
         $$->type = $1->type;
         last($$->type)->next = $3->type;
+        $$->place = $1->place;
+        last($$->place)->next = $3->place;
+        $$->code = TAC::Init() << $1->code << $3->code;
     }
     ;
 
@@ -1408,13 +1450,11 @@ ArrayType:
 Literal:
     BasicLit {
         $$ = &(init() << $1 >> "Literal");
-        $$->type = $1->type;
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     | CompositeLit {
         $$ = &(init() << $1 >> "Literal");
-        $$->type = $1->type;
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     /* | FunctionLit */
     ;
@@ -1424,16 +1464,19 @@ BasicLit:
         $$ = &(init() << $1 >> "BasicLit");
         $$->data = new Data{$1};
         $$->type = new BasicType("int");
+        $$->place = new Place($$->type, $1);
     }
     | FLOAT     {
         $$ = &(init() << $1 >> "BasicLit");
         $$->data = new Data{$1};
         $$->type = new BasicType("float");
+        $$->place = new Place($$->type, $1);
     }
     | String    {
         $$ = &(init() << $1 >> "BasicLit");
         $$->data = $1->data;
         $$->type = new BasicType("string");
+        $$->place = new Place($$->type, $1->place->name);
     }
     ;
 
@@ -1456,10 +1499,12 @@ String:
     RAW_ST         {
         $$ = &(init() << $1 >> "String");
         $$->data = new Data{$1};
+        $$->place = new Place(NULL, $1);
     }
     | INR_ST       {
         $$ = &(init() << $1 >> "String");
         $$->data = new Data{$1};
+        $$->place = new Place(NULL, $1);
     }
     ;
 

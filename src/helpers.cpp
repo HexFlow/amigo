@@ -1,6 +1,6 @@
 #include "helpers.h"
 
-extern ostream *sout, *astout;
+extern ostream *sout, *astout, *tacout;
 
 string to_std_string(int a) {
     stringstream ss;
@@ -46,18 +46,6 @@ bool isValidIdent(string name) {
 }
 
 string tstr(char *s) { return string(s, strlen(s)); }
-
-Data *last(Data *ptr) {
-    while (ptr->next != NULL)
-        ptr = ptr->next;
-    return ptr;
-}
-
-Type *last(Type *ptr) {
-    while (ptr->next != NULL)
-        ptr = ptr->next;
-    return ptr;
-}
 
 char *concat(char *a, char *b) {
     int len1 = strlen(a);
@@ -151,7 +139,7 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType) {
     for (auto reqArgT : fxnTypeCasted->argTypes) {
         if (argType == NULL) {
             cout << "Insufficient arguments for application of function "
-                    "type "
+                "type "
                  << fxnType->getType() << endl;
             exit(1);
         }
@@ -201,7 +189,7 @@ void inittables() {
                           vector<Type *>{})},
         {"IOCall", new FunctionType(vector<Type *>{},
                                     vector<Type *>{new BasicType("string"),
-                                                   new BasicType("int")})},
+                                            new BasicType("int")})},
         {"Hello", new BasicType("int")}};
     symInsert("fmt", new StructType(fmtMap));
 }
@@ -347,4 +335,12 @@ void prettyError(int line, int col1, int col2) {
     }
     cout << "\033[0m\n";
     printf("\n");
+}
+
+void printCode(vector<TAC::Instr*> v) {
+    cout << endl;
+    *tacout << "Three Address Code:" << endl;
+    for (auto &elem: v) {
+        *tacout << elem->toString() << endl;
+    }
 }

@@ -7,6 +7,7 @@ using namespace std;
 string filepath = "";
 ostream *sout = &cout;
 ostream *astout = &cout;
+ostream *tacout = &cout;
 
 void help() {
     cerr << "No input files provided" << endl;
@@ -50,6 +51,16 @@ FILE *parseCLI(int argc, char **argv) {
             } else {
                 cerr << "No outfile file provided for AST flag" << endl;
             }
+        } else if (strcmp(argv[i], "-tac") == 0) {
+            if (i + 1 < argc) {
+                ofstream *outFile = new ofstream;
+                outFile->open(argv[i + 1]);
+                tacout = outFile;
+                i++;
+            } else {
+                cerr << "No outfile file provided for TAC flag" << endl;
+            }
+        } else if (strcmp(argv[i], "--help") == 0) {
         } else if (strcmp(argv[i], "--help") == 0) {
             help();
         } else if (strcmp(argv[i], "-v") == 0) {

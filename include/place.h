@@ -15,9 +15,12 @@ private:
 public:
     string name;                /* To show while printing */
     Type *type;                 /* Needed to allocate space */
+    Place *next;
 
     Place(Type *_type);
     Place(Type *_type, string _name);
+
+    string toString();
 };
 
 #endif
