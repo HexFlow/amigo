@@ -47,6 +47,8 @@ void inittables();
 void printtables();
 bool isLiteral(node *n);
 int getIntValue(node *n);
+string nameInScope(string name);
+void scopeExpr(vector<TAC::Instr*> &code);
 string escape_json(const string &s);
 string print(node *n);
 string print(Data *n);

@@ -19,6 +19,7 @@ public:
 
     Place(Type *_type);
     Place(Type *_type, string _name);
+    Place(string name);
 
     string toString();
 };

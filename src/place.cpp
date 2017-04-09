@@ -14,6 +14,11 @@ Place::Place(Type *_type, string _name) {
     name = _name;
 }
 
+Place::Place(string _name) {
+    type = NULL;
+    name = _name;
+}
+
 string Place::nameFromSize(Type *_type) {
     switch (_type->classType) {
         case BASIC_TYPE:

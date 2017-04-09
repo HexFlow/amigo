@@ -230,6 +230,38 @@ int getIntValue(node *n) {
     return atoi(n->data->name.c_str());
 }
 
+string nameInScope(string name) {
+    string cur_prefix = scope_prefix, id;
+    while (cur_prefix != "") {
+        id = cur_prefix + name;
+        if (isSymbol(id))
+            return id;
+        cur_prefix = cur_prefix.substr(cur_prefix.find("-") + 1);
+    }
+    id = cur_prefix + name;
+    if (isSymbol(id))
+        return id;
+    return "";
+}
+
+void scopeExpr(vector<TAC::Instr*> &code) {
+    string tmp;
+    for (auto &elem: code) {
+        if (elem->op1 != NULL) {
+            tmp = nameInScope(elem->op1->name);
+            if (tmp != "") elem->op1->name = tmp;
+        }
+        if (elem->op2 != NULL) {
+            tmp = nameInScope(elem->op2->name);
+            if (tmp != "") elem->op2->name = tmp;
+        }
+        if (elem->op3 != NULL) {
+            tmp = nameInScope(elem->op3->name);
+            if (tmp != "") elem->op3->name = tmp;
+        }
+    }
+}
+
 string escape_json(const string &s) {
     ostringstream o;
     for (auto c = s.cbegin(); c != s.cend(); c++) {
@@ -339,7 +371,7 @@ void prettyError(int line, int col1, int col2) {
 
 void printCode(vector<TAC::Instr*> v) {
     cout << endl;
-    *tacout << "Three Address Code:" << endl;
+    *tacout << "Intermediate Code:" << endl;
     for (auto &elem: v) {
         *tacout << elem->toString() << endl;
     }

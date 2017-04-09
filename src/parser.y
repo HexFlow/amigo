@@ -1,3 +1,4 @@
+//-*-mode: c++-mode-*-
 %{
 #include <cstdio>
 #include <sstream>
@@ -254,13 +255,15 @@ EmptyStmt:
     /* blank */ {
         $$ = &(init() >> "EmptyStmt");
         $$->data = new Data("");
+        $$->code = TAC::Init();
     }
     ;
 
 ExpressionStmt:
     Expression {
         $$ = &(init() << $1 >> "ExpressionStmt");
-        $$->data = $1->data;
+        COPS($$, $1);
+        scopeExpr($$->code);
     }
     ;
 
@@ -277,11 +280,17 @@ IncDecStmt:
         $$ = &(init() << $1 << $2 >> "IncDecStmt");
         $$->data = new Data(string($2)+"unary");
         $$->data->child = $1->data;
+        $$->code = TAC::Init() << $1->code <<
+            new Instr(TAC::ADD, $1->place, new Place("1"));
+        scopeExpr($$->code);
     }
     | Expression DEC {
         $$ = &(init() << $1 << $2 >> "IncDecStmt");
         $$->data = new Data(string($2)+"unary");
         $$->data->child = $1->data;
+        $$->code = TAC::Init() << $1->code <<
+            new Instr(TAC::SUB, $1->place, new Place("1"));
+        scopeExpr($$->code);
     }
     ;
 
@@ -324,7 +333,8 @@ Assignment:
             }
 
             $$->code << new Instr(TAC::STOR,
-                new Place(rhs, lhs->name), rplace);
+                                  new Place(rhs, lhs->name),
+                                  rplace);
 
             lhs = lhs->next;
             rhs = rhs->next;
@@ -338,6 +348,8 @@ Assignment:
         parentleft->next = parentright;
         $$->data = new Data{$2};
         $$->data->child = parentleft;
+
+        scopeExpr($$->code);
     }
     ;
 
@@ -381,7 +393,8 @@ ShortVarDecl:
             }
 
             $$->code << new Instr(TAC::STOR,
-                new Place(rhs, lhs->name), rplace);
+                                  new Place(rhs, lhs->name),
+                                  rplace);
 
             lhs = lhs->next;
             rhs = rhs->next;
@@ -399,6 +412,8 @@ ShortVarDecl:
         parentleft->next = parentright;
         $$->data = new Data{$2};
         $$->data->child = parentleft;
+
+        scopeExpr($$->code);
     }
     ;
 
@@ -773,7 +788,7 @@ OperandName:
         $$->data = new Data{$1};
         $$->type = getSymType($1)?getSymType($1):new BasicType("undefined");
         cout << scope_prefix + $1 << endl;
-        $$->place = new Place($$->type, $1);
+        $$->place = new Place($1);
         $$->code = TAC::Init();
     }
     /* | QualifiedIdent { */
@@ -926,6 +941,7 @@ IfStmt:
             new Instr(TAC::JEQZ, $3->place,
                       new Place(NULL, newlabel())) << $4->code <<
             new Instr(TAC::LABL, newlabel());
+        scopeExpr($$->code);
         label_id++;
     }
     | IF OPENB SimpleStmt ';' Expression Block CLOSEB {
@@ -1098,9 +1114,6 @@ Expression:
     Expression1 {
         $$ = &(init() << $1 >> "Expression");
         COPS($$, $1);
-        cout << "Printing expression:" << endl;
-        for (auto elem: $$->code) { cout << elem->toString() << endl; }
-        cout << "Done printing expression:" << endl;
     }
     ;
 
