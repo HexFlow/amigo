@@ -1,4 +1,5 @@
 .PHONY: try
+.SECONDARY:
 
 BUILD=./target/cpp
 BIN=./bin

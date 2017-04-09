@@ -45,7 +45,9 @@ bool isValidIdent(string name) {
     return true;
 }
 
-string tstr(char *s) { return string(s, strlen(s)); }
+string tstr(char *s) {
+    return string(s, strlen(s));
+}
 
 char *concat(char *a, char *b) {
     int len1 = strlen(a);
@@ -82,9 +84,13 @@ void symInsert(string name, Type *tp) {
     }
 }
 
-bool isType(string name) { return (ttable.find(name) != ttable.end()); }
+bool isType(string name) {
+    return (ttable.find(name) != ttable.end());
+}
 
-bool isSymbol(string name) { return (stable.find(name) != stable.end()); }
+bool isSymbol(string name) {
+    return (stable.find(name) != stable.end());
+}
 
 bool isInScope(string name) {
     if (isSymbol(scope_prefix + name)) {
@@ -139,7 +145,7 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType) {
     for (auto reqArgT : fxnTypeCasted->argTypes) {
         if (argType == NULL) {
             cout << "Insufficient arguments for application of function "
-                "type "
+                    "type "
                  << fxnType->getType() << endl;
             exit(1);
         }
@@ -155,8 +161,8 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType) {
     }
 
     if (argType != NULL) {
-        cout << "Extra arguments provided to function: "
-             << argType->getType() << endl;
+        cout << "Extra arguments provided to function: " << argType->getType()
+             << endl;
         exit(1);
     }
 
@@ -173,7 +179,9 @@ Type *vectorToLinkedList(vector<Type *> &typs) {
     return retType->next;
 }
 
-bool isDefined(string name) { return (getSymType(name) != NULL); }
+bool isDefined(string name) {
+    return (getSymType(name) != NULL);
+}
 
 void inittables() {
     typeInsert("void", new BasicType("void"));
@@ -189,7 +197,7 @@ void inittables() {
                           vector<Type *>{})},
         {"IOCall", new FunctionType(vector<Type *>{},
                                     vector<Type *>{new BasicType("string"),
-                                            new BasicType("int")})},
+                                                   new BasicType("int")})},
         {"Hello", new BasicType("int")}};
     symInsert("fmt", new StructType(fmtMap));
 }
@@ -244,20 +252,29 @@ string nameInScope(string name) {
     return "";
 }
 
-void scopeExpr(vector<TAC::Instr*> &code) {
+void scopeExprClosed(vector<TAC::Instr *> &code) {
+    scope_prefix = last_closed + scope_prefix;
+    scopeExpr(code);
+    scope_prefix = scope_prefix.substr(scope_prefix.find("-") + 1);
+}
+
+void scopeExpr(vector<TAC::Instr *> &code) {
     string tmp;
-    for (auto &elem: code) {
+    for (auto &elem : code) {
         if (elem->op1 != NULL) {
             tmp = nameInScope(elem->op1->name);
-            if (tmp != "") elem->op1->name = tmp;
+            if (tmp != "")
+                elem->op1->name = tmp;
         }
         if (elem->op2 != NULL) {
             tmp = nameInScope(elem->op2->name);
-            if (tmp != "") elem->op2->name = tmp;
+            if (tmp != "")
+                elem->op2->name = tmp;
         }
         if (elem->op3 != NULL) {
             tmp = nameInScope(elem->op3->name);
-            if (tmp != "") elem->op3->name = tmp;
+            if (tmp != "")
+                elem->op3->name = tmp;
         }
     }
 }
@@ -289,8 +306,7 @@ string escape_json(const string &s) {
                 break;
             default:
                 if ('\x00' <= *c && *c <= '\x1f') {
-                    o << "\\u" << hex << setw(4) << setfill('0')
-                      << (int)*c;
+                    o << "\\u" << hex << setw(4) << setfill('0') << (int)*c;
                 } else {
                     o << *c;
                 }
@@ -329,8 +345,7 @@ string print(Data *n) {
         *astout << name << " -- " << ch_name << endl;
         child = child->next;
     }
-    *astout << name << "[label=\"" << escape_json(n->name) << "\"]"
-            << endl;
+    *astout << name << "[label=\"" << escape_json(n->name) << "\"]" << endl;
     return name;
 }
 
@@ -369,10 +384,10 @@ void prettyError(int line, int col1, int col2) {
     printf("\n");
 }
 
-void printCode(vector<TAC::Instr*> v) {
+void printCode(vector<TAC::Instr *> v) {
     cout << endl;
     *tacout << "Intermediate Code:" << endl;
-    for (auto &elem: v) {
+    for (auto &elem : v) {
         *tacout << elem->toString() << endl;
     }
 }

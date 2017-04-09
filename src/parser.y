@@ -76,6 +76,7 @@ vector<Instr*> &operator<<(vector<Instr*> &v1, Instr* elem) {
 int node_id = 0;
 int scope_id = 0;
 string scope_prefix = "0-";
+string last_closed = "";
 int label_id = 1;
 
 string newlabel() {
@@ -145,6 +146,7 @@ OPENB:
 
 CLOSEB:
     /* empty */ {
+        last_closed = scope_prefix.substr(0, scope_prefix.find("-") + 1);
         scope_prefix = scope_prefix.substr(scope_prefix.find("-") + 1);
     }
     ;
@@ -941,7 +943,7 @@ IfStmt:
             new Instr(TAC::JEQZ, $3->place,
                       new Place(NULL, newlabel())) << $4->code <<
             new Instr(TAC::LABL, newlabel());
-        scopeExpr($$->code);
+        scopeExprClosed($$->code);
         label_id++;
     }
     | IF OPENB SimpleStmt ';' Expression Block CLOSEB {

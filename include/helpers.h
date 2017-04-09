@@ -22,9 +22,9 @@ string to_std_string(int a);
 
 extern int node_id;
 extern string scope_prefix;
+extern string last_closed;
 extern umap<string, Type *> stable;  // symbols (a is an int)
-extern umap<string, Type *>
-    ttable;  // types (due to typedef or predeclared)
+extern umap<string, Type *> ttable;  // types (due to typedef or predeclared)
 extern string filepath;
 
 string tstr(char *s);
@@ -48,7 +48,8 @@ void printtables();
 bool isLiteral(node *n);
 int getIntValue(node *n);
 string nameInScope(string name);
-void scopeExpr(vector<TAC::Instr*> &code);
+void scopeExprClosed(vector<TAC::Instr *> &code);
+void scopeExpr(vector<TAC::Instr *> &code);
 string escape_json(const string &s);
 string print(node *n);
 string print(Data *n);
@@ -58,11 +59,11 @@ bool isValidIdent(string name);
 ostream &operator<<(ostream &os, Data *m);
 string toString(ClassType tp);
 void prettyError(int line, int col1, int col2);
-void printCode(vector<TAC::Instr*> v);
+void printCode(vector<TAC::Instr *> v);
 
 // Has to be in header, otherwise template is not instantiated
 // http://stackoverflow.com/questions/8752837
-template<typename T>
+template <typename T>
 T *last(T *ptr) {
     while (ptr->next != NULL)
         ptr = ptr->next;
