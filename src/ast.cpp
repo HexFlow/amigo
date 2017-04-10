@@ -1,5 +1,7 @@
 #include <cstdio>
 #include <iostream>
+#include "node.h"
+#include "helpers.h"
 using namespace std;
 
 extern "C" int yylex();
@@ -34,6 +36,6 @@ int main(int argc, char **argv) {
 
 void yyerror(const char *s) {
     cout << "Parse error!  Message: " << s << endl;
-    // might as well halt now:
+    prettyError(global_loc->line, global_loc->col1, global_loc->col2);
     exit(-1);
 }

@@ -128,8 +128,7 @@ Type *isValidMemberOn(Data *base, Data *method) {
 
     auto memType = baseStruct->members.find(method->name);
     if (memType == baseStruct->members.end()) {
-        cerr << method->name << " is not a member of type "
-             << symType->getType() << endl;
+        cerr << method->name << " is not a member of type " << symType->getType() << endl;
         cerr << "Exiting" << endl;
         exit(1);
     }
@@ -153,9 +152,8 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType) {
         }
         if (argType->getType() != reqArgT->getType()) {
             cout << "Needed type " << reqArgT->getType() << " at " << pos
-                 << "-th position of function application of type "
-                 << fxnType->getType() << "; got " << argType->getType()
-                 << endl;
+                 << "-th position of function application of type " << fxnType->getType()
+                 << "; got " << argType->getType() << endl;
             exit(1);
         }
         argType = argType->next;
@@ -163,8 +161,7 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType) {
     }
 
     if (argType != NULL) {
-        cout << "Extra arguments provided to function: " << argType->getType()
-             << endl;
+        cout << "Extra arguments provided to function: " << argType->getType() << endl;
         exit(1);
     }
 
@@ -195,11 +192,10 @@ void inittables() {
 
     unordered_map<string, Type *> fmtMap = {
         {"PrintString",
-         new FunctionType(vector<Type *>{new BasicType("string")},
-                          vector<Type *>{})},
-        {"IOCall", new FunctionType(vector<Type *>{},
-                                    vector<Type *>{new BasicType("string"),
-                                                   new BasicType("int")})},
+         new FunctionType(vector<Type *>{new BasicType("string")}, vector<Type *>{})},
+        {"IOCall",
+         new FunctionType(vector<Type *>{},
+                          vector<Type *>{new BasicType("string"), new BasicType("int")})},
         {"Hello", new BasicType("int")}};
     symInsert("fmt", new StructType(fmtMap));
 }
@@ -326,8 +322,8 @@ string print(node *n) {
             string child = print(s.nt);
             cout << name << " -- " << child << endl;
         } else {
-            cout << "_" + to_std_string(node_id) << "[label=\""
-                 << escape_json(s.t) << "\"]" << endl;
+            cout << "_" + to_std_string(node_id) << "[label=\"" << escape_json(s.t)
+                 << "\"]" << endl;
             cout << name << " -- "
                  << "_" + to_std_string(node_id++) << endl;
         }
@@ -361,6 +357,7 @@ void prettyError(int line, int col1, int col2) {
     FILE *f = fopen(filepath.c_str(), "r");
     char c = 'a';
     int lno = 1;
+    int numchars = 0;
     cout << "Line number: " << line << endl << endl;
 
     while ((c = fgetc(f)) != EOF) {
@@ -368,6 +365,7 @@ void prettyError(int line, int col1, int col2) {
             c = ' ';
         if (lno == line) {
             printf("%c", c);
+            numchars++;
         }
         if (lno > line)
             break;
@@ -375,6 +373,10 @@ void prettyError(int line, int col1, int col2) {
             lno++;
     }
     cout << "\033[1;31m";
+    if (col1 > col2) {
+        col1 = 0;
+        col2 = numchars;
+    }
     for (int i = 1; i <= col2; i++) {
         if (i >= col1 && i < col2) {
             printf("^");

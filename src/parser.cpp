@@ -32,6 +32,9 @@ int main(int argc, char **argv) {
 
 void yyerror(const char *s) {
     cout << "Parse error!  Message: " << s << endl;
-    // might as well halt now:
+    cout << yyla.first_line << endl;
+    cout << yyla.first_column << endl;
+    cout << yyla.last_column << endl;
+    prettyError(yyla.first_line, yyla.first_col, yyla.last_col);
     exit(-1);
 }

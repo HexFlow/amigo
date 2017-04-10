@@ -14,6 +14,13 @@ using namespace std;
 
 class Object;
 
+struct myLoc {
+    int line = 0;
+    int col1 = 0;
+    int col2 = 0;
+};
+extern myLoc *global_loc;
+
 struct node;
 
 struct child {
@@ -32,6 +39,7 @@ struct Data {
     string name = "";
     Data *next = NULL;
     Data *child = NULL;
+    bool isPrimaryExpr = false;
 
     Data(string);
 };
@@ -43,7 +51,7 @@ struct node {
     Data *data;
 
     Place *place;
-    vector<TAC::Instr*> code;
+    vector<TAC::Instr *> code;
 };
 
 node &operator<<(node &l, node *r);

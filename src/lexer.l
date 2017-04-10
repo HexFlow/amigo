@@ -4,6 +4,8 @@
 #include "gust.tab.h"
 int yycolumn = 1;
 
+myLoc *global_loc = new myLoc;
+
 #define YY_USER_ACTION                                                   \
   start_line = prev_yylineno; start_column = yycolumn;                   \
   if (yylineno == prev_yylineno) yycolumn += yyleng;                     \
@@ -12,8 +14,11 @@ int yycolumn = 1;
     prev_yylineno = yylineno;                                            \
   }                                                                      \
   yylloc.first_line = yylloc.last_line = yylineno;                       \
+  global_loc->line = yylineno;                                           \
   yylloc.last_column = yycolumn;                                         \
-  yylloc.first_column = yycolumn - yyleng;                               
+  global_loc->col1 = yycolumn;                                           \
+  yylloc.first_column = yycolumn - yyleng;                               \
+  global_loc->col2 = yycolumn - yyleng;                               
 
 
 using namespace std;

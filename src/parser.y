@@ -305,8 +305,9 @@ Assignment:
     ExpressionList ASN_OP ExpressionList {
         $$ = &(init() << $1 << $2 << $3 >> "Assignment");
         Data* lhs = $1->data;
+        Type* ltype = $1->type;
         Type* rhs = $3->type;
-        Place*rplace = $3->place;
+        Place* rplace = $3->place;
         Data* rhsd = $3->data;
 
         $$->code = TAC::Init() << $3->code;
@@ -317,9 +318,12 @@ Assignment:
                 exit(1);
             }
             string varLeft = lhs->name;
-            if(lhs->child != NULL) {
+            if(!lhs->isPrimaryExpr && lhs->child != NULL) {
                 ERROR_N("Non identifier to left of =", "", @1);
                 exit(1);
+            }
+            if(lhs->isPrimaryExpr) {
+                varLeft = lhs->child->name;
             }
             if(!isValidIdent(varLeft)) {
                 ERROR_N(varLeft, " is not a valid Identifier", @1);
@@ -330,7 +334,7 @@ Assignment:
                 exit(1);
             }
             if(getSymType(varLeft) != NULL) {
-                if(getSymType(varLeft)->getType() != rhs->getType()) {
+                if(ltype->getType() != rhs->getType()) {
                     ERROR_N(varLeft, " has a different type than RHS " + rhs->getType(), @1);
                     exit(1);
                 }
@@ -344,6 +348,7 @@ Assignment:
                                   rplace);
 
             lhs = lhs->next;
+            ltype = ltype->next;
             rhs = rhs->next;
             rplace = rplace?rplace->next:rplace;
             rhsd = rhsd?rhsd->next:rhsd;
@@ -728,22 +733,23 @@ CompositeLit:
         $$ = &(init() << $1 << $2 >> "CompositeLit");
         int elems;
         Type *iter;
-        ArrayType* littype;
+        ArrayType* littypeArray;
+        SliceType* littypeSlice;
         switch ($1->type->classType) {
             case ARRAY_TYPE:
-                littype = dynamic_cast<ArrayType*>($1->type);
+                littypeArray = dynamic_cast<ArrayType*>($1->type);
                 elems = 0;
                 iter = $2->type;
                 while (iter != NULL) {
-                    if (iter->getType() != littype->base->getType()) {
+                    if (iter->getType() != littypeArray->base->getType()) {
                         ERROR_N("Element of wrong type in array declaration: ",
                                 iter->getType(), @2);
                     }
                     elems++;
                     iter = iter->next;
                 }
-                if (elems != littype->size) {
-                    ERROR_N("Wrong number of elements. Expected: ", elems, @2);
+                if (elems > littypeArray->size) {
+                    ERROR_N("Wrong number of elements. Expected <=", elems, @2);
                 }
                 $$->data = new Data("ArrayLiteral");
                 $$->data->child = new Data("Type");
@@ -753,6 +759,23 @@ CompositeLit:
                 $$->type = $1->type->clone();
                 $$->place = new Place($$->type);
                 break;
+            case SLICE_TYPE:
+                littypeSlice = dynamic_cast<SliceType*>($1->type);
+                iter = $2->type;
+                while (iter != NULL) {
+                    if (iter->getType() != littypeSlice->base->getType()) {
+                        ERROR_N("Element of wrong type in array declaration: ",
+                                iter->getType(), @2);
+                    }
+                    iter = iter->next;
+                }
+                $$->data = new Data("SliceLiteral");
+                $$->data->child = new Data("Type");
+                $$->data->child->next = new Data("Value");
+                $$->data->child->child = $1->data;
+                $$->data->child->next->child = $2->data;
+                $$->type = $1->type->clone();
+                $$->place = new Place($$->type);
             default:
                 cerr << "Composite type not yet supported" << endl;
                 exit(1);
@@ -1288,6 +1311,7 @@ UnaryExpr:
     PrimaryExpr {
         $$ = &(init() << $1 >> "UnaryExpr");
         COPS($$, $1);
+        $$->data->isPrimaryExpr = true;
     }
     | UnaryOp PrimaryExpr {
         $$ = &(init() << $1 << $2 >> "UnaryExpr");
@@ -1345,7 +1369,7 @@ PrimaryExpr:
             ERROR("It is not possible to use index on something of type: ", tp->getType());
             exit(1);
         }
-        $$->data = new Data("methodcall");
+        $$->data = new Data("arrayaccess");
         $$->data->child = $1->data;
         $$->data->child->next = new Data("__VALUE_AT__");
         $$->data->child->next->next = $2->data;
