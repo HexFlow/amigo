@@ -62,8 +62,13 @@ vector<T> operator<<=(vector<T> &A, vector<T> &B) {
 
 vector<Instr*> &operator<<(vector<Instr*> &v1,
                      vector<Instr*> &v2) {
-    v1.insert(v1.end(), v2.begin(), v2.end());
-    return v1;
+    try {
+        v1.insert(v1.end(), v2.begin(), v2.end());
+        return v1;
+    } catch (int e) {
+        cerr << "Unimplemented function encountered for TAC" << endl;
+        return TAC::Init();
+    }
 }
 
 vector<Instr*> &operator<<(vector<Instr*> &v1, Instr* elem) {
@@ -719,8 +724,41 @@ TopLevelDeclList:
     ;
 
 CompositeLit:
-    LiteralType LiteralValue { $$ = &(init() << $1 << $2 >> "CompositeLit"); }
-    ;
+    LiteralType LiteralValue {
+        $$ = &(init() << $1 << $2 >> "CompositeLit");
+        int elems;
+        Type *iter;
+        ArrayType* littype;
+        switch ($1->type->classType) {
+            case ARRAY_TYPE:
+                littype = dynamic_cast<ArrayType*>($1->type);
+                elems = 0;
+                iter = $2->type;
+                while (iter != NULL) {
+                    if (iter->getType() != littype->base->getType()) {
+                        ERROR_N("Element of wrong type in array declaration: ",
+                                iter->getType(), @2);
+                    }
+                    elems++;
+                    iter = iter->next;
+                }
+                if (elems != littype->size) {
+                    ERROR_N("Wrong number of elements. Expected: ", elems, @2);
+                }
+                $$->data = new Data("ArrayLiteral");
+                $$->data->child = new Data("Type");
+                $$->data->child->next = new Data("Value");
+                $$->data->child->child = $1->data;
+                $$->data->child->next->child = $2->data;
+                $$->type = $1->type->clone();
+                $$->place = new Place($$->type);
+                break;
+            default:
+                cerr << "Composite type not yet supported" << endl;
+                exit(1);
+        }
+    }
+;
 
 LiteralType:
     StructType                 {
@@ -800,12 +838,12 @@ OperandName:
     ;
 
 LiteralValue:
-    '{' '}'                        { $$ = &(init() >> "LiteralValue"); }
-    | ECURLY '}'                   { $$ = &(init() >> "LiteralValue"); }
-    | '{' ElementList '}'          { $$ = &(init() << $2 >> "LiteralValue"); }
-    | ECURLY ElementList '}'       { $$ = &(init() << $2 >> "LiteralValue"); }
-    | '{' ElementList ',' '}'      { $$ = &(init() << $2 >> "LiteralValue"); }
-    | ECURLY ElementList ',' '}'   { $$ = &(init() << $2 >> "LiteralValue"); }
+    '{' '}'                        { $$ = &(init() >> "LiteralValue"); $$->data = new Data("Empty"); }
+    | ECURLY '}'                   { $$ = &(init() >> "LiteralValue"); $$->data = new Data("Empty"); }
+    | '{' ElementList '}'          { $$ = &(init() << $2 >> "LiteralValue"); COPS($$, $2); }
+    | ECURLY ElementList '}'       { $$ = &(init() << $2 >> "LiteralValue"); COPS($$, $2); }
+    | '{' ElementList ',' '}'      { $$ = &(init() << $2 >> "LiteralValue"); COPS($$, $2); }
+    | ECURLY ElementList ',' '}'   { $$ = &(init() << $2 >> "LiteralValue"); COPS($$, $2); }
     ;
 
 SliceType:
@@ -817,13 +855,23 @@ SliceType:
     ;
 
 ElementList:
-    KeyedElement                   { $$ = &(init() << $1 >> "ElementList"); }
-    | ElementList ',' KeyedElement { $$ = &(init() << $1 << $3 >> "ElementList"); }
+    KeyedElement                   { $$ = &(init() << $1 >> "ElementList"); COPS($$, $1); }
+    | ElementList ',' KeyedElement {
+        $$ = &(init() << $1 << $3 >> "ElementList");
+        $$->data = $1->data;
+        last($$->data)->next = $3->data;
+        $$->type = $1->type;
+        last($$->type)->next = $3->type;
+        $$->place = $1->place;
+        last($$->place)->next = $3->place;
+    }
     ;
 
 KeyedElement:
-    Element                        { $$ = &(init() << $1 >> "KeyedElement"); }
-    | Key ':' Element              { $$ = &(init() << $1 << $3 >> "KeyedElement"); }
+    Element                        { $$ = &(init() << $1 >> "KeyedElement"); COPS($$, $1); }
+    | Key ':' Element              {
+        $$ = &(init() << $1 << $3 >> "KeyedElement");
+    }
     ;
 
 Key:
@@ -832,8 +880,8 @@ Key:
     ;
 
 Element:
-    Expression     { $$ = &(init() << $1 >> "Element"); }
-    | LiteralValue { $$ = &(init() << $1 >> "Element"); }
+    Expression     { $$ = &(init() << $1 >> "Element"); COPS($$, $1); }
+    | LiteralValue { $$ = &(init() << $1 >> "Element"); COPS($$, $1); }
     ;
 
 TopLevelDecl:
@@ -1233,13 +1281,13 @@ PrimaryExpr:
             ArrayType *tp = (ArrayType*) $1->type;
             $$->type = tp->base->clone();
             if($2->type->getType() != "int") {
-                ERROR("Non integer index provided", "");
+                ERROR_N("Non integer index provided", "", @2);
                 exit(1);
             }
         } else if(tp->classType == MAP_TYPE) {
             MapType *tp = (MapType*) $1->type;
             if($2->type->getType() != tp->key->getType()) {
-                ERROR("Index of type " + $2->type->getType() + " provided, when needed was: ", tp->key->getType());
+                ERROR_N("Index of type " + $2->type->getType() + " provided, when needed was: ", tp->key->getType(), @2);
                 exit(1);
             }
             /*$$->type = tp->base->clone();*/

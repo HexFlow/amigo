@@ -128,8 +128,10 @@ Type *isValidMemberOn(Data *base, Data *method) {
 
     auto memType = baseStruct->members.find(method->name);
     if (memType == baseStruct->members.end()) {
-        cout << method->name << " is not a member of type "
+        cerr << method->name << " is not a member of type "
              << symType->getType() << endl;
+        cerr << "Exiting" << endl;
+        exit(1);
     }
     return memType->second;
 }
