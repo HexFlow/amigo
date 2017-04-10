@@ -57,10 +57,14 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "STOR";
         case TAC::JEQZ:
             return "JEQZ";
+        case TAC::JMP:
+            return "JMP";
         case TAC::LABL:
             return "LABL";
         case TAC::RET:
             return "RET";
+        case TAC::NOT:
+            return "NOT";
         default:
             return "UNKNOWN";
     }
@@ -70,13 +74,13 @@ string TAC::Instr::toString() {
     stringstream ss;
     ss << TAC::opcodeToString(opcode);
     if (op1 != NULL) {
-        ss << "\t" << op1->toString();
+        ss << "\t\t" << op1->toString();
     }
     if (op2 != NULL) {
-        ss << "\t" << op2->toString();
+        ss << "\t\t" << op2->toString();
     }
     if (op3 != NULL) {
-        ss << "\t" << op3->toString();
+        ss << "\t\t" << op3->toString();
     }
     return ss.str();
 }
@@ -90,6 +94,8 @@ TAC::INSTR_TYPE TAC::opToOpcode(string oper) {
         return MUL;
     else if (oper == "/")
         return DIV;
+    else if (oper == "!")
+        return NOT;
     else
         return GOTO;
 }

@@ -20,6 +20,8 @@ namespace TAC {
         JEQZ,
         LABL,
         RET,
+        JMP,
+        NOT,
     };
 
     class Instr {

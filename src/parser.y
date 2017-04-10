@@ -101,7 +101,7 @@ umap<string, Type*> ttable; // types (due to typedef or predeclared)
     char *sval;
 }
 
-%token <sval> INT FLOAT IDENT B1 B2 B3 B4 B5 D4 D5 STAR ECURLY UN_OP
+%token <sval> INT FLOAT TRUE FALSE IDENT B1 B2 B3 B4 B5 D4 D5 STAR ECURLY UN_OP
 %token <sval> RAW_ST INR_ST ASN_OP LEFT INC DEC DECL CONST DOTS FUNC MAP
 %token <sval> GO RETURN BREAK CONT GOTO FALL IF ELSE SWITCH CASE END MAKE NEW
 %token <sval> DEFLT SELECT TYPE ISOF FOR RANGE DEFER VAR IMPORT PACKGE STRUCT
@@ -987,9 +987,14 @@ IfStmt:
         ptr->next = new Data("Body"); ptr = ptr->next;
         ptr->child = $4->data;
 
+        if ($3->type->getType() != "bool") {
+            ERROR_N("If expression has to be boolean, found: ",
+                    $3->type->getType(), @3);
+        }
+
         $$->code = TAC::Init() << $3->code <<
             new Instr(TAC::JEQZ, $3->place,
-                      new Place(NULL, newlabel())) << $4->code <<
+                      new Place(newlabel())) << $4->code <<
             new Instr(TAC::LABL, newlabel());
         scopeExprClosed($$->code);
         label_id++;
@@ -1004,6 +1009,18 @@ IfStmt:
         ptr->child = $5->data;
         ptr->next = new Data("Body"); ptr = ptr->next;
         ptr->child = $6->data;
+
+        if ($5->type->getType() != "bool") {
+            ERROR_N("If expression has to be boolean, found: ",
+                    $3->type->getType(), @3);
+        }
+
+        $$->code = TAC::Init() << $3->code << $5->code <<
+            new Instr(TAC::JEQZ, $5->place,
+                      new Place(NULL, newlabel())) << $6->code <<
+            new Instr(TAC::LABL, newlabel());
+        scopeExprClosed($$->code);
+        label_id++;
     }
     | IF OPENB Expression Block ELSE Block CLOSEB {
         $$ = &(init() << $3 << $4 << $6 >> "IfStmt");
@@ -1015,6 +1032,23 @@ IfStmt:
         ptr->child = $4->data;
         ptr->next = new Data("Else"); ptr = ptr->next;
         ptr->child = $6->data;
+
+
+        if ($3->type->getType() != "bool") {
+            ERROR_N("If expression has to be boolean, found: ",
+                    $3->type->getType(), @3);
+        }
+
+        string lbl1 = newlabel(); label_id++;
+        string lbl2 = newlabel(); label_id++;
+        $$->code = TAC::Init() << $3->code <<
+            new Instr(TAC::JEQZ, $3->place, new Place(lbl1)) <<
+            $4->code <<
+            new Instr(TAC::JMP, new Place(lbl2)) <<
+            new Instr(TAC::LABL, lbl1) <<
+            $6->code <<
+            new Instr(TAC::LABL, lbl2);
+        scopeExprClosed($$->code);
     }
     | IF OPENB Expression Block ELSE IfStmt CLOSEB {
         $$ = &(init() << $3 << $4 << $6 >> "IfStmt");
@@ -1026,6 +1060,22 @@ IfStmt:
         ptr->child = $4->data;
         ptr->next = new Data("Else"); ptr = ptr->next;
         ptr->child = $6->data;
+
+        if ($3->type->getType() != "bool") {
+            ERROR_N("If expression has to be boolean, found: ",
+                    $3->type->getType(), @3);
+        }
+
+        string lbl1 = newlabel(); label_id++;
+        string lbl2 = newlabel(); label_id++;
+        $$->code = TAC::Init() << $3->code <<
+            new Instr(TAC::JEQZ, $3->place, new Place(lbl1)) <<
+            $4->code <<
+            new Instr(TAC::JMP, new Place(lbl2)) <<
+            new Instr(TAC::LABL, lbl1) <<
+            $6->code <<
+            new Instr(TAC::LABL, lbl2);
+        scopeExprClosed($$->code);
     }
     | IF OPENB SimpleStmt ';' Expression Block ELSE IfStmt CLOSEB {
         $$ = &(init() << $3 << $5 << $6 << $8 >> "IfStmt");
@@ -1243,9 +1293,9 @@ UnaryExpr:
         $$ = &(init() << $1 << $2 >> "UnaryExpr");
         $$->data = new Data($1->data->name + "unary");
         $$->data->child = $2->data;
-        $$->type = $1->type;
+        $$->type = $2->type;
 
-        $$->place = new Place($1->type);
+        $$->place = new Place($2->type);
         $$->code = TAC::Init() << $2->code <<
             (new Instr(TAC::opToOpcode($1->data->name), $2->place));
     }
@@ -1540,6 +1590,18 @@ BasicLit:
         $$->data = $1->data;
         $$->type = new BasicType("string");
         $$->place = new Place($$->type, $1->place->name);
+    }
+    | TRUE {
+        $$ = &(init() << $1 >> "BasicLit");
+        $$->data = new Data{$1};
+        $$->type = new BasicType("bool");
+        $$->place = new Place($$->type, $1);
+    }
+    | FALSE {
+        $$ = &(init() << $1 >> "BasicLit");
+        $$->data = new Data{$1};
+        $$->type = new BasicType("bool");
+        $$->place = new Place($$->type, $1);
     }
     ;
 

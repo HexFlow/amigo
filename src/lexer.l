@@ -87,6 +87,8 @@ RANGE  (range)
 DEFER  (defer)
 VAR    (var)
 ECURLY (;)
+TRUE   "true"
+FALSE  "false"
 
 %x SEMIMODE
 
@@ -116,6 +118,12 @@ ECURLY (;)
 {STRUCT}                               { yylval.sval = strdup(yytext); return STRUCT; }
 {MAKE}                                 { yylval.sval = strdup(yytext); return MAKE; }
 {NEW}                                  { yylval.sval = strdup(yytext); return NEW; }
+
+{TRUE}/[\n]                            { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return TRUE; }
+{FALSE}/[\n]                           { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return FALSE; }
+
+{TRUE}                                 { yylval.sval = strdup(yytext); return TRUE; }
+{FALSE}                                { yylval.sval = strdup(yytext); return FALSE; }
 
 {RETURN}/[\n]                          { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return RETURN; }
 {BREAK}/[\n]                           { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return BREAK; }
