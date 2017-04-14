@@ -72,15 +72,20 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
 
 string TAC::Instr::toString() {
     stringstream ss;
-    ss << TAC::opcodeToString(opcode);
+    char placeholder[100];
+    sprintf(placeholder, "%-25s ", TAC::opcodeToString(opcode).c_str());
+    ss << placeholder;
     if (op1 != NULL) {
-        ss << "\t\t" << op1->toString();
+        sprintf(placeholder, "%-25s ", op1->toString().c_str());
+        ss << placeholder;
     }
     if (op2 != NULL) {
-        ss << "\t\t" << op2->toString();
+        sprintf(placeholder, "%-25s ", op2->toString().c_str());
+        ss << placeholder;
     }
     if (op3 != NULL) {
-        ss << "\t\t" << op3->toString();
+        sprintf(placeholder, "%-25s ", op3->toString().c_str());
+        ss << placeholder;
     }
     return ss.str();
 }
