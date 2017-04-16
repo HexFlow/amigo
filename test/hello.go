@@ -14,12 +14,16 @@ func main(a, c bool, b int) int {
 		}
 	}
 
+	//var a int
+	var b int
+	var a int
+
 	// 5 types of IfStmt for each rule
-	if 1 == 2 {
+	if a == b {
 		b = 7
 	}
 
-	if b = 2; 1 == 2 {
+	if b = 2; a == 2 {
 		b = 7
 	}
 

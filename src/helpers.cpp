@@ -395,3 +395,10 @@ void printCode(vector<TAC::Instr *> v) {
         *tacout << elem->toString() << endl;
     }
 }
+
+Type *operatorResult(Type *a, Type *b, string op) {
+    if (op == "==" || op == "&&" || op == "||") {
+        return ttable["bool"];
+    }
+    return a;
+}

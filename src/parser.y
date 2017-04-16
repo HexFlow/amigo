@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
+#include <stack>
 #include <string>
 #include <unordered_map>
 #include "node.h"
@@ -37,7 +38,7 @@ typedef TAC::Instr Instr;
         " and " + D->type->getType(), aD);                                  \
         exit(1);                                                            \
     }                                                                       \
-    A->type = B->type;                                                      \
+    A->type = operatorResult(B->type, D->type, C);                          \
     A->place = new Place(A->type);                                          \
     A->code = TAC::Init() << B->code << D->code <<                          \
       (new Instr(TAC::opToOpcode(C), A->place, B->place, D->place));
@@ -84,6 +85,10 @@ string scope_prefix = "0-";
 string last_closed = "";
 int label_id = 1;
 
+// For break/continue statements
+stack<string> breaklabels;
+stack<string> nextlabels;
+
 string newlabel() {
     return "label" + to_std_string(label_id);
 }
@@ -124,6 +129,7 @@ umap<string, Type*> ttable; // types (due to typedef or predeclared)
 %type <nt> FieldDeclList FieldDecl MakeExpr StructLiteral KeyValList Type
 /*%type <nt> TypeName InterfaceTypeName*/
 %type <nt> QualifiedIdent PointerType IdentifierList
+%type <nt> BrkBlk BrkBlkEnd
 %%
 SourceFile:
     PackageClause ';' ImportDeclList TopLevelDeclList {
@@ -153,6 +159,17 @@ CLOSEB:
     /* empty */ {
         last_closed = scope_prefix.substr(0, scope_prefix.find("-") + 1);
         scope_prefix = scope_prefix.substr(scope_prefix.find("-") + 1);
+    }
+    ;
+
+BrkBlk: {
+        breaklabels.push(newlabel());
+        label_id++;
+    }
+    ;
+
+BrkBlkEnd: {
+        breaklabels.pop();
     }
     ;
 
@@ -323,7 +340,11 @@ Assignment:
                 exit(1);
             }
             if(lhs->isPrimaryExpr) {
-                varLeft = lhs->child->name;
+                if (lhs->child == NULL) {
+                    varLeft = lhs->name;
+                } else {
+                    varLeft = lhs->child->name;
+                }
             }
             if(!isValidIdent(varLeft)) {
                 ERROR_N(varLeft, " is not a valid Identifier", @1);
@@ -971,11 +992,14 @@ BreakStmt:
     BREAK         {
         $$ = &(init() >> "BreakStmt");
         $$->data = new Data(string($1));
+        $$->code == TAC::Init() << new Instr(TAC::JMP, new Place("___"));
     }
     | BREAK IDENT {
         $$ = &(init() << $2 >> "BreakStmt");
         $$->data = new Data(string($1));
         $$->data->child = new Data($2);
+        $$->code == TAC::Init() <<
+            new Instr(TAC::JMP, new Place("<unimplemented>"));
     }
     ;
 
@@ -983,6 +1007,7 @@ ContinueStmt:
     CONT         {
         $$ = &(init() >> "ContinueStmt");
         $$->data = new Data(string($1));
+        $$->code = TAC::Init() << new Instr(TAC::JMP, new Place("___"));
     }
     | CONT IDENT {
         $$ = &(init() << $2 >> "ContinueStmt");
@@ -1112,6 +1137,18 @@ IfStmt:
         ptr->child = $6->data;
         ptr->next = new Data("Else"); ptr = ptr->next;
         ptr->child = $8->data;
+
+        string lbl1 = newlabel(); label_id++;
+        string lbl2 = newlabel(); label_id++;
+        $$->code = TAC::Init() << $3->code <<
+            $5->code <<
+            new Instr(TAC::JEQZ, $5->place, new Place(lbl1)) <<
+            $6->code <<
+            new Instr(TAC::JMP, new Place(lbl2)) <<
+            new Instr(TAC::LABL, lbl1) <<
+            $8->code <<
+            new Instr(TAC::LABL, lbl2);
+        scopeExprClosed($$->code);
     }
     | IF OPENB SimpleStmt ';' Expression Block ELSE Block CLOSEB {
         $$ = &(init() << $3 << $5 << $6 << $8 >> "IfStmt");
@@ -1125,6 +1162,18 @@ IfStmt:
         ptr->child = $6->data;
         ptr->next = new Data("Else"); ptr = ptr->next;
         ptr->child = $8->data;
+
+        string lbl1 = newlabel(); label_id++;
+        string lbl2 = newlabel(); label_id++;
+        $$->code = TAC::Init() << $3->code <<
+            $5->code <<
+            new Instr(TAC::JEQZ, $5->place, new Place(lbl1)) <<
+            $6->code <<
+            new Instr(TAC::JMP, new Place(lbl2)) <<
+            new Instr(TAC::LABL, lbl1) <<
+            $8->code <<
+            new Instr(TAC::LABL, lbl2);
+        scopeExprClosed($$->code);
     }
     ;
 
@@ -1182,6 +1231,12 @@ ForClause:
         ptr->child = $3->data;
         ptr->next = new Data("PostClause"); ptr = ptr->next;
         ptr->child = $5->data;
+
+
+        if ($3->type->getType() != "bool") {
+            ERROR_N("For expression has to be boolean, found: ",
+                    $3->type->getType(), @3);
+        }
     }
     ;
 

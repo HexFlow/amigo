@@ -61,6 +61,8 @@ string toString(ClassType tp);
 void prettyError(int line, int col1, int col2);
 void printCode(vector<TAC::Instr *> v);
 
+Type *operatorResult(Type *a, Type *b, string op);
+
 // Has to be in header, otherwise template is not instantiated
 // http://stackoverflow.com/questions/8752837
 template <typename T>

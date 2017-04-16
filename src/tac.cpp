@@ -65,6 +65,8 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "RET";
         case TAC::NOT:
             return "NOT";
+        case TAC::EQ:
+            return "EQ";
         default:
             return "UNKNOWN";
     }
@@ -101,6 +103,12 @@ TAC::INSTR_TYPE TAC::opToOpcode(string oper) {
         return DIV;
     else if (oper == "!")
         return NOT;
+    else if (oper == "==")
+        return EQ;
+    else if (oper == "&&")
+        return AND;
+    else if (oper == "||")
+        return OR;
     else
         return GOTO;
 }
