@@ -169,6 +169,8 @@ BrkBlk: {
     ;
 
 BrkBlkEnd: {
+        $$->code = TAC::Init() <<
+            new Instr(TAC::LABL, new Place(breaklabels.top()));
         breaklabels.pop();
     }
     ;
@@ -992,13 +994,18 @@ BreakStmt:
     BREAK         {
         $$ = &(init() >> "BreakStmt");
         $$->data = new Data(string($1));
-        $$->code == TAC::Init() << new Instr(TAC::JMP, new Place("___"));
+        if (breaklabels.empty()) {
+            cout << "Something is wrong. Breaklabels is empty" << endl;
+            exit(1);
+        }
+        $$->code = TAC::Init() <<
+            new Instr(TAC::JMP, new Place(breaklabels.top()));
     }
     | BREAK IDENT {
         $$ = &(init() << $2 >> "BreakStmt");
         $$->data = new Data(string($1));
         $$->data->child = new Data($2);
-        $$->code == TAC::Init() <<
+        $$->code = TAC::Init() <<
             new Instr(TAC::JMP, new Place("<unimplemented>"));
     }
     ;
@@ -1178,11 +1185,17 @@ IfStmt:
     ;
 
 ForStmt:
-    FOR Block {
-        $$ = &(init() << $2 >> "ForStmt");
+    FOR BrkBlk Block BrkBlkEnd {
+        $$ = &(init() << $3 >> "ForStmt");
         $$->data = new Data("For");
         $$->data->child = new Data("Body");
-        $$->data->child->child = $2->data;
+        $$->data->child->child = $3->data;
+        string lbl = newlabel(); label_id++;
+        $$->code = TAC::Init() <<
+            new Instr(TAC::LABL, new Place(lbl)) <<
+            $3->code <<
+            new Instr(TAC::JMP, new Place(lbl)) <<
+            $4->code;
     }
     | FOR OPENB Expression Block CLOSEB {
         $$ = &(init() << $3 << $4 >> "ForStmt");

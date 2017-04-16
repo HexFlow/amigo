@@ -217,9 +217,6 @@ void printtables() {
 }
 
 bool isLiteral(node *n) {
-    if (n) {
-        cout << n->name << "LALALA" << endl;
-    }
     if (n && n->name == "BasicLit")
         return true;
     if (n == NULL || n->children.size() != 1)
