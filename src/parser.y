@@ -605,8 +605,8 @@ Signature:
             args.push_back(tmp);
 
             // TODO We are assuming there are only primary idents here
-            $$->code << new Instr(TAC::DECL,
-                                  dptr->name);
+            $$->code << new Instr(TAC::ARGDECL,
+                                  scope_prefix + dptr->name);
 
             ptr = ptr->next;
             dptr = dptr->next;
@@ -632,8 +632,8 @@ Signature:
             tmp->next = NULL;
 
             // TODO We are assuming there are only primary idents here
-            $$->code << new Instr(TAC::DECL,
-                                  dptr->name);
+            $$->code << new Instr(TAC::ARGDECL,
+                                  scope_prefix + dptr->name);
 
             args.push_back(tmp);
             ptr = ptr->next;
@@ -1457,7 +1457,8 @@ PrimaryExpr:
         } else if(tp->classType == MAP_TYPE) {
             MapType *tp = (MapType*) $1->type;
             if($2->type->getType() != tp->key->getType()) {
-                ERROR_N("Index of type " + $2->type->getType() + " provided, when needed was: ", tp->key->getType(), @2);
+                ERROR_N("Index of type " + $2->type->getType() +
+                        " provided, when needed was: ", tp->key->getType(), @2);
                 exit(1);
             }
             /*$$->type = tp->base->clone();*/
@@ -1479,6 +1480,24 @@ PrimaryExpr:
         $$->data->child = $1->data;
         $$->data->child->next = $2->data;
         $$->type = resultOfFunctionApp($1->type, $2->type);
+
+        $$->code = TAC::Init() << $2->code <<
+            new Instr(TAC::CALL, $1->place);
+        $$->place = new Place("$esp");
+
+        Type *tmp = $$->type;
+        Place *rtmp = $$->place;
+        int cnt = 0;
+        while (tmp != NULL) {
+            if (cnt == 0) {
+                rtmp = new Place("$esp");
+            } else {
+                rtmp = new Place("$esp + " + to_std_string(cnt*4));
+            }
+            tmp = tmp->next;
+            rtmp = rtmp->next;
+            cnt++;
+        }
     }
     | OperandName StructLiteral { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     ;
@@ -1499,22 +1518,42 @@ MakeExpr:
         $$->data = new Data("Make");
         $$->data->child = $5->data;
         $$->data->child->next = $7->data;
+
+        string lbl = newlabel(); label_id++;
+        $$->code = TAC::Init() <<
+            new Instr(TAC::MAKE, lbl, $3->type->getType());
+        $$->place = new Place(lbl);
     }
     | MAKE '(' Type ',' Expression ')' {
         $$ = &(init() << $3 << $5 >> "MakeExpr");
         $$->type = $3->type;
         $$->data = new Data("Make");
         $$->data->child = $5->data;
+
+        string lbl = newlabel(); label_id++;
+        $$->code = TAC::Init() <<
+            new Instr(TAC::MAKE, lbl, $3->type->getType());
+        $$->place = new Place(lbl);
     }
     | MAKE '(' Type ')' {
         $$ = &(init() << $3 >> "MakeExpr");
         $$->type = $3->type;
         $$->data = new Data("Make");
+
+        string lbl = newlabel(); label_id++;
+        $$->code = TAC::Init() <<
+            new Instr(TAC::MAKE, lbl, $3->type->getType());
+        $$->place = new Place(lbl);
     }
     | NEW '(' Type ')' {
         $$ = &(init() << $3 >> "NewExpr");
         $$->type = $3->type;
         $$->data = new Data("New");
+
+        string lbl = newlabel(); label_id++;
+        $$->code = TAC::Init() <<
+            new Instr(TAC::MAKE, lbl, $3->type->getType());
+        $$->place = new Place(lbl);
     }
     ;
 
@@ -1556,8 +1595,25 @@ TypeAssertion:
 
 Arguments:
     '(' ')'                       { $$ = &(init() >> "Arguments"); }
-    | '(' ExpressionList ')'      { $$ = &(init() << $2 >> "Arguments"); COPS($$, $2); }
-    | '(' ExpressionList DOTS ')' { $$ = &(init() << $2 << $3 >> "Arguments"); COPS($$, $2); }
+    | '(' ExpressionList ')'      {
+        $$ = &(init() << $2 >> "Arguments");
+        COPS($$, $2);
+        Place *tmp = $2->place;
+        $$->code = TAC::Init() << $2->code;
+        while (tmp != NULL) {
+            $$->code << new Instr(TAC::ARGPUSH, tmp->name);
+            tmp = tmp->next;
+        }
+    }
+    | '(' ExpressionList DOTS ')' {
+        $$ = &(init() << $2 << $3 >> "Arguments"); COPS($$, $2);
+        Place *tmp = $2->place;
+        $$->code = TAC::Init() << $2->code;
+        while (tmp != NULL) {
+            $$->code << new Instr(TAC::ARGPUSH, tmp->name);
+            tmp = tmp->next;
+        }
+    }
     ;
 
 ExpressionList:

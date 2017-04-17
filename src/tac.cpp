@@ -23,6 +23,13 @@ TAC::Instr::Instr(TAC::INSTR_TYPE _opc, string val) {
     op3 = NULL;
 }
 
+TAC::Instr::Instr(TAC::INSTR_TYPE _opc, string loc, string val) {
+    opcode = _opc;
+    op1 = new Place(NULL, loc);
+    op2 = new Place(NULL, val);
+    op3 = NULL;
+}
+
 TAC::Instr::Instr(TAC::INSTR_TYPE _opc, Place *_op1, Place *_op2) {
     opcode = _opc;
     op1 = _op1;
@@ -69,6 +76,14 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "EQ";
         case TAC::DECL:
             return "DECL";
+        case TAC::ARGDECL:
+            return "ARGDECL";
+        case TAC::ARGPUSH:
+            return "ARGPUSH";
+        case TAC::MAKE:
+            return "MAKE";
+        case TAC::CALL:
+            return "CALL";
         default:
             return "UNKNOWN";
     }

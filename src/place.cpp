@@ -7,16 +7,19 @@ int Place::_id = 0;
 Place::Place(Type *_type) {
     type = _type;
     name = nameFromSize(type) + "-" + to_std_string(_id++);
+    next = NULL;
 }
 
 Place::Place(Type *_type, string _name) {
     type = _type;
     name = _name;
+    next = NULL;
 }
 
 Place::Place(string _name) {
     type = NULL;
     name = _name;
+    next = NULL;
 }
 
 string Place::nameFromSize(Type *_type) {

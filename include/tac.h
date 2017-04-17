@@ -24,6 +24,10 @@ namespace TAC {
         NOT,
         EQ,
         DECL,
+        ARGDECL,
+        ARGPUSH,
+        MAKE,
+        CALL,
     };
 
     class Instr {
@@ -34,6 +38,7 @@ namespace TAC {
         Instr(INSTR_TYPE _opcode, Place* _op1, Place* _op2, Place* _op3);
 
         Instr(INSTR_TYPE _opcode, string name);
+        Instr(INSTR_TYPE _opcode, string name, string name2);
 
         INSTR_TYPE opcode;
         Place *op1, *op2, *op3;

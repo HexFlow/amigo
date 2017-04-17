@@ -1,5 +1,9 @@
 package main
 
+func IOCall() (int, bool) {
+	return 1, true
+}
+
 func main(a, c bool, b int) int {
 	var i, j, tyu int
 	//j, t := 1-67+"hello", 2+34
@@ -63,8 +67,10 @@ func main(a, c bool, b int) int {
 	}
 
 	b = make(int)
-	b = fmt.Hello
+	// b = fmt.Hello
 	c := make(map[int]int)
+
+	xy, yz := IOCall()
 }
 
 //func someotherfunc(a int) (bool, int, string) {
