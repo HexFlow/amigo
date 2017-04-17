@@ -394,7 +394,9 @@ void printCode(vector<TAC::Instr *> v) {
 }
 
 Type *operatorResult(Type *a, Type *b, string op) {
-    if (op == "==" || op == "&&" || op == "||") {
+    if (op == "==" || op == "&&" || op == "||" ||
+            op == "<" || op == ">" || op == "<=" ||
+            op == ">=") {
         return ttable["bool"];
     }
     return a;

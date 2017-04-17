@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -e
+
+if ! [ -f "./bin/ast" ]; then
+  make
+fi
+
+sfile=$(echo "$1" | sed 's|/|-|g' | sed 's|.go||g')
+
+./bin/ast -tac "${sfile}.tac" -st "${sfile}.st" $@
+/usr/bin/env python py/main.py $@
