@@ -425,6 +425,7 @@ ShortVarDecl:
             } else {
                 newVar = true;
                 symInsert(scope_prefix+varLeft, rhs); //TODO check rhs type not "undefined"
+                $$->code << new Instr(TAC::DECL, new Place(lhs->name));
             }
 
             $$->code << new Instr(TAC::STOR,
@@ -464,6 +465,7 @@ VarSpec:
     IdentifierList Type {
         $$ = &(init() << $1 << $2 >> "VarSpec");
         Data *data = $1->data;
+        $$->code = TAC::Init();
         while(data != 0) {
             if(isInScope(data->name)) {
                 ERROR_N(data->name, " is already defined in this scope", @1);
@@ -471,6 +473,8 @@ VarSpec:
             }
             cout << "// " << $2->type << __LINE__ << endl;
             symInsert(scope_prefix+data->name, $2->type);
+            $$->code << new Instr(TAC::DECL,
+                                  new Place(scope_prefix + data->name));
             $$->type = $2->type;
             data = data->next;
         }
@@ -479,12 +483,15 @@ VarSpec:
     | IdentifierList Type ASN_OP ExpressionList {
         $$ = &(init() << $1 << $2 << $4 >> "VarSpec");
         Data *data = $1->data;
+        $$->code = TAC::Init();
         while(data != 0) {
             if(isInScope(data->name)) {
                 ERROR_N(data->name, " is already defined in this scope", @1);
                 exit(1);
             }
             symInsert(scope_prefix+data->name, $2->type);
+            $$->code << new Instr(TAC::DECL,
+                                  new Place(scope_prefix + data->name));
             $$->type = $2->type;
         }
         Data* parentleft = new Data("list");
@@ -500,6 +507,7 @@ VarSpec:
         Data*lhs = $1->data;
         Type*rhs = $3->type;
         Data*rhsd = $3->data;
+        $$->code = TAC::Init();
         while(lhs != NULL || rhs != NULL || rhsd != NULL) {
             if(lhs == NULL || rhs == NULL || rhsd == NULL) {
                 ERROR_N(":= must have equal operands on LHS and RHS", "", @$);
@@ -523,6 +531,8 @@ VarSpec:
                 exit(1);
             } else {
                 symInsert(scope_prefix+varLeft, rhs); //TODO check rhs type not "undefined"
+                $$->code << new Instr(TAC::DECL,
+                                      new Place(scope_prefix + varLeft));
             }
             lhs = lhs->next;
             rhs = rhs->next;
@@ -570,7 +580,7 @@ Function:
         $$->type = $1->type;
         $$->data = $3->data;
         /* printTop($$->data); */
-        $$->code = $3->code;
+        $$->code = TAC::Init() << $1->code << $3->code;
     }
     ;
 
@@ -585,12 +595,21 @@ Signature:
         vector<Type*> args;
         vector<Type*> rets;
 
+        $$->code = TAC::Init();
+
         Type*ptr = $1->type;
+        Data*dptr = $1->data;
         while(ptr != NULL) {
             Type* tmp = ptr->clone();
             tmp->next = NULL;
             args.push_back(tmp);
+
+            // TODO We are assuming there are only primary idents here
+            $$->code << new Instr(TAC::DECL,
+                                  dptr->name);
+
             ptr = ptr->next;
+            dptr = dptr->next;
         }
         $$->type = new FunctionType(args, rets);
     }
@@ -604,12 +623,21 @@ Signature:
         vector<Type*> args;
         vector<Type*> rets;
 
+        $$->code = TAC::Init();
+
         Type*ptr = $1->type;
+        Data*dptr = $1->data;
         while(ptr != NULL) {
             Type* tmp = ptr->clone();
             tmp->next = NULL;
+
+            // TODO We are assuming there are only primary idents here
+            $$->code << new Instr(TAC::DECL,
+                                  dptr->name);
+
             args.push_back(tmp);
             ptr = ptr->next;
+            dptr = dptr->next;
         }
 
         ptr = $2->type;

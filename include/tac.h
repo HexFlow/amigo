@@ -23,6 +23,7 @@ namespace TAC {
         JMP,
         NOT,
         EQ,
+        DECL,
     };
 
     class Instr {

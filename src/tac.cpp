@@ -67,6 +67,8 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "NOT";
         case TAC::EQ:
             return "EQ";
+        case TAC::DECL:
+            return "DECL";
         default:
             return "UNKNOWN";
     }
