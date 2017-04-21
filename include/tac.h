@@ -25,9 +25,11 @@ namespace TAC {
         EQ,
         DECL,
         ARGDECL,
-        ARGPUSH,
+        PUSH,
+        POP,
         MAKE,
         CALL,
+        EXIT,
     };
 
     class Instr {

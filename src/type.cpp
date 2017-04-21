@@ -54,6 +54,7 @@ string StructType::getType() {
     // 'struct { a int; b string; }'  <- returned string
 
     string mems = "";
+    string name = "<unknownStruct>";
 
     for (auto &elem : members) {
         mems += " " + elem.first + " " + elem.second->getType() + ";";

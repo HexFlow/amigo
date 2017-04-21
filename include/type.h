@@ -53,6 +53,7 @@ struct SliceType : Type {
 
 struct StructType : Type {
     umap<string, Type *> members;
+    string name;
 
     string getType();
     StructType(umap<string, Type *>);

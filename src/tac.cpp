@@ -70,6 +70,8 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "LABL";
         case TAC::RET:
             return "RET";
+        case TAC::EXIT:
+            return "EXIT";
         case TAC::NOT:
             return "NOT";
         case TAC::EQ:
@@ -78,8 +80,10 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "DECL";
         case TAC::ARGDECL:
             return "ARGDECL";
-        case TAC::ARGPUSH:
-            return "ARGPUSH";
+        case TAC::PUSH:
+            return "PUSH";
+        case TAC::POP:
+            return "POP";
         case TAC::MAKE:
             return "MAKE";
         case TAC::CALL:

@@ -183,6 +183,19 @@ bool isDefined(string name) {
 }
 
 void inittables() {
+    unordered_map<string, Type *> fmtMap = {
+        {"PrintString",
+         new FunctionType(vector<Type *>{new BasicType("string")},
+                          vector<Type *>{})},
+        {"IOCall",
+         new FunctionType(vector<Type *>{},
+                          vector<Type *>{new BasicType("string"),
+                                  new BasicType("int")})},
+        {"Hello", new BasicType("int")}};
+
+    auto kk = new StructType(fmtMap);
+    kk->name = "fmt";
+
     typeInsert("void", new BasicType("void"));
     typeInsert("int", new BasicType("int"));
     typeInsert("bool", new BasicType("bool"));
@@ -190,14 +203,9 @@ void inittables() {
     typeInsert("float", new BasicType("float"));
     typeInsert("string", new BasicType("string"));
 
-    unordered_map<string, Type *> fmtMap = {
-        {"PrintString",
-         new FunctionType(vector<Type *>{new BasicType("string")}, vector<Type *>{})},
-        {"IOCall",
-         new FunctionType(vector<Type *>{},
-                          vector<Type *>{new BasicType("string"), new BasicType("int")})},
-        {"Hello", new BasicType("int")}};
-    symInsert("fmt", new StructType(fmtMap));
+    typeInsert("fmt", kk);
+
+    symInsert("fmt", kk);
 }
 
 void printtables() {
@@ -205,7 +213,12 @@ void printtables() {
     *sout << "Symbol table:" << endl;
     for (auto elem : stable) {
         *sout << elem.first << " :: ";
-        *sout << elem.second->getType();
+        if (elem.second->classType == STRUCT_TYPE) {
+            auto kk = dynamic_cast<StructType*>(elem.second);
+            *sout << kk->name;
+        } else {
+            *sout << elem.second->getType();
+        }
         *sout << endl;
     }
     *sout << endl << "Type table:" << endl;

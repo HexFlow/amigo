@@ -570,7 +570,12 @@ FunctionDecl:
         symInsert(scope_prefix+$2, $4->type);
         $$->data = new Data("Function " + string($2));
         $$->data->child = $4->data;
-        $$->code = TAC::Init() << new Instr(TAC::LABL, $2) << $4->code;
+        $$->code = TAC::Init() << new Instr(TAC::LABL, $2);
+        scopeExpr($$->code);
+        $$->code << $4->code;
+        if (string($2) == "main") {
+            $$->code << new Instr(TAC::EXIT, "0");
+        }
     }
     ;
 
@@ -1436,6 +1441,8 @@ PrimaryExpr:
         $$->data = new Data("MemberAccess");
         $$->data->child = $1->data;
         $$->data->child->next = $2->data;
+        $$->place =
+            new Place($1->place->toString() + "." + $2->place->toString());
     }
     | PrimaryExpr Index {
         $$ = &(init() << $1 << $2 >> "PrimaryExpr");
@@ -1463,7 +1470,8 @@ PrimaryExpr:
             }
             /*$$->type = tp->base->clone();*/
         } else {
-            ERROR("It is not possible to use index on something of type: ", tp->getType());
+            ERROR("It is not possible to use index on something of type: ",
+                  tp->getType());
             exit(1);
         }
         $$->data = new Data("arrayaccess");
@@ -1483,6 +1491,7 @@ PrimaryExpr:
 
         $$->code = TAC::Init() << $2->code <<
             new Instr(TAC::CALL, $1->place);
+        scopeExpr($$->code);
         $$->place = new Place("$esp");
 
         Type *tmp = $$->type;
@@ -1561,6 +1570,7 @@ Selector:
     '.' IDENT  {
         $$ = &(init() << $2 >> "Selector");
         $$->data = new Data(string($2));
+        $$->place = new Place($2);
     }
     ;
 
@@ -1601,7 +1611,7 @@ Arguments:
         Place *tmp = $2->place;
         $$->code = TAC::Init() << $2->code;
         while (tmp != NULL) {
-            $$->code << new Instr(TAC::ARGPUSH, tmp->name);
+            $$->code << new Instr(TAC::PUSH, tmp->name);
             tmp = tmp->next;
         }
     }
@@ -1610,7 +1620,7 @@ Arguments:
         Place *tmp = $2->place;
         $$->code = TAC::Init() << $2->code;
         while (tmp != NULL) {
-            $$->code << new Instr(TAC::ARGPUSH, tmp->name);
+            $$->code << new Instr(TAC::PUSH, tmp->name);
             tmp = tmp->next;
         }
     }
