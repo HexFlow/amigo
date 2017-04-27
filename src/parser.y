@@ -367,8 +367,8 @@ Assignment:
             }
 
             $$->code << new Instr(TAC::STOR,
-                                  new Place(rhs, lhs->name),
-                                  rplace);
+                                  rplace,
+                                  new Place(rhs, lhs->name));
 
             lhs = lhs->next;
             ltype = ltype->next;
@@ -429,8 +429,8 @@ ShortVarDecl:
             }
 
             $$->code << new Instr(TAC::STOR,
-                                  new Place(rhs, lhs->name),
-                                  rplace);
+                                  rplace,
+                                  new Place(rhs, lhs->name));
 
             lhs = lhs->next;
             rhs = rhs->next;

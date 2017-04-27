@@ -11,3 +11,8 @@ tags
 /st
 /ast
 /tac
+/a.out
+/out.s
+/test-*.st
+/test-*.tac
+/asm

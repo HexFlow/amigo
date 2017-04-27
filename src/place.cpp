@@ -6,7 +6,7 @@ int Place::_id = 0;
 
 Place::Place(Type *_type) {
     type = _type;
-    name = nameFromSize(type) + "-" + to_std_string(_id++);
+    name = "*-tmp-" + nameFromSize(type) + "-" + to_std_string(_id++);
     next = NULL;
 }
 

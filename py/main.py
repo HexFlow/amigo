@@ -8,6 +8,8 @@ if len(sys.argv) != 3:
 
 parsed = parse.Parse(sys.argv[1], sys.argv[2])
 
+print(parsed.tt)
+
 print("Tac parsed:")
 parsed.print_tac()
 

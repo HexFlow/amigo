@@ -1,3 +1,4 @@
+from helpers import custom_split
 import re
 
 class KeyedElem:
@@ -21,7 +22,7 @@ class BasicType:
     """
     def __init__(self, name):
         self.name = name
-        self.size = 4
+        self.size = 8
 
     def __str__(self):
         return self.name
@@ -50,7 +51,7 @@ class SliceType:
     """
     def __init__(self, base):
         self.base = base
-        self.size = 4  # Would be a simple pointer to heap
+        self.size = 8  # Would be a simple pointer to heap
 
     def __str__(self):
         return "[]" + self.base.__str__()
@@ -84,6 +85,34 @@ class StructType:
     def __repr__(self):
         return self.__str__()
 
+class FuncType:
+    def __init__(self, s):
+        for m in re.findall(r'^func \((.*)\) (.*)$', s):
+            self.args = [ parse_type(x.strip()) for x in custom_split(m[0]) ]
+            self.ret = parse_type(m[1])
+        self.size = 8
+
+    def __str__(self):
+        return "func (" + ', '.join(
+            [arg.__str__() for arg in self.args]
+        ) + ") " + self.ret.__str__()
+
+    def __repr__(self):
+        return self.__str__()
+
+class TupleType:
+    def __init__(self, st):
+        self.mems = [ parse_type(x.strip()) for x in custom_split(st[1:-1]) ]
+        self.size = 0
+        for mem in self.mems:
+            self.size += mem.size
+
+    def __str__(self):
+        return '(' + ', '.join([ x.__str__() for x in self.mems ]) + ')'
+
+    def __repr__(self):
+        return self.__str__()
+
 class MapType:
     def __init__(self, key_type, val_type):
         self.ktype = key_type
@@ -104,7 +133,8 @@ def parse_type(s):
     if re.match(r'^struct \{.*\}$', s):
         # return parse_struct(s)
         matches = [ m.strip()
-                    for m in re.findall(r'^struct \{(.*)\}$', s)[0].split(';') ]
+                    for m in re.findall(r'^struct \{(.*)\}$', s)[0].
+                    split(';') ]
         parsed_matches = [ (m.split(' ', 1)[0].strip(),
                             parse_type(m.split(' ', 1)[1].strip()))
                            for m in matches if m != '']
@@ -119,6 +149,12 @@ def parse_type(s):
         size = int(out[0])
         subt = parse_type(out[1])
         return ArrayType(base=subt, size=size)
+
+    elif s.startswith('func'):
+        return FuncType(s)
+
+    elif s.startswith('('):
+        return TupleType(s)
 
     elif s[:3] == 'map':
         counter, i, tp = 1, 0, ""
