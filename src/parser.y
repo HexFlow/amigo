@@ -40,8 +40,15 @@ typedef TAC::Instr Instr;
     }                                                                       \
     A->type = operatorResult(B->type, D->type, C);                          \
     A->place = new Place(A->type);                                          \
+    auto tmpPlace = new Place(B->type);                                     \
+    auto tmpPlace2 = new Place(D->type);                                    \
     A->code = TAC::Init() << B->code << D->code <<                          \
-      (new Instr(TAC::opToOpcode(C), A->place, B->place, D->place));
+        (new Instr(TAC::STOR, B->place, tmpPlace)) <<                       \
+        (new Instr(TAC::STOR, D->place, tmpPlace)) <<                       \
+        (new Instr(TAC::opToOpcode(C), tmpPlace, tmpPlace2)) <<             \
+        (new Instr(TAC::STOR, tmpPlace, A->place));
+
+/* (new Instr(TAC::opToOpcode(C), A->place, B->place, D->place)); */
 
 using namespace std;
 
