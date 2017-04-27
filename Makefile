@@ -7,6 +7,7 @@ DOTDIR=./target/dot
 CPP=./src
 INCLUDE=-I./include
 FLAGS=-g -std=c++14 -Wno-write-strings $(INCLUDE)
+CC=g++
 
 all:
 	mkdir -p $(BUILD) $(BIN)
@@ -15,11 +16,11 @@ all:
 # Rule for lexer and parser binaries
 %: $(BUILD)/cli.o $(BUILD)/node.o $(BUILD)/helpers.o $(BUILD)/type.o $(BUILD)/place.o $(BUILD)/tac.o $(BUILD)/gust.yy.c $(BUILD)/gust.tab.c $(BUILD)/%.o
 	mkdir -p $(BIN)
-	g++ $(FLAGS) $^ -lfl -o bin/$@
+	$(CC) $(FLAGS) $^ -lfl -o bin/$@
 
 # Rule for creating .o files for files in /cpp
 $(BUILD)/%.o: $(CPP)/%.cpp
-	g++ -c $(FLAGS) $^ -o $@
+	$(CC) -c $(FLAGS) $^ -o $@
 
 $(BUILD)/gust.yy.c: $(CPP)/lexer.l
 	flex -o $(BUILD)/gust.yy.c $(CPP)/lexer.l

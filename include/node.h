@@ -39,7 +39,7 @@ struct Data {
     string name = "";
     Data *next = NULL;
     Data *child = NULL;
-    bool isPrimaryExpr = false;
+    bool lValue = false;
 
     Data(string);
 };

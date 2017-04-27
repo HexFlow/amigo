@@ -40,7 +40,7 @@ bool isSymbol(string name);
 bool isInScope(string name);
 Type *getSymType(string name);
 Type *isValidMemberOn(Data *, Data *);
-Type *resultOfFunctionApp(Type *fxnType, Type *argType);
+Type *resultOfFunctionApp(Type *fxnType, Type *argType, bool isFFI);
 Type *vectorToLinkedList(vector<Type *> &typs);
 bool isDefined(string name);
 void inittables();

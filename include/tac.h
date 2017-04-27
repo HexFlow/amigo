@@ -8,51 +8,55 @@
 #include <sstream>
 
 namespace TAC {
-    enum INSTR_TYPE {
-        AND,
-        OR,
-        ADD,
-        SUB,
-        MUL,
-        DIV,
-        GOTO,
-        STOR,
-        JEQZ,
-        LABL,
-        RET,
-        JMP,
-        NOT,
-        EQ,
-        DECL,
-        ARGDECL,
-        PUSH,
-        POP,
-        MAKE,
-        CALL,
-        EXIT,
-    };
+enum INSTR_TYPE {
+    AND,
+    OR,
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    GOTO,
+    STOR,
+    JEQZ,
+    LABL,
+    RET,
+    JMP,
+    CMP,
+    NOT,
+    EQ,
+    DECL,
+    ARGDECL,
+    PUSH,
+    POP,
+    MAKE,
+    CALL,
+    EXIT,
+    PUSHARG,
+    NEWFUNC,
+    NEWFUNCEND,
+};
 
-    class Instr {
-    public:
-        Instr(INSTR_TYPE _opcode);
-        Instr(INSTR_TYPE _opcode, Place* _op1);
-        Instr(INSTR_TYPE _opcode, Place* _op1, Place* _op2);
-        Instr(INSTR_TYPE _opcode, Place* _op1, Place* _op2, Place* _op3);
+class Instr {
+public:
+    Instr(INSTR_TYPE _opcode);
+    Instr(INSTR_TYPE _opcode, Place *_op1);
+    Instr(INSTR_TYPE _opcode, Place *_op1, Place *_op2);
+    Instr(INSTR_TYPE _opcode, Place *_op1, Place *_op2, Place *_op3);
 
-        Instr(INSTR_TYPE _opcode, string name);
-        Instr(INSTR_TYPE _opcode, string name, string name2);
+    Instr(INSTR_TYPE _opcode, string name);
+    Instr(INSTR_TYPE _opcode, string name, string name2);
 
-        INSTR_TYPE opcode;
-        Place *op1, *op2, *op3;
+    INSTR_TYPE opcode;
+    Place *op1, *op2, *op3;
 
-        string toString();
-    };
+    string toString();
+};
 
-    INSTR_TYPE opToOpcode(string oper);
+INSTR_TYPE opToOpcode(string oper);
 
-    string opcodeToString(INSTR_TYPE op);
+string opcodeToString(INSTR_TYPE op);
 
-    vector<TAC::Instr*>& Init();
+vector<TAC::Instr *> &Init();
 }
 
 #endif

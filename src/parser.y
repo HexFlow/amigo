@@ -41,12 +41,36 @@ typedef TAC::Instr Instr;
     A->type = operatorResult(B->type, D->type, C);                          \
     A->place = new Place(A->type);                                          \
     auto tmpPlace = new Place(B->type);                                     \
-    auto tmpPlace2 = new Place(D->type);                                    \
     A->code = TAC::Init() << B->code << D->code <<                          \
         (new Instr(TAC::STOR, B->place, tmpPlace)) <<                       \
-        (new Instr(TAC::STOR, D->place, tmpPlace)) <<                       \
-        (new Instr(TAC::opToOpcode(C), tmpPlace, tmpPlace2)) <<             \
+        (new Instr(TAC::opToOpcode(C), D->place, tmpPlace)) <<              \
         (new Instr(TAC::STOR, tmpPlace, A->place));
+
+#define HANDLE_REL_OP(A, B, C, D, aA, aB, aC, aD)                           \
+    A->data = new Data(string(C) + "binary");                               \
+    A->data->child = B->data;                                               \
+    last(A->data->child)->next = D->data;                                   \
+    if(B->type == NULL) {                                                   \
+        ERROR_N("Missing type info in node", B->data->name, aB);            \
+        exit(1);                                                            \
+    }                                                                       \
+    if(D->type == NULL) {                                                   \
+        ERROR_N("Missing type info in node", D->data->name, aD);            \
+        exit(1);                                                            \
+    }                                                                       \
+    if(D->type->getType() != B->type->getType()) {                          \
+        ERROR_N("Mismatched types : ", B->type->getType() +                 \
+        " and " + D->type->getType(), aD);                                  \
+        exit(1);                                                            \
+    }                                                                       \
+    A->type = operatorResult(B->type, D->type, C);                          \
+    A->place = new Place(A->type);                                          \
+    auto tmpPlace = new Place(B->type);                                     \
+    A->code = TAC::Init() << B->code << D->code;                            \
+    A->code << (new Instr(TAC::STOR, B->place, tmpPlace));                  \
+    A->code << (new Instr(TAC::CMP, D->place, tmpPlace));                   \
+    A->code << (new Instr(TAC::opToOpcode(C), tmpPlace));                   \
+    A->code << (new Instr(TAC::STOR, tmpPlace, A->place));                  \
 
 /* (new Instr(TAC::opToOpcode(C), A->place, B->place, D->place)); */
 
@@ -344,11 +368,11 @@ Assignment:
                 exit(1);
             }
             string varLeft = lhs->name;
-            if(!lhs->isPrimaryExpr && lhs->child != NULL) {
+            if(!lhs->lValue && lhs->child != NULL) {
                 ERROR_N("Non identifier to left of =", "", @1);
                 exit(1);
             }
-            if(lhs->isPrimaryExpr) {
+            if(lhs->lValue) {
                 if (lhs->child == NULL) {
                     varLeft = lhs->name;
                 } else {
@@ -579,10 +603,9 @@ FunctionDecl:
         $$->data->child = $4->data;
         $$->code = TAC::Init() << new Instr(TAC::LABL, $2);
         scopeExpr($$->code);
+        $$->code << new Instr(TAC::NEWFUNC);
         $$->code << $4->code;
-        if (string($2) == "main") {
-            $$->code << new Instr(TAC::EXIT, "0");
-        }
+        $$->code << new Instr(TAC::NEWFUNCEND);
     }
     ;
 
@@ -912,6 +935,7 @@ OperandName:
     IDENT            {
         $$ = &(init() << $1 >> "OperandName");
         $$->data = new Data{$1};
+        $$->data->lValue = true;
         $$->type = getSymType($1)?getSymType($1):new BasicType("undefined");
         cout << scope_prefix + $1 << endl;
         $$->place = new Place($1);
@@ -1088,9 +1112,8 @@ IfStmt:
         }
 
         $$->code = TAC::Init() << $3->code <<
-            new Instr(TAC::JEQZ, $3->place,
-                      new Place(newlabel())) << $4->code <<
-            new Instr(TAC::LABL, newlabel());
+            new Instr(TAC::JEQZ, $3->place, new Place(newlabel())) <<
+            $4->code << new Instr(TAC::LABL, newlabel());
         scopeExprClosed($$->code);
         label_id++;
     }
@@ -1351,7 +1374,7 @@ Expression:
 Expression1:
     Expression1 B1 Expression2 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression1");
-        HANDLE_BIN_OP($$, $1, $2, $3, @$, @1, @2, @3);
+        HANDLE_REL_OP($$, $1, $2, $3, @$, @1, @2, @3);
     }
     | Expression2 {
         $$ = &(init() << $1 >> "Expression2");
@@ -1362,7 +1385,7 @@ Expression1:
 Expression2:
     Expression2 B2 Expression3 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression2");
-        HANDLE_BIN_OP($$, $1, $2, $3, @$, @1, @2, @3);
+        HANDLE_REL_OP($$, $1, $2, $3, @$, @1, @2, @3);
     }
     | Expression3 {
         $$ = &(init() << $1 >> "Expression2");
@@ -1373,7 +1396,7 @@ Expression2:
 Expression3:
     Expression3 B3 Expression4 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression3");
-        HANDLE_BIN_OP($$, $1, $2, $3, @$, @1, @2, @3);
+        HANDLE_REL_OP($$, $1, $2, $3, @$, @1, @2, @3);
     }
     | Expression4 {
         $$ = &(init() << $1 >> "Expression3");
@@ -1419,7 +1442,6 @@ UnaryExpr:
     PrimaryExpr {
         $$ = &(init() << $1 >> "UnaryExpr");
         COPS($$, $1);
-        $$->data->isPrimaryExpr = true;
     }
     | UnaryOp PrimaryExpr {
         $$ = &(init() << $1 << $2 >> "UnaryExpr");
@@ -1448,6 +1470,7 @@ PrimaryExpr:
         $$->data = new Data("MemberAccess");
         $$->data->child = $1->data;
         $$->data->child->next = $2->data;
+        $$->data->lValue = true;
         $$->place =
             new Place($1->place->toString() + "." + $2->place->toString());
     }
@@ -1485,6 +1508,7 @@ PrimaryExpr:
         $$->data->child = $1->data;
         $$->data->child->next = new Data("__VALUE_AT__");
         $$->data->child->next->next = $2->data;
+        $$->data->lValue = true;
 
     }
     | PrimaryExpr Slice  { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
@@ -1494,7 +1518,8 @@ PrimaryExpr:
         $$->data = new Data("FunctionCall");
         $$->data->child = $1->data;
         $$->data->child->next = $2->data;
-        $$->type = resultOfFunctionApp($1->type, $2->type);
+        auto isFFI = !strncmp($1->place->name.c_str(), "ffi.", 4);
+        $$->type = resultOfFunctionApp($1->type, $2->type, isFFI);
 
         $$->code = TAC::Init() << $2->code <<
             new Instr(TAC::CALL, $1->place);
@@ -1514,6 +1539,7 @@ PrimaryExpr:
             rtmp = rtmp->next;
             cnt++;
         }
+        $$->data->lValue = false;
     }
     | OperandName StructLiteral { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     ;
@@ -1617,8 +1643,10 @@ Arguments:
         COPS($$, $2);
         Place *tmp = $2->place;
         $$->code = TAC::Init() << $2->code;
+        int i=0;
         while (tmp != NULL) {
-            $$->code << new Instr(TAC::PUSH, tmp->name);
+            /*$$->code << new Instr(TAC::PUSH, tmp->name);*/
+            $$->code << new Instr(TAC::PUSHARG, to_std_string(i++), tmp->name);
             tmp = tmp->next;
         }
     }
@@ -1626,8 +1654,9 @@ Arguments:
         $$ = &(init() << $2 << $3 >> "Arguments"); COPS($$, $2);
         Place *tmp = $2->place;
         $$->code = TAC::Init() << $2->code;
+        int i=0;
         while (tmp != NULL) {
-            $$->code << new Instr(TAC::PUSH, tmp->name);
+            $$->code << new Instr(TAC::PUSHARG, to_std_string(i++), tmp->name);
             tmp = tmp->next;
         }
     }

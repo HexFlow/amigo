@@ -66,6 +66,8 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "JEQZ";
         case TAC::JMP:
             return "JMP";
+        case TAC::CMP:
+            return "CMP";
         case TAC::LABL:
             return "LABL";
         case TAC::RET:
@@ -82,12 +84,18 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "ARGDECL";
         case TAC::PUSH:
             return "PUSH";
+        case TAC::PUSHARG:
+            return "PUSHARG";
         case TAC::POP:
             return "POP";
         case TAC::MAKE:
             return "MAKE";
         case TAC::CALL:
             return "CALL";
+        case TAC::NEWFUNC:
+            return "NEWFUNC";
+        case TAC::NEWFUNCEND:
+            return "NEWFUNCEND";
         default:
             return "UNKNOWN";
     }

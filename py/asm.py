@@ -3,37 +3,98 @@ import string
 
 class Register:
     regs = {
-        '%rax': False,
-        '%rbx': False,
-        '%rcx': False,
-        '%rdx': False,
-        '%rx': False,
-        '%r8': False,
-        '%r9': False,
-        '%r10': False,
-        '%r11': False,
-        '%r12': False,
-        '%r13': False,
-        '%r14': False,
-        '%r15': False
+        '%rax': [None, 0],
+        '%rbx': [None, 0],
+        # '%rcx': [None, 0],
+        # '%rdx': [None, 0],
+        # '%r8' : [None, 0],
+        # '%r9' : [None, 0],
+        '%r10': [None, 0],
+        '%r11': [None, 0],
+        '%r12': [None, 0],
+        '%r13': [None, 0],
+        '%r14': [None, 0],
+        '%r15': [None, 0]
+    }
+
+    argRegister = {
+            '0': '%rdi',
+            '1': '%rsi',
+            '2': '%rdx',
+            '3': '%rcx',
+            '4': '%r8',
+            '5': '%r9'
+    }
+
+    byteMap = {
+        '%rax': '%al' ,
+        '%rbx': '%bl' ,
+        '%rcx': '%cl' ,
+        '%rdx': '%dl' ,
+        '%r8' : '%r8b'  ,
+        '%r9' : '%r9b'  ,
+        '%r10': '%r10b' ,
+        '%r11': '%r11b' ,
+        '%r12': '%r12b' ,
+        '%r13': '%r13b' ,
+        '%r14': '%r14b' ,
+        '%r15': '%r15b' 
     }
 
     locations = {}
+    tmps_in_use = []
+
+    count = 0
 
     def __init__(self):
         print('')
 
-    def get_reg(self, var):
-        if var in self.locations:
-            return self.locations[var]
+    def get_lru(self):
+        minval = 10000000000
+        minreg = 'NOREG'
         for reg in self.regs:
-            if not self.regs[reg]:
-                self.regs[reg] = True
-                self.locations[var] = reg
-                return reg
-        print("ERROR")
-        print("NO REGISTER")
-        exit(1)
+            if self.regs[reg][1] <= minval:
+                minreg = reg
+                minval = self.regs[reg][1]
+        return minreg
+
+    def wb(self, arr=None):
+        if arr:
+            print('Requested wb of ', arr, self.regs[arr[0]][0])
+        if arr == None:
+            arr = self.regs.keys()
+        ins = []
+        for k in arr:
+            if self.regs[k][0]:
+                loc = self.locations[self.regs[k][0]][1]
+                print("FREEING THE SOUL OF " + k)
+                if loc != "---":
+                    ins.append("\tmov {},\t{}".format(k, loc))
+                self.locations[self.regs[k][0]][0] = ''
+                self.regs[k][0] = None
+                self.regs[k][1] = 0
+        return ins
+
+    def get_reg(self, var):
+        if var in self.locations and self.locations[var][0] != "":
+            return (self.locations[var][0], [])
+
+        reg = self.get_lru()
+        ins = self.wb([reg])
+
+
+        self.count += 1
+        self.regs[reg][0] = var
+        self.regs[reg][1] = self.count
+
+        if var in self.locations:
+            # If it was not a temporary variable
+            self.locations[var][0] = reg
+            ins.append('\tmov\t{}, {}'.format(self.locations[var][1], reg))
+        else:
+            # This is temporary
+            self.locations[var] = [reg, '---']
+        return (reg, ins)
 
 class ASM:
     ins = []
@@ -43,6 +104,8 @@ class ASM:
 
     def __init__(self, parsed):
         self.parsed = parsed
+        self.tt = parsed.tt
+        self.st = parsed.st
 
     def gen(self):
         self.ins.append('\t.global main')
@@ -64,21 +127,76 @@ class ASM:
 
     def tac_ins_convert(self, taclist):
         i = 0
+        arglist = []
         while i < len(taclist):
             tac = taclist[i]
             if tac[0] == 'LABL':
                 tmp = tac[1].split('-')[-1]
-                # tmp = 'func' + helpers.labelToName(tac[1])
+                self.registers.wb()
                 self.ins.append(tmp + ':')
             elif tac[0] == 'PUSH':
                 self.ins.append('\tpush' + self.arg_parse(tac[1:]))
+            elif tac[0] == 'JMP':
+                self.ins.append('\tjmp' + self.arg_parse(tac[1:]))
+            elif tac[0] == 'JEQZ':
+                arg1 = self.arg_parse([tac[1]])
+                self.ins.append('\tcmp {}, {}'.format("$0", arg1))
+                self.ins.append('\tje' + self.arg_parse([tac[2]]))
+            elif tac[0] == 'PUSHARG':
+                if int(tac[1]) < 6:
+                    tac[1] = self.registers.argRegister[tac[1]]
+                    self.ins.append('\tmov' + self.arg_parse([tac[2], tac[1]]))
+                else:
+                    arglist.append('\tpush' + self.arg_parse([tac[2]]))
             elif tac[0] == 'STOR':
                 self.ins.append('\tmov' + self.arg_parse(tac[1:]))
             elif tac[0] == 'CALL':
+                self.ins += list(reversed(arglist))
+                self.ins.append('\txor\t%eax,\t%eax')
                 self.ins.append('\tcall' + self.arg_parse(tac[1:]))
+                arglist = []
             elif tac[0] == 'ADD':
                 self.ins.append('\tadd' + self.arg_parse(tac[1:]))
+            elif tac[0] == 'EQ':
+                reg = self.arg_parse(tac[1:]).strip()
+                self.ins.append('\tmov $0,' + reg)
+                self.ins.append('\tsete ' + self.registers.byteMap[reg])
+            elif tac[0] == 'NE':
+                reg = self.arg_parse(tac[1:]).strip()
+                self.ins.append('\tmov $0,' + reg)
+                self.ins.append('\tsete ' + self.registers.byteMap[reg])
+            elif tac[0] == 'CMP':
+                self.ins.append('\tcmp' + self.arg_parse(tac[1:]))
+            elif tac[0] == 'NEWFUNC':
+                self.registers.wb()
+                self.ins.append('\tpush %rbp')
+                self.ins.append('\tmov %rsp, %rbp')
+                self.ins.append('')
+                j = i
+                offset = 0
+                while taclist[j][0] != 'NEWFUNCEND':
+                    if taclist[j][0] == 'DECL':
+                        offset += (self.st[taclist[j][1]].size)
+                        self.registers.locations[taclist[j][1]] = ["", str(-offset)+"(%rbp)"]
+                    j += 1
+                self.ins.append('\tsub ${}, %rsp'.format(offset))
+
+            elif tac[0] == 'RET':
+                self.ins += self.registers.wb()
+                self.ins.append('')
+                self.ins.append('\tmov %rbp, %rsp')
+                self.ins.append('\tpop %rbp')
+                self.ins.append('\tret' + self.arg_parse(tac[1:]))
+
+            elif tac[0] == 'NEWFUNCEND':
+                print("GRIM REAPER IS COMING")
+                self.ins += self.registers.wb()
+                self.ins.append('')
+                self.ins.append('\tmov %rbp, %rsp')
+                self.ins.append('\tpop %rbp')
+                self.ins.append('\tret')
             elif tac[0] == 'EXIT':
+                self.registers.wb()
                 self.ins += """
 \tmov $60, %rax
 \txor %rdi, %rdi
@@ -94,35 +212,39 @@ class ASM:
         return '$' + name
 
     def arg_parse(self, args):
-        st = []
+        parsed_args = []
         for arg in args:
             if arg.startswith('"'):
-                st.append('\t' + self.str_const(arg))
+                parsed_args.append('\t' + self.str_const(arg))
             elif '.' in arg:
                 # This is a struct selector object
                 tmp = arg.split('.')
                 struct = tmp[0]
                 select = tmp[1]
-                if struct in self.parsed.tt:
-                    st.append('\ts' + struct.upper() + 'f' + select.upper())
+                if struct == "ffi":
+                    parsed_args.append('\t' + select)
+                elif struct in self.parsed.tt:
+                    parsed_args.append('\ts' + struct.upper() + 'f' + select.upper())
                 else:
                     print("ERROR:")
                     print("Unknown type used as struct")
                     exit(1)
             elif ( arg[0].isdigit() or arg[0] == '*' ) and '-' in arg:
                 # Is a variable from symbol table
-                st.append('\t' + self.registers.get_reg(arg))
+                r, ins = self.registers.get_reg(arg)
+                self.ins += ins
+                parsed_args.append('\t' + r)
             elif arg[0].isdigit():
                 # Is a number
-                st.append('\t$' + arg + ' ')
+                parsed_args.append('\t$' + arg + ' ')
             else:
                 # Immediate
-                st.append('\t' + arg)
-        return ','.join(st)
+                parsed_args.append('\t' + arg)
+        return ','.join(parsed_args)
 
     def tac_init_fxns(self):
         self.ins += """
-sFMTfPRINTSTRING:
+sFMTfPRINTF:
 \tpush %rbp
 \tmov %rsp, %rbp
 \tmov $1, %rax

@@ -9,8 +9,8 @@ fi
 sfile=$(echo "$1" | sed 's|/|-|g' | sed 's|.go||g')
 
 ./bin/ast -tac "${sfile}.tac" -st "${sfile}.st" $@
-/usr/bin/env python py/main.py "${sfile}.tac" "${sfile}.st"
+/usr/bin/env python3 py/main.py "${sfile}.tac" "${sfile}.st"
 
 if [ -f "out.s" ]; then
-  gcc out.s
+  gcc -g out.s
 fi

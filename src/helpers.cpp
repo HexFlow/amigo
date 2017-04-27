@@ -115,6 +115,9 @@ Type *getSymType(string name) {
 
 Type *isValidMemberOn(Data *base, Data *method) {
     auto symType = getSymType(base->name);
+    if (base->name == "ffi") {
+        return new FunctionType(vector<Type *>(), vector<Type *>());
+    }
     if (symType == NULL) {
         cout << base->name << " is not declared in this scope" << endl;
         exit(1);
@@ -135,7 +138,7 @@ Type *isValidMemberOn(Data *base, Data *method) {
     return memType->second;
 }
 
-Type *resultOfFunctionApp(Type *fxnType, Type *argType) {
+Type *resultOfFunctionApp(Type *fxnType, Type *argType, bool isFFI) {
     if (fxnType->classType != FUNCTION_TYPE) {
         cout << fxnType->getType() << " is not a function" << endl;
         exit(1);
@@ -143,6 +146,9 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType) {
 
     int pos = 1;
     auto fxnTypeCasted = dynamic_cast<FunctionType *>(fxnType);
+    if (isFFI)
+        return vectorToLinkedList(fxnTypeCasted->retTypes);
+
     for (auto reqArgT : fxnTypeCasted->argTypes) {
         if (argType == NULL) {
             cout << "Insufficient arguments for application of function "
@@ -184,17 +190,19 @@ bool isDefined(string name) {
 
 void inittables() {
     unordered_map<string, Type *> fmtMap = {
-        {"PrintString",
-         new FunctionType(vector<Type *>{new BasicType("string")},
-                          vector<Type *>{})},
+        {"Printf",
+         new FunctionType(vector<Type *>{new BasicType("string")}, vector<Type *>{})},
         {"IOCall",
          new FunctionType(vector<Type *>{},
-                          vector<Type *>{new BasicType("string"),
-                                  new BasicType("int")})},
+                          vector<Type *>{new BasicType("string"), new BasicType("int")})},
         {"Hello", new BasicType("int")}};
 
     auto kk = new StructType(fmtMap);
     kk->name = "fmt";
+
+    unordered_map<string, Type *> ffiMap = {};
+    auto ffik = new StructType(ffiMap);
+    ffik->name = "ffi";
 
     typeInsert("void", new BasicType("void"));
     typeInsert("int", new BasicType("int"));
@@ -204,8 +212,10 @@ void inittables() {
     typeInsert("string", new BasicType("string"));
 
     typeInsert("fmt", kk);
+    typeInsert("ffi", ffik);
 
     symInsert("fmt", kk);
+    symInsert("ffi", ffik);
 }
 
 void printtables() {
@@ -214,7 +224,7 @@ void printtables() {
     for (auto elem : stable) {
         *sout << elem.first << " :: ";
         if (elem.second->classType == STRUCT_TYPE) {
-            auto kk = dynamic_cast<StructType*>(elem.second);
+            auto kk = dynamic_cast<StructType *>(elem.second);
             *sout << kk->name;
         } else {
             *sout << elem.second->getType();
@@ -407,9 +417,8 @@ void printCode(vector<TAC::Instr *> v) {
 }
 
 Type *operatorResult(Type *a, Type *b, string op) {
-    if (op == "==" || op == "&&" || op == "||" ||
-            op == "<" || op == ">" || op == "<=" ||
-            op == ">=") {
+    if (op == "==" || op == "&&" || op == "||" || op == "<" || op == ">" || op == "<=" ||
+        op == ">=") {
         return ttable["bool"];
     }
     return a;
