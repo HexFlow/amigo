@@ -103,13 +103,27 @@ Type *getSymType(string name) {
     string cur_prefix = scope_prefix, id;
     while (cur_prefix != "") {
         id = cur_prefix + name;
-        if (isSymbol(id))
-            return stable[id]->clone();
+        if (isSymbol(id)) {
+            auto k = stable[id];
+            if (k->classType == BASIC_TYPE) {
+                auto b = (BasicType*)k;
+                return ttable[b->base]->clone();
+            } else {
+                return k->clone();
+            }
+        }
         cur_prefix = cur_prefix.substr(cur_prefix.find("-") + 1);
     }
     id = cur_prefix + name;
-    if (isSymbol(id))
-        return stable[id]->clone();
+    if (isSymbol(id)) {
+        auto k = stable[id];
+        if (k->classType == BASIC_TYPE) {
+            auto b = (BasicType*)k;
+            return ttable[b->base]->clone();
+        } else {
+            return k->clone();
+        }
+    }
     return NULL;
 }
 
@@ -257,19 +271,26 @@ int getIntValue(node *n) {
 }
 
 string nameInScope(string name) {
+    string suffix = "";
+    auto pos = name.find('.');
+    if (pos != string::npos) {
+        suffix = "." + name.substr(pos + 1);
+        name = name.substr(0, pos);
+    }
+
     cout << "Name in scope: " << name << endl;
     string cur_prefix = scope_prefix, id;
     cout << "Cur prefix: " << cur_prefix << endl;
     while (cur_prefix != "") {
         id = cur_prefix + name;
         if (isSymbol(id))
-            return id;
+            return id + suffix;
         cur_prefix = cur_prefix.substr(cur_prefix.find("-") + 1);
     }
     id = cur_prefix + name;
     if (isSymbol(id))
-        return id;
-    return "";
+        return id + suffix;
+    return suffix;
 }
 
 void scopeExprClosed(vector<TAC::Instr *> &code) {

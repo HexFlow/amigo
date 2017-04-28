@@ -9,6 +9,7 @@ class KeyedElem:
     def __init__(self, name, base, offset):
         self.name = name
         self.base = base
+        self.offset = offset
 
     def __str__(self):
         return self.name + " " + self.base.__str__()
@@ -35,6 +36,7 @@ class ArrayType:
     Fixed sized arrays. Allocated on stack if used without make/new.
     """
     def __init__(self, base, size):
+        self.name = "-----------"
         self.base = base
         self.size = size * base.size
 
@@ -51,6 +53,7 @@ class SliceType:
     for accesses.
     """
     def __init__(self, base):
+        self.name = "-----------"
         self.base = base
         self.size = 8  # Would be a simple pointer to heap
 
@@ -69,6 +72,7 @@ class StructType:
 
     def __init__(self, elems):
         # Elems is a list of tuples. (name, basetype)
+        self.name = "-----------"
         self.size = 0
         self.elems = {}
         for elem in elems:
@@ -88,6 +92,7 @@ class StructType:
 
 class FuncType:
     def __init__(self, s):
+        self.name = "-----------"
         for m in re.findall(r'^func \((.*)\) (.*)$', s):
             self.args = [ parse_type(x.strip()) for x in custom_split(m[0]) ]
             self.ret = parse_type(m[1])
@@ -103,6 +108,7 @@ class FuncType:
 
 class TupleType:
     def __init__(self, st):
+        self.name = "-----------"
         self.mems = [ parse_type(x.strip()) for x in custom_split(st[1:-1]) ]
         self.size = 0
         for mem in self.mems:
@@ -116,6 +122,7 @@ class TupleType:
 
 class MapType:
     def __init__(self, key_type, val_type):
+        self.name = "-----------"
         self.ktype = key_type
         self.vtype = val_type
         # TODO: How to handle size?

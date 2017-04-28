@@ -2,6 +2,7 @@ import random
 from hashlib import md5
 import string
 import re
+import amigo_types
 
 def genHash(a):
     return 'a' + md5(a.encode('utf-8')).hexdigest()[:8]
@@ -199,13 +200,13 @@ class ASM:
                     where_to_write = self.arg_parse([tac[2]]).strip()
                     self.ins.append('\tmov\t{},\t{}'.format(
                                     where_mem_is, where_to_write))
-                elif len(tac) > 2 and "[" in tac[2]:
+                elif len(tac) > 2 and ("[" in tac[2] or "." in tac[2]):
                     what_to_write = self.arg_parse([tac[1]]).strip()
                     where_to_write = self.arg_parse([tac[2]], False).strip()
                     self.ins.append('\tmovq\t{}, ({})'.
                                     format(what_to_write, where_to_write))
                 else:
-                    self.ins.append('\tmov' + self.arg_parse(tac[1:]))
+                    self.ins.append('\tmov ' + self.arg_parse(tac[1:]))
             elif tac[0] == 'CALL':
                 self.ins += self.registers.wb()
                 self.ins += list(reversed(arglist))
@@ -378,6 +379,34 @@ class ASM:
                         print("ERROR:")
                         print("Unknown type used as struct")
                         exit(1)
+            elif '.' in arg:
+                # This is a struct selector object
+                tmp = arg.split('.')
+                struct = self.parsed.st[tmp[0]]
+                if isinstance(struct, amigo_types.BasicType):
+                    if struct.name in self.parsed.tt:
+                        struct = struct.name
+                select = tmp[1]
+                if struct == "ffi":
+                    parsed_args.append('\t' + select)
+                elif struct in self.parsed.tt:
+                    r, ins = self.registers.get_reg()
+                    self.ins += ins
+                    loc = self.registers.locations[tmp[0]][1]
+                    print(struct)
+                    print(self.parsed.tt[struct])
+                    self.ins.append('\tlea\t{},\t{}'.format(loc, r))
+                    self.ins.append('\tlea\t{}({}),\t{}'.format(
+                                    self.parsed.tt[struct].get_offset(select),
+                                    r, r))
+                    if need_rval:
+                        self.ins.append('\tmov\t({0}), {0}'.format(r))
+                    parsed_args.append(r)
+                else:
+                    print("ERROR:")
+                    print("Unknown type used as struct")
+                    print(struct)
+                    exit(1)
             elif (arg[0].isdigit() or arg[0] == '*') and '-' in arg:
                 # Is a variable from symbol table
                 r, ins = self.registers.get_reg(arg)
