@@ -196,6 +196,8 @@ class ASM:
                 arglist = []
             elif tac[0] == 'ADD':
                 self.ins.append('\tadd' + self.arg_parse(tac[1:]))
+            elif tac[0] == 'SUB':
+                self.ins.append('\tsub' + self.arg_parse(tac[1:]))
             elif tac[0] == 'ADDR':
                 self.ins.append('\tlea {}, '.format(self.registers.locations[
                                 tac[1]][1]) + self.arg_parse(tac[2:]))

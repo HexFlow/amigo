@@ -7,7 +7,7 @@ func main() {
 	len := 100
 	for i := 0; i < len; i++ {
 		d := 0
-		ffi.scanf("%d", &d)
+		fmt.Scanf("%d", &d)
 		b[i] = d
 	}
 
@@ -22,7 +22,7 @@ func main() {
 	}
 
 	for i := 0; i < len; i = i + 1 {
-		ffi.printf("%d ", b[i])
+		fmt.Printf("%d ", b[i])
 	}
-	ffi.printf("\n")
+	fmt.Printf("\n")
 }
