@@ -197,7 +197,9 @@ CLOSEB:
 BrkBlk: {
         $$ = &(init());
         breaklabels.push(newlabel());
-        $$->code = TAC::Init();
+        label_id++;
+        nextlabels.push(newlabel());
+        $$->code = TAC::Init() << new Instr(TAC::LABL, new Place(nextlabels.top()));
         label_id++;
     }
     ;
@@ -206,6 +208,7 @@ BrkBlkEnd: {
         $$ = &(init());
         $$->code = TAC::Init() << new Instr(TAC::LABL, new Place(breaklabels.top()));
         breaklabels.pop();
+        nextlabels.pop();
     }
     ;
 
@@ -616,26 +619,16 @@ FunctionDecl:
         symInsert(scope_prefix+$2, $4->type);
         $$->data = new Data("Function " + string($2));
     }
-    | FUNC IDENT OPENB Function CLOSEB {
-        $$ = &(init() << $2 << $4 >> "FunctionDecl");
-        symInsert(scope_prefix+$2, $4->type);
+    | FUNC IDENT OPENB Signature { curFxnType = vectorToLinkedList(dynamic_cast<FunctionType*>($4->type)->retTypes); symInsert(scope_prefix+$2, $4->type); } Block CLOSEB {
+        $$ = &(init() << $2 << $4 << $6 >> "FunctionDecl");
+        
         $$->data = new Data("Function " + string($2));
-        $$->data->child = $4->data;
+        $$->data->child = $6->data;
         $$->code = TAC::Init() << new Instr(TAC::LABL, $2);
+        $$->code << (new Instr(TAC::NEWFUNC));
+        $$->code << $4->code << $6->code;
+        $$->code << (new Instr(TAC::NEWFUNCEND));
         scopeExpr($$->code);
-        $$->code << new Instr(TAC::NEWFUNC);
-        $$->code << $4->code;
-        $$->code << new Instr(TAC::NEWFUNCEND);
-    }
-    ;
-
-Function:
-    Signature { curFxnType = vectorToLinkedList(dynamic_cast<FunctionType*>($1->type)->retTypes); } Block {
-        $$ = &(init() << $1 << $3 >> "Function");
-        $$->type = $1->type;
-        $$->data = $3->data;
-        /* printTop($$->data); */
-        $$->code = TAC::Init() << $1->code << $3->code;
     }
     ;
 
@@ -813,7 +806,7 @@ QualifiedIdent:
 
 MethodDecl:
     FUNC Receiver IDENT Signature  { $$ = &(init() << $2 << $3 << $4 >> "MethodDecl"); }
-    | FUNC Receiver IDENT Function { $$ = &(init() << $2 << $3 << $4 >> "MethodDecl"); }
+    /*| FUNC Receiver IDENT Function { $$ = &(init() << $2 << $3 << $4 >> "MethodDecl"); }*/
     ;
 
 Receiver:

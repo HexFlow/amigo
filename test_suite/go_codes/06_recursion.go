@@ -10,5 +10,5 @@ func factorial(a int) int {
 }
 
 func main() {
-	fmt.Printf("%d\n", 10)
+	fmt.Printf("%d\n", factorial(10))
 }

@@ -131,7 +131,7 @@ run_test()
     cp "$BASEDIR/go_codes/$file" "$BASEDIR/tmp/$file"
     sed -i 's/fmt.Printf/ffi.printf/g' "$BASEDIR/tmp/$file"
     sed -i 's/fmt.Scanf/ffi.scanf/g' "$BASEDIR/tmp/$file"
-    CMD="$BASEDIR/../bin/ast -tac $BASEDIR/tmp/${filename}.tac -st  $BASEDIR/tmp/${filename}.st $BASEDIR/tmp/${filename}.go > /dev/null 2>&1"
+    CMD="$BASEDIR/../bin/wrapper -tac $BASEDIR/tmp/${filename}.tac -st  $BASEDIR/tmp/${filename}.st $BASEDIR/tmp/${filename}.go > /dev/null 2>&1"
     bash -c "$CMD; exit 0"
 
     CMD="/usr/bin/env python3 $BASEDIR/../py/main.py $BASEDIR/tmp/${filename}.tac $BASEDIR/tmp/${filename}.st > /dev/null 2>&1"

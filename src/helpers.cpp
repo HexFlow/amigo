@@ -106,7 +106,7 @@ Type *getSymType(string name) {
         if (isSymbol(id)) {
             auto k = stable[id];
             if (k->classType == BASIC_TYPE) {
-                auto b = (BasicType*)k;
+                auto b = (BasicType *)k;
                 return ttable[b->base]->clone();
             } else {
                 return k->clone();
@@ -118,7 +118,7 @@ Type *getSymType(string name) {
     if (isSymbol(id)) {
         auto k = stable[id];
         if (k->classType == BASIC_TYPE) {
-            auto b = (BasicType*)k;
+            auto b = (BasicType *)k;
             return ttable[b->base]->clone();
         } else {
             return k->clone();
@@ -145,7 +145,8 @@ Type *isValidMemberOn(Data *base, Data *method) {
 
     auto memType = baseStruct->members.find(method->name);
     if (memType == baseStruct->members.end()) {
-        cerr << method->name << " is not a member of type " << symType->getType() << endl;
+        cerr << method->name << " is not a member of type "
+             << symType->getType() << endl;
         cerr << "Exiting" << endl;
         exit(1);
     }
@@ -161,7 +162,7 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType, bool isFFI) {
     int pos = 1;
     auto fxnTypeCasted = dynamic_cast<FunctionType *>(fxnType);
     if (isFFI)
-        return vectorToLinkedList(fxnTypeCasted->retTypes);
+        return new BasicType("int");
 
     for (auto reqArgT : fxnTypeCasted->argTypes) {
         if (argType == NULL) {
@@ -172,8 +173,9 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType, bool isFFI) {
         }
         if (argType->getType() != reqArgT->getType()) {
             cout << "Needed type " << reqArgT->getType() << " at " << pos
-                 << "-th position of function application of type " << fxnType->getType()
-                 << "; got " << argType->getType() << endl;
+                 << "-th position of function application of type "
+                 << fxnType->getType() << "; got " << argType->getType()
+                 << endl;
             exit(1);
         }
         argType = argType->next;
@@ -181,7 +183,8 @@ Type *resultOfFunctionApp(Type *fxnType, Type *argType, bool isFFI) {
     }
 
     if (argType != NULL) {
-        cout << "Extra arguments provided to function: " << argType->getType() << endl;
+        cout << "Extra arguments provided to function: " << argType->getType()
+             << endl;
         exit(1);
     }
 
@@ -204,11 +207,11 @@ bool isDefined(string name) {
 
 void inittables() {
     unordered_map<string, Type *> fmtMap = {
-        {"Printf",
-         new FunctionType(vector<Type *>{new BasicType("string")}, vector<Type *>{})},
-        {"IOCall",
-         new FunctionType(vector<Type *>{},
-                          vector<Type *>{new BasicType("string"), new BasicType("int")})},
+        {"Printf", new FunctionType(vector<Type *>{new BasicType("string")},
+                                    vector<Type *>{})},
+        {"IOCall", new FunctionType(vector<Type *>{},
+                                    vector<Type *>{new BasicType("string"),
+                                                   new BasicType("int")})},
         {"Hello", new BasicType("int")}};
 
     auto kk = new StructType(fmtMap);
@@ -365,8 +368,8 @@ string print(node *n) {
             string child = print(s.nt);
             cout << name << " -- " << child << endl;
         } else {
-            cout << "_" + to_std_string(node_id) << "[label=\"" << escape_json(s.t)
-                 << "\"]" << endl;
+            cout << "_" + to_std_string(node_id) << "[label=\""
+                 << escape_json(s.t) << "\"]" << endl;
             cout << name << " -- "
                  << "_" + to_std_string(node_id++) << endl;
         }
@@ -440,8 +443,8 @@ void printCode(vector<TAC::Instr *> v) {
 }
 
 Type *operatorResult(Type *a, Type *b, string op) {
-    if (op == "==" || op == "&&" || op == "||" || op == "<" || op == ">" || op == "<=" ||
-        op == ">=") {
+    if (op == "==" || op == "&&" || op == "||" || op == "<" || op == ">" ||
+        op == "<=" || op == ">=") {
         return ttable["bool"];
     }
     return a;

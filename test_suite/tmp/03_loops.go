@@ -8,6 +8,7 @@ func main() {
 		for j := 0; j < 20; j += 1 {
 			ffi.printf("%d %d, ", i, j)
 		}
+		continue
 		ffi.printf("\n")
 	}
 }

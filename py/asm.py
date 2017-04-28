@@ -137,6 +137,17 @@ class ASM:
 
     def gen(self):
         self.ins.append('.global main')
+        self.ins.append('')
+        self.ins.append('.bss')
+        for key in self.st:
+            p = key.split('-')
+            if len(p) == 2 and p[0] == '0':
+                if isinstance(self.st[key], amigo_types.FuncType):
+                    continue
+                self.ins.append(p[1] + ":")
+                self.ins.append("\t.space {}".format(self.st[key].size))
+                self.registers.locations[key] = ["", "("+p[1]+")"]
+        self.ins.append('')
         self.ins.append('.text')
         self.ins.append('')
 
@@ -212,9 +223,13 @@ class ASM:
                 self.ins += list(reversed(arglist))
                 self.ins.append('\txor\t%eax,\t%eax')
                 self.ins.append('\tcall' + self.arg_parse(["#"+tac[1]]))
+                if tac[1].startswith("ffi"):
+                    self.ins.append('\tpush %rax')
                 arglist = []
             elif tac[0] == 'ADD':
                 self.ins.append('\tadd' + self.arg_parse(tac[1:]))
+            elif tac[0] == 'MUL':
+                self.ins.append('\timul' + self.arg_parse(tac[1:]))
             elif tac[0] == 'SUB':
                 self.ins.append('\tsub' + self.arg_parse(tac[1:]))
             elif tac[0] == 'ADDR':
@@ -260,8 +275,7 @@ class ASM:
                 while taclist[j][0] != 'NEWFUNCEND':
                     if taclist[j][0] == 'DECL':
                         offset += (self.st[taclist[j][1]].size)
-                        self.registers.locations[taclist[j][1]] = ["",
-                                str(-offset) + "(%rbp)"]
+                        self.registers.locations[taclist[j][1]] = ["", str(-offset) + "(%rbp)"]
                         self.ins.append('\t# Variable ' + taclist[j][1] +
                                 ' will be at ' + self.registers.locations[taclist[j][1]][1])
                     elif taclist[j][0] == 'ARGDECL':
@@ -365,7 +379,7 @@ class ASM:
                 parsed_args.append(basereg)
             elif '#' in arg:
                 if '.' not in arg:
-                    parsed_args.append('\t' + arg[3:])
+                    parsed_args.append('\t' + arg.split('-')[-1])
                 else:
                     arg = arg[1:]
                     tmp = arg.split('.')
@@ -409,6 +423,9 @@ class ASM:
                     exit(1)
             elif (arg[0].isdigit() or arg[0] == '*') and '-' in arg:
                 # Is a variable from symbol table
+                print('Testing for argument', arg, '!!!!!', self.st)
+                if arg not in self.st:
+                    assert('*-tmp' in arg)
                 r, ins = self.registers.get_reg(arg)
                 self.ins += ins
                 parsed_args.append('\t' + r)
