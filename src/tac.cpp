@@ -74,8 +74,6 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "LABL";
         case TAC::RET:
             return "RET";
-        case TAC::BACKUPSTACK:
-            return "BACKUPSTACK";
         case TAC::RETSETUP:
             return "RETSETUP";
         case TAC::RETEND:

@@ -1,7 +1,10 @@
 import random
+from hashlib import md5
 import string
 import re
 
+def genHash(a):
+    return 'a' + md5(a.encode('utf-8')).hexdigest()[:8]
 
 class Register:
     regs = {
@@ -20,6 +23,7 @@ class Register:
     }
 
     regEIP = None
+    allTmpList = {}
 
     argRegister = {
         '0': '%rdi',
@@ -129,8 +133,8 @@ class ASM:
         self.st = parsed.st
 
     def gen(self):
-        self.ins.append('\t.global main')
-        self.ins.append('\t.text')
+        self.ins.append('.global main')
+        self.ins.append('.text')
         self.ins.append('')
 
         self.tac_ins_convert(self.parsed.tac)
@@ -139,6 +143,12 @@ class ASM:
         self.ins.append('.data')
         for const in self.consts:
             self.ins.append(const)
+        tmp, self.ins = self.ins[1:], self.ins[:1]
+        self.ins.append('.bss')
+        for key in self.registers.allTmpList:
+            self.ins.append(self.registers.allTmpList[key] + ":")
+            self.ins.append("\t.space 8")
+        self.ins += tmp
 
     # def default_functions(self):
 
@@ -264,11 +274,10 @@ class ASM:
                         _tac = taclist[j]
                         for t in _tac:
                             if t.startswith('*-tmp'):
-                                offset += 8
-                                self.registers.locations[t] = ["", str(-offset) + "(%rbp)"]
+                                self.registers.allTmpList[t] = genHash(t)
+                                self.registers.locations[t] = ["", "(" + self.registers.allTmpList[t] + ")"]
                                 self.ins.append('\t# Variable ' + t + 
                                         ' will be at ' + self.registers.locations[t][1])
-
                     j += 1
                 self.ins.append('\tsub ${}, %rsp'.format(offset))
 
@@ -282,29 +291,19 @@ class ASM:
                 self.ins.append('')
                 self.ins += self.registers.wb()
                 self.ins.append('\tmov %rbp, %rsp')
-                self.ins.append('\tmov %rbp, ' + self.arg_parse([tac[1]]))
-                self.ins.append('\tmov %rip, ' + self.arg_parse([tac[2]]))
-
-                # self.ins.append('')
-                # self.ins += self.registers.wb()
-                # self.ins.append('\tmov %rbp, %rsp')
-                # self.ins.append('\tpop %rbp')
-                # r, inst = self.registers.get_reg()
-                # self.ins += inst
-                # self.registers.regEIP = r
-                # self.ins.append('\tpop ' + r)
+                self.ins.append('\tpop %rbp')
+                r, inst = self.registers.get_reg()
+                self.ins += inst
+                self.registers.regEIP = r
+                self.ins.append('\tpop ' + r)
             elif tac[0] == 'PUSHRET':
-                # self.ins.append('\tpush' + self.arg_parse(tac[1:]))
-                self.ins.append('\tmov' + self.arg_parse(tac[1:]) + '\t, -16(%rsp)')
-                self.ins.append('\tsub $8, %rsp')
+                self.ins.append('\tpush' + self.arg_parse(tac[1:]))
             elif tac[0] == 'POP':
                 self.ins.append('\tpop' + self.arg_parse(tac[1:]))
             elif tac[0] == 'RETEND':
-                # r = self.registers.regEIP 
-                self.ins.append('\tmov\t, ' + self.arg_parse([1]) + '-16(%rsp)')
-                self.ins.append('\tmov\t, ' + self.arg_parse([2]) + '-8(%rsp)')
-                # self.ins.append('\tpush ' + r)
-                self.ins.append('\tret')
+                r = self.registers.regEIP 
+                self.ins.append('\tpush ' + r)
+                self.ins.append('\tret' + self.arg_parse(tac[1:]))
             elif tac[0] == 'NEWFUNCEND':
                 print("GRIM REAPER IS COMING")
                 self.ins += self.registers.wb()

@@ -1064,12 +1064,7 @@ ReturnStmt:
             exit(1);
         }
         Type *rT = curFxnType, *eT = $2->type;
-        /*$$->code << new Instr(TAC::RETSETUP);*/
-
-        auto tmp = new Place();
-        auto tmp2 = new Place();
-        $$->code << new Instr(TAC::RETSETUP, tmp, tmp2);
-
+        $$->code << new Instr(TAC::RETSETUP);
         while (rT != NULL || eT != NULL) {
             if (rT == NULL || eT == NULL) {
                 ERROR("Different number of return values than expected", "");
@@ -1079,13 +1074,12 @@ ReturnStmt:
                 ERROR("Mismatching return types. Expected " + rT->getType() + " and got ", eT->getType());
                 exit(1);
             }
-
             $$->code << new Instr(TAC::PUSHRET, placeptr);
             rT = rT->next;
             eT = eT->next;
             placeptr = placeptr->next;
         }
-        $$->code << new Instr(TAC::RETEND, tmp, tmp2);
+        $$->code << new Instr(TAC::RETEND);
         scopeExpr($$->code);
     }
     ;
