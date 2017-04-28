@@ -1,10 +1,14 @@
 package main
 
 func main() {
-	a := 0
-	if a == 0 {
-		ffi.printf("A is 0\n")
+	a := 6
+	if a <= 10 {
+		if a <= 5 {
+			ffi.printf("A is <= 5\n")
+		} else {
+			ffi.printf("A is >= 5\n")
+		}
 	} else {
-		ffi.printf("A is non 0\n")
+		ffi.printf("A is non <= 10\n")
 	}
 }

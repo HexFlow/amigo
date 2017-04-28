@@ -257,7 +257,9 @@ int getIntValue(node *n) {
 }
 
 string nameInScope(string name) {
+    cout << "Name in scope: " << name << endl;
     string cur_prefix = scope_prefix, id;
+    cout << "Cur prefix: " << cur_prefix << endl;
     while (cur_prefix != "") {
         id = cur_prefix + name;
         if (isSymbol(id))

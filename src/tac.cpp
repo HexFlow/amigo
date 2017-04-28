@@ -66,6 +66,8 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "JEQZ";
         case TAC::JMP:
             return "JMP";
+        case TAC::JE:
+            return "JE";
         case TAC::CMP:
             return "CMP";
         case TAC::LABL:
@@ -78,6 +80,18 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "NOT";
         case TAC::EQ:
             return "EQ";
+        case TAC::NE:
+            return "NE";
+        case TAC::GE:
+            return "GE";
+        case TAC::LE:
+            return "LE";
+        case TAC::GT:
+            return "GT";
+        case TAC::LT:
+            return "LT";
+        case TAC::ASN:
+            return "ASN";
         case TAC::DECL:
             return "DECL";
         case TAC::ARGDECL:
@@ -134,10 +148,22 @@ TAC::INSTR_TYPE TAC::opToOpcode(string oper) {
         return NOT;
     else if (oper == "==")
         return EQ;
+    else if (oper == "!=")
+        return NE;
+    else if (oper == ">=")
+        return GE;
+    else if (oper == "<=")
+        return LE;
+    else if (oper == "<")
+        return LT;
+    else if (oper == ">")
+        return GT;
     else if (oper == "&&")
         return AND;
     else if (oper == "||")
         return OR;
+    else if (oper == "=")
+        return ASN;
     else
         return GOTO;
 }

@@ -71,6 +71,7 @@ typedef TAC::Instr Instr;
     A->code << (new Instr(TAC::CMP, D->place, tmpPlace));                   \
     A->code << (new Instr(TAC::opToOpcode(C), tmpPlace));                   \
     A->code << (new Instr(TAC::STOR, tmpPlace, A->place));                  \
+    scopeExpr(A->code);
 
 /* (new Instr(TAC::opToOpcode(C), A->place, B->place, D->place)); */
 
@@ -141,12 +142,12 @@ umap<string, Type*> ttable; // types (due to typedef or predeclared)
 %token <sval> RAW_ST INR_ST ASN_OP LEFT INC DEC DECL CONST DOTS FUNC MAP
 %token <sval> GO RETURN BREAK CONT GOTO FALL IF ELSE SWITCH CASE END MAKE NEW
 %token <sval> DEFLT SELECT TYPE ISOF FOR RANGE DEFER VAR IMPORT PACKGE STRUCT
-%type <nt> SourceFile Expression Expression1 Expression2 Expression3
+%type <nt> SourceFile Expression Expression1 Expression2 Expression3 EmptyExpr
 %type <nt> Block StatementList Statement SimpleStmt Expression4 Expression5
 %type <nt> EmptyStmt ExpressionStmt SendStmt Channel IncDecStmt MapType
 %type <nt> Assignment ShortVarDecl Declaration ConstDecl ConstSpecList VarSpec
 %type <nt> Signature Result Parameters ParameterList ParameterDecl TypeList
-%type <nt> ConstSpec MethodDecl Receiver TopLevelDecl LabeledStmt
+%type <nt> ConstSpec MethodDecl Receiver TopLevelDecl LabeledStmt Empty
 %type <nt> GoStmt ReturnStmt BreakStmt ContinueStmt GotoStmt StructType
 %type <nt> FunctionDecl FunctionName VarSpecList FallthroughStmt
 %type <nt> Function FunctionBody ForStmt ForClause RangeClause InitStmt
@@ -194,14 +195,16 @@ CLOSEB:
     ;
 
 BrkBlk: {
+        $$ = &(init());
         breaklabels.push(newlabel());
+        $$->code = TAC::Init();
         label_id++;
     }
     ;
 
 BrkBlkEnd: {
-        $$->code = TAC::Init() <<
-            new Instr(TAC::LABL, new Place(breaklabels.top()));
+        $$ = &(init());
+        $$->code = TAC::Init() << new Instr(TAC::LABL, new Place(breaklabels.top()));
         breaklabels.pop();
     }
     ;
@@ -1055,7 +1058,7 @@ ReturnStmt:
     ;
 
 BreakStmt:
-    BREAK         {
+    BREAK {
         $$ = &(init() >> "BreakStmt");
         $$->data = new Data(string($1));
         if (breaklabels.empty()) {
@@ -1247,74 +1250,163 @@ IfStmt:
     }
     ;
 
+EmptyExpr:
+     /*empty*/ {
+        $$ = &(init() >> "EmptyExpr");
+        $$->data = new Data{"true"};
+        $$->type = new BasicType("bool");
+        $$->place = new Place($$->type, "1");
+     }
+
+Empty:
+     /**/ {
+
+    }
+
 ForStmt:
-    FOR BrkBlk Block BrkBlkEnd {
-        $$ = &(init() << $3 >> "ForStmt");
-        $$->data = new Data("For");
-        $$->data->child = new Data("Body");
-        $$->data->child->child = $3->data;
-        string lbl = newlabel(); label_id++;
-        $$->code = TAC::Init() <<
-            new Instr(TAC::LABL, new Place(lbl)) <<
-            $3->code <<
-            new Instr(TAC::JMP, new Place(lbl)) <<
-            $4->code;
-    }
-    | FOR OPENB Expression Block CLOSEB {
-        $$ = &(init() << $3 << $4 >> "ForStmt");
-        $$->data = new Data("For");
-        Data *ptr = $$->data;
-        ptr->child = new Data("Condition"); ptr = ptr->child;
-        ptr->child = $3->data;
-        ptr->next = new Data("Body"); ptr = ptr->next;
-        ptr->child = $4->data;
-    }
-    | FOR OPENB ForClause Block CLOSEB {
-        $$ = &(init() << $3 << $4 >> "ForStmt");
-        $$->data = new Data("For");
-        Data *ptr = $$->data;
-        ptr->child = $3->data;
-        ptr->next = new Data("Body"); ptr = ptr->next;
-        ptr->child = $4->data;
-    }
-    | FOR OPENB RangeClause Block CLOSEB {
-        $$ = &(init() << $3 << $4 >> "ForStmt");
-        $$->data = new Data("For");
-        Data *ptr = $$->data;
-        ptr->child = $3->data;
-        ptr->next = new Data("Body"); ptr = ptr->next;
-        ptr->child = $4->data;
-    }
-    ;
+       FOR OPENB SimpleStmt ';' BrkBlk ExpressionStmt ';' SimpleStmt Block BrkBlkEnd CLOSEB {
+            $$ = &(init() << $3 << $6 << $8 << $9 >> "ForStmt");
+            $$->data = new Data("For");
+            $$->data->child = new Data("Body");
+            $$->data->child->child = $9->data;
 
-ForClause:
-    SimpleStmt ';'  ';' SimpleStmt  {
-        $$ = &(init() << $1 << $4 >> "ForClause");
-        $$->data = new Data("ForClause");
-        Data *ptr = $$->data;
-        ptr->child = new Data("InitClause"); ptr = ptr->child;
-        ptr->child = $1->data;
-        ptr->next = new Data("PostClause"); ptr = ptr->next;
-        ptr->child = $4->data;
-    }
-    | SimpleStmt ';' Expression ';' SimpleStmt  {
-        $$ = &(init() << $1 << $3  << $5 >> "ForClause");
-        $$->data = new Data("ForClause");
-        Data *ptr = $$->data;
-        ptr->child = new Data("InitClause"); ptr = ptr->child;
-        ptr->child = $1->data;
-        ptr->next = new Data("ConditionClause"); ptr = ptr->next;
-        ptr->child = $3->data;
-        ptr->next = new Data("PostClause"); ptr = ptr->next;
-        ptr->child = $5->data;
+            string lbl1 = newlabel(); label_id++;
+            string lbl2 = newlabel(); label_id++;
+
+            $$->code = TAC::Init();
+            $$->code << $3->code;                                         // Prelude
+            $$->code << $5->code;                                         // Label for continue
+            $$->code << new Instr(TAC::LABL, new Place(lbl1));            // Label for next loop
+            $$->code << $6->code;                                         // Condition
+            $$->code << new Instr(TAC::CMP, new Place("0"), $6->place);   // Compare condition
+            $$->code << new Instr(TAC::JE, lbl2);                         // If false (=0) jump to label2
+            $$->code << $9->code;                                         // Block code
+            $$->code << $8->code;                                         // Post statement
+            $$->code << new Instr(TAC::JMP, lbl1);                        // If false (=0) jump to label2
+            $$->code << $10->code;                                        // Break label
+            $$->code << new Instr(TAC::LABL, new Place(lbl2));
+       }
+       | FOR OPENB SimpleStmt ';' BrkBlk EmptyExpr ';' SimpleStmt Block BrkBlkEnd CLOSEB {
+            $$ = &(init() << $3 << $6 << $8 << $9 >> "ForStmt");
+            $$->data = new Data("For");
+            $$->data->child = new Data("Body");
+            $$->data->child->child = $9->data;
+
+            string lbl1 = newlabel(); label_id++;
+            string lbl2 = newlabel(); label_id++;
+
+            $$->code = TAC::Init();
+            $$->code << $3->code;                                         // Prelude
+            $$->code << $5->code;                                         // Label for continue
+            $$->code << new Instr(TAC::LABL, new Place(lbl1));            // Label for next loop
+            $$->code << $6->code;                                         // Condition
+            $$->code << new Instr(TAC::CMP, new Place("0"), $6->place);   // Compare condition
+            $$->code << new Instr(TAC::JE, lbl2);                         // If false (=0) jump to label2
+            $$->code << $9->code;                                         // Block code
+            $$->code << $8->code;                                         // Post statement
+            $$->code << new Instr(TAC::JMP, lbl1);                        // If false (=0) jump to label2
+            $$->code << $10->code;                                        // Break label
+            $$->code << new Instr(TAC::LABL, new Place(lbl2));
+       }
+       | FOR OPENB EmptyStmt Empty BrkBlk Expression Empty EmptyStmt Block BrkBlkEnd CLOSEB {
+            $$ = &(init() << $3 << $6 << $8 << $9 >> "ForStmt");
+            $$->data = new Data("For");
+            $$->data->child = new Data("Body");
+            $$->data->child->child = $9->data;
+
+            string lbl1 = newlabel(); label_id++;
+            string lbl2 = newlabel(); label_id++;
+
+            $$->code = TAC::Init();
+            $$->code << $3->code;                                         // Prelude
+            $$->code << $5->code;                                         // Label for continue
+            $$->code << new Instr(TAC::LABL, new Place(lbl1));            // Label for next loop
+            $$->code << $6->code;                                         // Condition
+            $$->code << new Instr(TAC::CMP, new Place("0"), $6->place);   // Compare condition
+            $$->code << new Instr(TAC::JE, lbl2);                         // If false (=0) jump to label2
+            $$->code << $9->code;                                         // Block code
+            $$->code << $8->code;                                         // Post statement
+            $$->code << new Instr(TAC::JMP, lbl1);                        // If false (=0) jump to label2
+            $$->code << $10->code;                                        // Break label
+            $$->code << new Instr(TAC::LABL, new Place(lbl2));
+       };
 
 
-        if ($3->type->getType() != "bool") {
-            ERROR_N("For expression has to be boolean, found: ",
-                    $3->type->getType(), @3);
-        }
-    }
-    ;
+//ForStmt:
+//    FOR BrkBlk Block BrkBlkEnd {
+//        $$ = &(init() << $3 >> "ForStmt");
+//        $$->data = new Data("For");
+//        $$->data->child = new Data("Body");
+//        $$->data->child->child = $3->data;
+//        string lbl = newlabel(); label_id++;
+//        $$->code = TAC::Init() <<
+//            new Instr(TAC::LABL, new Place(lbl)) <<
+//            $3->code <<
+//            new Instr(TAC::JMP, new Place(lbl)) <<
+//            $4->code;
+//    }
+//    | FOR OPENB Expression BrkBlk Block BrkBlkEnd CLOSEB {
+//        $$ = &(init() << $3 << $5 >> "ForStmt");
+//        $$->data = new Data("For");
+//        Data *ptr = $$->data;
+//        ptr->child = new Data("Condition"); ptr = ptr->child;
+//        ptr->child = $3->data;
+//        ptr->next = new Data("Body"); ptr = ptr->next;
+//        ptr->child = $5->data;
+//        string lbl = newlabel(); label_id++;
+//        $$->code = TAC::Init();
+//        $$->code << new Instr(TAC::LABL, new Place(lbl));
+//        $$->code << $3->code;
+//        $$->code << new Instr(TAC::CMP, "0", $3->place);
+//        $$->code << new Instr(TAC::JMP, new Place(lbl));
+//        $$->code << $6->code;
+//    }
+//    | FOR OPENB ForClause Block CLOSEB {
+//        $$ = &(init() << $3 << $4 >> "ForStmt");
+//        $$->data = new Data("For");
+//        Data *ptr = $$->data;
+//        ptr->child = $3->data;
+//        ptr->next = new Data("Body"); ptr = ptr->next;
+//        ptr->child = $4->data;
+//    }
+//    | FOR OPENB RangeClause Block CLOSEB {
+//        $$ = &(init() << $3 << $4 >> "ForStmt");
+//        $$->data = new Data("For");
+//        Data *ptr = $$->data;
+//        ptr->child = $3->data;
+//        ptr->next = new Data("Body"); ptr = ptr->next;
+//        ptr->child = $4->data;
+//    }
+//    ;
+//
+//ForClause:
+//    SimpleStmt ';'  ';' SimpleStmt  {
+//        $$ = &(init() << $1 << $4 >> "ForClause");
+//        $$->data = new Data("ForClause");
+//        Data *ptr = $$->data;
+//        ptr->child = new Data("InitClause"); ptr = ptr->child;
+//        ptr->child = $1->data;
+//        ptr->next = new Data("PostClause"); ptr = ptr->next;
+//        ptr->child = $4->data;
+//    }
+//    | SimpleStmt ';' Expression ';' SimpleStmt  {
+//        $$ = &(init() << $1 << $3  << $5 >> "ForClause");
+//        $$->data = new Data("ForClause");
+//        Data *ptr = $$->data;
+//        ptr->child = new Data("InitClause"); ptr = ptr->child;
+//        ptr->child = $1->data;
+//        ptr->next = new Data("ConditionClause"); ptr = ptr->next;
+//        ptr->child = $3->data;
+//        ptr->next = new Data("PostClause"); ptr = ptr->next;
+//        ptr->child = $5->data;
+//
+//
+//        if ($3->type->getType() != "bool") {
+//            ERROR_N("For expression has to be boolean, found: ",
+//                    $3->type->getType(), @3);
+//        }
+//    }
+//    ;
 
 RangeClause:
     RANGE Expression  {

@@ -67,12 +67,13 @@ class Register:
         for k in arr:
             if self.regs[k][0]:
                 loc = self.locations[self.regs[k][0]][1]
-                print("FREEING THE SOUL OF " + k)
+                print("FREEING THE SOUL OF " + k + " " + loc)
                 if loc != "---":
                     ins.append("\tmov {},\t{}".format(k, loc))
                 self.locations[self.regs[k][0]][0] = ''
                 self.regs[k][0] = None
                 self.regs[k][1] = 0
+        print("Flush instructions: ", ins)
         return ins
 
     def get_reg(self, var):
@@ -132,13 +133,18 @@ class ASM:
             tac = taclist[i]
             if tac[0] == 'LABL':
                 tmp = tac[1].split('-')[-1]
-                self.registers.wb()
+                self.ins += self.registers.wb()
                 self.ins.append(tmp + ':')
             elif tac[0] == 'PUSH':
                 self.ins.append('\tpush' + self.arg_parse(tac[1:]))
             elif tac[0] == 'JMP':
+                self.ins += self.registers.wb()
                 self.ins.append('\tjmp' + self.arg_parse(tac[1:]))
+            elif tac[0] == 'JE':
+                self.ins += self.registers.wb()
+                self.ins.append('\tje' + self.arg_parse(tac[1:]))
             elif tac[0] == 'JEQZ':
+                self.ins += self.registers.wb()
                 arg1 = self.arg_parse([tac[1]])
                 self.ins.append('\tcmp {}, {}'.format("$0", arg1))
                 self.ins.append('\tje' + self.arg_parse([tac[2]]))
@@ -151,6 +157,7 @@ class ASM:
             elif tac[0] == 'STOR':
                 self.ins.append('\tmov' + self.arg_parse(tac[1:]))
             elif tac[0] == 'CALL':
+                self.ins += self.registers.wb()
                 self.ins += list(reversed(arglist))
                 self.ins.append('\txor\t%eax,\t%eax')
                 self.ins.append('\tcall' + self.arg_parse(tac[1:]))
@@ -161,14 +168,30 @@ class ASM:
                 reg = self.arg_parse(tac[1:]).strip()
                 self.ins.append('\tmov $0,' + reg)
                 self.ins.append('\tsete ' + self.registers.byteMap[reg])
+            elif tac[0] == 'GE':
+                reg = self.arg_parse(tac[1:]).strip()
+                self.ins.append('\tmov $0,' + reg)
+                self.ins.append('\tsetge ' + self.registers.byteMap[reg])
+            elif tac[0] == 'GT':
+                reg = self.arg_parse(tac[1:]).strip()
+                self.ins.append('\tmov $0,' + reg)
+                self.ins.append('\tsetg ' + self.registers.byteMap[reg])
+            elif tac[0] == 'LE':
+                reg = self.arg_parse(tac[1:]).strip()
+                self.ins.append('\tmov $0,' + reg)
+                self.ins.append('\tsetle ' + self.registers.byteMap[reg])
+            elif tac[0] == 'LT':
+                reg = self.arg_parse(tac[1:]).strip()
+                self.ins.append('\tmov $0,' + reg)
+                self.ins.append('\tsetl ' + self.registers.byteMap[reg])
             elif tac[0] == 'NE':
                 reg = self.arg_parse(tac[1:]).strip()
                 self.ins.append('\tmov $0,' + reg)
-                self.ins.append('\tsete ' + self.registers.byteMap[reg])
+                self.ins.append('\tsetne ' + self.registers.byteMap[reg])
             elif tac[0] == 'CMP':
                 self.ins.append('\tcmp' + self.arg_parse(tac[1:]))
             elif tac[0] == 'NEWFUNC':
-                self.registers.wb()
+                self.ins += self.registers.wb()
                 self.ins.append('\tpush %rbp')
                 self.ins.append('\tmov %rsp, %rbp')
                 self.ins.append('')
@@ -196,7 +219,7 @@ class ASM:
                 self.ins.append('\tpop %rbp')
                 self.ins.append('\tret')
             elif tac[0] == 'EXIT':
-                self.registers.wb()
+                self.ins += self.registers.wb()
                 self.ins += """
 \tmov $60, %rax
 \txor %rdi, %rdi
