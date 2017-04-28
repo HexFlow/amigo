@@ -66,7 +66,7 @@ class Register:
                 minval = self.regs[reg][1]
         return minreg
 
-    def wb(self, arr=None, memOnly=False):
+    def wb(self, arr=None):
         if arr:
             print('Requested wb of ', arr, self.regs[arr[0]][0])
         if arr is None:
@@ -76,12 +76,11 @@ class Register:
             if self.regs[k][0]:
                 loc = self.locations[self.regs[k][0]][1]
                 print("FREEING THE SOUL OF " + k + " " + loc)
-                if not memOnly or loc != '---':
-                    if loc != "---":
-                        ins.append("\tmov {},\t{}".format(k, loc))
-                    self.locations[self.regs[k][0]][0] = ''
-                    self.regs[k][0] = None
-                    self.regs[k][1] = 0
+                if loc != "---":
+                    ins.append("\tmov {},\t{}".format(k, loc))
+                self.locations[self.regs[k][0]][0] = ''
+                self.regs[k][0] = None
+                self.regs[k][1] = 0
         print("Flush instructions: ", ins)
         return ins
 
@@ -143,14 +142,11 @@ class ASM:
         self.ins.append('.data')
         for const in self.consts:
             self.ins.append(const)
-        tmp, self.ins = self.ins[1:], self.ins[:1]
+
         self.ins.append('.bss')
         for key in self.registers.allTmpList:
             self.ins.append(self.registers.allTmpList[key] + ":")
             self.ins.append("\t.space 8")
-        self.ins += tmp
-
-    # def default_functions(self):
 
     def tac_ins_convert(self, taclist):
         i = 0
@@ -262,7 +258,7 @@ class ASM:
                         offset += (self.st[taclist[j][1]].size)
                         self.registers.locations[taclist[j][1]] = ["",
                                 str(-offset) + "(%rbp)"]
-                        self.ins.append('\t# Variable ' + taclist[j][1] + 
+                        self.ins.append('\t# Variable ' + taclist[j][1] +
                                 ' will be at ' + self.registers.locations[taclist[j][1]][1])
                     elif taclist[j][0] == 'ARGDECL':
                         offset += (self.st[taclist[j][2]].size)
@@ -276,7 +272,7 @@ class ASM:
                             if t.startswith('*-tmp'):
                                 self.registers.allTmpList[t] = genHash(t)
                                 self.registers.locations[t] = ["", "(" + self.registers.allTmpList[t] + ")"]
-                                self.ins.append('\t# Variable ' + t + 
+                                self.ins.append('\t# Variable ' + t +
                                         ' will be at ' + self.registers.locations[t][1])
                     j += 1
                 self.ins.append('\tsub ${}, %rsp'.format(offset))
@@ -301,7 +297,7 @@ class ASM:
             elif tac[0] == 'POP':
                 self.ins.append('\tpop' + self.arg_parse(tac[1:]))
             elif tac[0] == 'RETEND':
-                r = self.registers.regEIP 
+                r = self.registers.regEIP
                 self.ins.append('\tpush ' + r)
                 self.ins.append('\tret' + self.arg_parse(tac[1:]))
             elif tac[0] == 'NEWFUNCEND':
