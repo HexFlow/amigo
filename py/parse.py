@@ -26,6 +26,7 @@ class Parse:
             return dict([ (k[0].strip(), amigo_types.parse_type(k[1].strip()))
                           for k in splits ])
 
+        i = 0
         for i in range(1, len(stRaw)):
             # There is a blank line before type table
             if stRaw[i].strip() == '':

@@ -36,10 +36,11 @@ class ArrayType:
     """
     def __init__(self, base, size):
         self.base = base
-        self.size = size
+        self.size = size * base.size
 
     def __str__(self):
-        return "[" + str(self.size) + "]" + self.base.__str__()
+        return ("[" + str(self.size // self.base.size) + "]" +
+                self.base.__str__())
 
     def __repr__(self):
         return self.__str__()
@@ -145,7 +146,7 @@ def parse_type(s):
         return SliceType(base=subt)
 
     elif re.match(r'^\[.*?\].*$', s):
-        out = re.findall(r'^\[(.*?)\](.*)$', s)
+        out = re.findall(r'^\[(.*?)\](.*)$', s)[0]
         size = int(out[0])
         subt = parse_type(out[1])
         return ArrayType(base=subt, size=size)

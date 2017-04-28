@@ -1,5 +1,7 @@
 import random
 import string
+import re
+
 
 class Register:
     regs = {
@@ -18,27 +20,27 @@ class Register:
     }
 
     argRegister = {
-            '0': '%rdi',
-            '1': '%rsi',
-            '2': '%rdx',
-            '3': '%rcx',
-            '4': '%r8',
-            '5': '%r9'
+        '0': '%rdi',
+        '1': '%rsi',
+        '2': '%rdx',
+        '3': '%rcx',
+        '4': '%r8',
+        '5': '%r9'
     }
 
     byteMap = {
-        '%rax': '%al' ,
-        '%rbx': '%bl' ,
-        '%rcx': '%cl' ,
-        '%rdx': '%dl' ,
-        '%r8' : '%r8b'  ,
-        '%r9' : '%r9b'  ,
-        '%r10': '%r10b' ,
-        '%r11': '%r11b' ,
-        '%r12': '%r12b' ,
-        '%r13': '%r13b' ,
-        '%r14': '%r14b' ,
-        '%r15': '%r15b' 
+        '%rax': '%al',
+        '%rbx': '%bl',
+        '%rcx': '%cl',
+        '%rdx': '%dl',
+        '%r8': '%r8b',
+        '%r9': '%r9b',
+        '%r10': '%r10b',
+        '%r11': '%r11b',
+        '%r12': '%r12b',
+        '%r13': '%r13b',
+        '%r14': '%r14b',
+        '%r15': '%r15b'
     }
 
     locations = {}
@@ -61,7 +63,7 @@ class Register:
     def wb(self, arr=None):
         if arr:
             print('Requested wb of ', arr, self.regs[arr[0]][0])
-        if arr == None:
+        if arr is None:
             arr = self.regs.keys()
         ins = []
         for k in arr:
@@ -77,7 +79,7 @@ class Register:
         return ins
 
     def wb_without_flush(self, arr=None):
-        if arr == None:
+        if arr is None:
             arr = self.regs.keys()
         ins = []
         for k in arr:
@@ -87,13 +89,16 @@ class Register:
                     ins.append("\tmov {},\t{}".format(k, loc))
         return ins
 
-    def get_reg(self, var):
+    def get_reg(self, var=None):
+        if var is None:
+            var = ''.join([random.choice(string.ascii_lowercase)
+                           for _ in range(8)])
+
         if var in self.locations and self.locations[var][0] != "":
             return (self.locations[var][0], [])
 
         reg = self.get_lru()
         ins = self.wb([reg])
-
 
         self.count += 1
         self.regs[reg][0] = var
@@ -107,6 +112,7 @@ class Register:
             # This is temporary
             self.locations[var] = [reg, '---']
         return (reg, ins)
+
 
 class ASM:
     ins = []
@@ -142,6 +148,8 @@ class ASM:
         arglist = []
         while i < len(taclist):
             tac = taclist[i]
+            self.ins.append('')
+            self.ins.append('\t# ' + ';'.join(tac))
             if tac[0] == 'LABL':
                 tmp = tac[1].split('-')[-1]
                 self.ins += self.registers.wb()
@@ -162,11 +170,24 @@ class ASM:
             elif tac[0] == 'PUSHARG':
                 if int(tac[1]) < 6:
                     tac[1] = self.registers.argRegister[tac[1]]
-                    self.ins.append('\tmov' + self.arg_parse([tac[2], tac[1]]))
+                    self.ins.append('\tmov ' + self.arg_parse([tac[2], tac[1]]))
                 else:
                     arglist.append('\tpush' + self.arg_parse([tac[2]]))
             elif tac[0] == 'STOR':
-                self.ins.append('\tmov' + self.arg_parse(tac[1:]))
+                # Check if we need complex lvalue
+                # TODO ensure both are not memory locations
+                if "[" in tac[1]:
+                    where_mem_is = self.arg_parse([tac[1]]).strip()
+                    where_to_write = self.arg_parse([tac[2]]).strip()
+                    self.ins.append('\tmov\t({}),\t{}'.format(
+                                    where_mem_is, where_to_write))
+                elif len(tac) > 2 and "[" in tac[2]:
+                    what_to_write = self.arg_parse([tac[1]]).strip()
+                    where_to_write = self.arg_parse([tac[2]]).strip()
+                    self.ins.append('\tmovq\t{}, ({})'.
+                                    format(what_to_write, where_to_write))
+                else:
+                    self.ins.append('\tmov' + self.arg_parse(tac[1:]))
             elif tac[0] == 'CALL':
                 self.ins += self.registers.wb()
                 self.ins += list(reversed(arglist))
@@ -176,10 +197,12 @@ class ASM:
             elif tac[0] == 'ADD':
                 self.ins.append('\tadd' + self.arg_parse(tac[1:]))
             elif tac[0] == 'ADDR':
-                self.ins.append('\tlea {}, '.format(self.registers.locations[tac[1]][1]) + self.arg_parse(tac[2:]))
+                self.ins.append('\tlea {}, '.format(self.registers.locations[
+                                tac[1]][1]) + self.arg_parse(tac[2:]))
             elif tac[0] == 'DEREF':
                 self.ins += self.registers.wb_without_flush()
-                self.ins.append('\tmov ({}), '.format(self.arg_parse(tac[1:2])) + self.arg_parse(tac[2:]))
+                self.ins.append('\tmov ({}), '.format(
+                    self.arg_parse(tac[1:2])) + self.arg_parse(tac[2:]))
             elif tac[0] == 'EQ':
                 reg = self.arg_parse(tac[1:]).strip()
                 self.ins.append('\tmov $0,' + reg)
@@ -216,7 +239,11 @@ class ASM:
                 while taclist[j][0] != 'NEWFUNCEND':
                     if taclist[j][0] == 'DECL':
                         offset += (self.st[taclist[j][1]].size)
-                        self.registers.locations[taclist[j][1]] = ["", str(-offset)+"(%rbp)"]
+                        self.registers.locations[taclist[j][1]] = [
+                            "", str(-offset) + "(%rbp)"]
+                        self.ins.append('\t# Variable ' + taclist[j][1] +
+                                        ' will be at ' +
+                                        self.registers.locations[taclist[j][1]][1])
                     j += 1
                 self.ins.append('\tsub ${}, %rsp'.format(offset))
 
@@ -251,8 +278,8 @@ class ASM:
             i = i + 1
 
     def str_const(self, op):
-        name = ''.join([ random.choice(string.ascii_lowercase)
-                         for _ in range(8) ])
+        name = ''.join([random.choice(string.ascii_lowercase)
+                        for _ in range(8)])
         self.consts.append(name + ':')
         self.consts.append('\t.asciz\t' + op)
         return '$' + name
@@ -262,6 +289,27 @@ class ASM:
         for arg in args:
             if arg.startswith('"'):
                 parsed_args.append('\t' + self.str_const(arg))
+            elif "[" in arg:
+                tmp = re.findall(r'\[.*?\]', arg)
+                base = arg.split('[')[0]
+                basetype = self.st[base]
+
+                base = self.registers.locations[base][1]
+                basereg, ins = self.registers.get_reg()
+                self.ins += ins
+                indexreg, ins = self.registers.get_reg()
+                self.ins += ins
+                self.ins.append('\tlea\t{}, {}'.format(base, basereg))
+
+                for index in tmp:
+                    basetype = basetype.base
+                    index = self.arg_parse([index[1:-1]]).strip()
+                    self.ins.append('\tmov\t{}, {}'.format(index, indexreg))
+                    index = indexreg
+                    # Now load index*scale into index
+                    self.ins.append('\timulq\t${}, {}'.format(basetype.size, index))
+                    self.ins.append('\taddq\t{}, {}'.format(index, basereg))
+                parsed_args.append(basereg)
             elif '.' in arg:
                 # This is a struct selector object
                 tmp = arg.split('.')
@@ -270,12 +318,13 @@ class ASM:
                 if struct == "ffi":
                     parsed_args.append('\t' + select)
                 elif struct in self.parsed.tt:
-                    parsed_args.append('\ts' + struct.upper() + 'f' + select.upper())
+                    parsed_args.append(
+                        '\ts' + struct.upper() + 'f' + select.upper())
                 else:
                     print("ERROR:")
                     print("Unknown type used as struct")
                     exit(1)
-            elif ( arg[0].isdigit() or arg[0] == '*' ) and '-' in arg:
+            elif (arg[0].isdigit() or arg[0] == '*') and '-' in arg:
                 # Is a variable from symbol table
                 r, ins = self.registers.get_reg(arg)
                 self.ins += ins

@@ -418,7 +418,7 @@ Assignment:
 
             $$->code << new Instr(TAC::STOR,
                                   rplace,
-                                  new Place(rhs, lhs->name));
+                                  new Place(rhs, lhs->lval));
 
             lhs = lhs->next;
             ltype = ltype->next;
@@ -507,7 +507,7 @@ VarDecl:
     /* VAR '(' VarSpecList ')' { $$ = &(init() << $3 >> "VarDecl"); } */
     VAR VarSpec           {
         $$ = &(init() << $2 >> "VarDecl");
-        $$->data = $2->data;
+        COPS($$, $2);
     }
     ;
 
@@ -605,7 +605,7 @@ Declaration:
     }
     | VarDecl  {
         $$ = &(init() << $1 >> "Declaration");
-        $$->data = $1->data;
+        COPS($$, $1);
     }
     ;
 
@@ -959,6 +959,7 @@ OperandName:
         cout << scope_prefix + $1 << endl;
         $$->place = new Place($1);
         $$->code = TAC::Init();
+        $$->data->lval = $$->place->name;
     }
     /* | QualifiedIdent { */
     /*     $$ = &(init() << $1 >> "OperandName"); */
@@ -1543,7 +1544,6 @@ Expression5:
     | UnaryExpr {
         $$ = &(init() << $1 >> "Expression5");
         COPS($$, $1);
-        fprintf(stdout, "EXPR OP HERE!! %x\n", $$->code);
     }
     ;
 
@@ -1599,6 +1599,7 @@ PrimaryExpr:
         $$->data->lValue = true;
         $$->place =
             new Place($1->place->toString() + "." + $2->place->toString());
+        $$->data->lval = $$->place->name;
     }
     | PrimaryExpr Index {
         $$ = &(init() << $1 << $2 >> "PrimaryExpr");
@@ -1624,18 +1625,30 @@ PrimaryExpr:
                         " provided, when needed was: ", tp->key->getType(), @2);
                 exit(1);
             }
-            /*$$->type = tp->base->clone();*/
+            // No global type sent
         } else {
             ERROR("It is not possible to use index on something of type: ",
                   tp->getType());
             exit(1);
         }
-        $$->data = new Data("arrayaccess");
-        $$->data->child = $1->data;
-        $$->data->child->next = new Data("__VALUE_AT__");
-        $$->data->child->next->next = $2->data;
+        /* $$->data = new Data("arrayaccess"); */
+        /* $$->data->child = $1->data; */
+        /* $$->data->child->next = new Data("__VALUE_AT__"); */
+        /* $$->data->child->next->next = $2->data; */
+        $$->data = $1->data;
         $$->data->lValue = true;
+        $$->code = TAC::Init() << $1->code << $2->code;
 
+        auto lvalOfPrim = $1->data->lval;
+        auto tmp = nameInScope(lvalOfPrim);
+        if (tmp != "") lvalOfPrim = tmp;
+
+        auto lvalOfIndex = $2->place->name;
+        tmp = nameInScope(lvalOfIndex);
+        if (tmp != "") lvalOfIndex = tmp;
+
+        $$->place = new Place(lvalOfPrim + "[" + lvalOfIndex + "]");
+        $$->data->lval = $$->place->name;
     }
     | PrimaryExpr Slice  { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
     | PrimaryExpr TypeAssertion { $$ = &(init() << $1 << $2 >> "PrimaryExpr"); }
@@ -1736,8 +1749,7 @@ Selector:
 Index:
     '[' Expression ']'  {
         $$ = &(init() << $2 >> "Index");
-        $$->data = $2->data;
-        $$->type = $2->type;
+        COPS($$, $2);
     }
     ;
 
@@ -1883,7 +1895,7 @@ FieldDecl:
     /* | AnonymousField { $$ = &(init() << $1 >> "FieldDecl"); } */
     ;
 
-PointerType: 
+PointerType:
     STAR Operand { // This is WRONG as of now. I mistakenly put code for dereference expression here
         $$ = &(init() << $1 << $2 >> "PointerType");
     }
@@ -1895,7 +1907,7 @@ ArrayType:
         if($2->type->getType() == "int") {
             if(isLiteral($2)) {
                 int n = getIntValue($2);
-                Type* tp = $2->type->clone();
+                Type* tp = $4->type->clone();
                 $$->type = new ArrayType(n, tp);
             } else {
                 ERROR_N("Array Index is not a constant literal:\n",

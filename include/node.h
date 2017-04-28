@@ -40,6 +40,7 @@ struct Data {
     Data *next = NULL;
     Data *child = NULL;
     bool lValue = false;
+    string lval = "<no_lval>";
 
     Data(string);
 };
