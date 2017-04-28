@@ -13,29 +13,23 @@ JE                        label6
 DECL                      5-4-3-2-1-0-j             
 STOR                      0                         5-4-3-2-1-0-j             
 LABL                      label3                    
-STOR                      5-4-3-2-1-0-j             *-tmp-int-5               
-CMP                       20                        *-tmp-int-5               
-LT                        *-tmp-int-5               
-STOR                      *-tmp-int-5               *-tmp-bool-4              
-CMP                       0                         *-tmp-bool-4              
+STOR                      5-4-3-2-1-0-j             *-tmp-int-3               
+CMP                       20                        *-tmp-int-3               
+LT                        *-tmp-int-3               
+STOR                      *-tmp-int-3               *-tmp-bool-2              
+CMP                       0                         *-tmp-bool-2              
 JE                        label4                    
 PUSHARG                   0                         "%d %d, "                 
 PUSHARG                   1                         2-1-0-i                   
 PUSHARG                   2                         5-4-3-2-1-0-j             
 CALL                      ffi.printf                
-STOR                      5-4-3-2-1-0-j             *-tmp-int-7               
-ADD                       1                         *-tmp-int-7               
-STOR                      *-tmp-int-7               *-tmp-int-6               
-STOR                      *-tmp-int-6               5-4-3-2-1-0-j             
+ADD                       1                         5-4-3-2-1-0-j             
 JMP                       label3                    
 LABL                      label2                    
 LABL                      label4                    
 PUSHARG                   0                         "\n"                      
 CALL                      ffi.printf                
-STOR                      2-1-0-i                   *-tmp-int-3               
-ADD                       1                         *-tmp-int-3               
-STOR                      *-tmp-int-3               *-tmp-int-2               
-STOR                      *-tmp-int-2               2-1-0-i                   
+ADD                       1                         2-1-0-i                   
 JMP                       label5                    
 LABL                      label1                    
 LABL                      label6                    

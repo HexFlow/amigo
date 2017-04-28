@@ -1,4 +1,7 @@
 target
+test_suite/amigo_exec/*
+test_suite/go_exec/*
+test_suite/tmp_exec/*
 default.nix
 tags
 /gust

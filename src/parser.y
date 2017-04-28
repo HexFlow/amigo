@@ -139,7 +139,7 @@ umap<string, Type*> ttable; // types (due to typedef or predeclared)
 }
 
 %token <sval> INT FLOAT TRUE FALSE IDENT B1 B2 B3 B4 B5 D4 D5 STAR ECURLY UN_OP
-%token <sval> RAW_ST INR_ST ASN_OP LEFT INC DEC DECL CONST DOTS FUNC MAP
+%token <sval> RAW_ST INR_ST ASN_OP LEFT INC DEC DECL CONST DOTS FUNC MAP INCR DECR
 %token <sval> GO RETURN BREAK CONT GOTO FALL IF ELSE SWITCH CASE END MAKE NEW
 %token <sval> DEFLT SELECT TYPE ISOF FOR RANGE DEFER VAR IMPORT PACKGE STRUCT
 %type <nt> SourceFile Expression Expression1 Expression2 Expression3 EmptyExpr
@@ -341,7 +341,7 @@ IncDecStmt:
         $$->data = new Data(string($2)+"unary");
         $$->data->child = $1->data;
         $$->code = TAC::Init() << $1->code <<
-            new Instr(TAC::ADD, $1->place, new Place("1"));
+            new Instr(TAC::ADD, new Place("1"), $1->place);
         scopeExpr($$->code);
     }
     | Expression DEC {
@@ -349,7 +349,23 @@ IncDecStmt:
         $$->data = new Data(string($2)+"unary");
         $$->data->child = $1->data;
         $$->code = TAC::Init() << $1->code <<
-            new Instr(TAC::SUB, $1->place, new Place("1"));
+            new Instr(TAC::SUB, new Place("1"), $1->place);
+        scopeExpr($$->code);
+    }
+    | Expression INCR Expression {
+        $$ = &(init() << $1 << $2 << $3 >> "IncDecStmt");
+        $$->data = new Data(string($2));
+        $$->data->child = $1->data;
+        $$->code = TAC::Init() << $1->code << $3->code <<
+            new Instr(TAC::ADD, $3->place, $1->place);
+        scopeExpr($$->code);
+    }
+    | Expression DECR Expression {
+        $$ = &(init() << $1 << $2 << $3 >> "IncDecStmt");
+        $$->data = new Data(string($2));
+        $$->data->child = $1->data;
+        $$->code = TAC::Init() << $1->code << $3->code << 
+            new Instr(TAC::SUB, $3->place, $1->place);
         scopeExpr($$->code);
     }
     ;

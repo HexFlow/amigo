@@ -30,6 +30,7 @@ $(BUILD)/gust.tab.c $(BUILD)/gust.tab.h: $(CPP)/parser.y
 
 clean:
 	rm -rf $(BUILD) $(DOTDIR) $(BIN)
+	rm -f *.st *.tac out.s a.out
 	rm -f dot*.ps
 
 # For drawing parse tree

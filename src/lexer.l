@@ -62,6 +62,8 @@ COMMNT (\/\*((\*[^\/])|{NEWLINE}|[^*])*\*\/)
 ASN_OP (({ADD_OP}|{MUL_OP})?=)
 LEFT   (<-)
 INC    "++"
+INCR   "+="
+DECR   "-="
 DEC    "--"
 DECL   ":="
 CONST  "const"
@@ -112,6 +114,8 @@ FALSE  "false"
 {DEC}/[\n]                             { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return DEC; }
 {INC}                                  { yylval.sval = strdup(yytext); return INC; }
 {DEC}                                  { yylval.sval = strdup(yytext); return DEC; }
+{INCR}                                 { yylval.sval = strdup(yytext); return INCR; }
+{DECR}                                 { yylval.sval = strdup(yytext); return DECR; }
 
 {LEFT}                                 { yylval.sval = strdup(yytext); return LEFT; }
 {DECL}                                 { yylval.sval = strdup(yytext); return DECL; }

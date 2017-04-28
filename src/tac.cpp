@@ -146,6 +146,10 @@ TAC::INSTR_TYPE TAC::opToOpcode(string oper) {
         return ADD;
     else if (oper == "-")
         return SUB;
+    // else if (oper == "+=")
+    // return INCR;
+    // else if (oper == "-=")
+    // return DECR;
     else if (oper == "*")
         return MUL;
     else if (oper == "/")
