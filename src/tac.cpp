@@ -74,6 +74,12 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "LABL";
         case TAC::RET:
             return "RET";
+        case TAC::RETSETUP:
+            return "RETSETUP";
+        case TAC::RETEND:
+            return "RETEND";
+        case TAC::PUSHRET:
+            return "PUSHRET";
         case TAC::EXIT:
             return "EXIT";
         case TAC::NOT:

@@ -1054,11 +1054,16 @@ ReturnStmt:
         $$ = &(init() << $2 >> "ReturnStmt");
         $$->data = new Data(string($1));
         $$->data->child = $2->data;
+
+        auto placeptr = $2->place;
+
+        $$->code = TAC::Init();
         if (curFxnType == NULL) {
             ERROR("Function has no return type provided", "");
             exit(1);
         }
         Type *rT = curFxnType, *eT = $2->type;
+        $$->code << new Instr(TAC::RETSETUP);
         while (rT != NULL || eT != NULL) {
             if (rT == NULL || eT == NULL) {
                 ERROR("Different number of return values than expected", "");
@@ -1068,9 +1073,12 @@ ReturnStmt:
                 ERROR("Mismatching return types. Expected " + rT->getType() + " and got ", eT->getType());
                 exit(1);
             }
+            $$->code << new Instr(TAC::PUSHRET, placeptr);
             rT = rT->next;
             eT = eT->next;
+            placeptr = placeptr->next;
         }
+        $$->code << new Instr(TAC::RETEND);
     }
     ;
 
@@ -1660,10 +1668,20 @@ PrimaryExpr:
         auto isFFI = !strncmp($1->place->name.c_str(), "ffi.", 4);
         $$->type = resultOfFunctionApp($1->type, $2->type, isFFI);
 
-        $$->code = TAC::Init() << $2->code <<
-            new Instr(TAC::CALL, $1->place);
+        $$->code = TAC::Init() << $2->code << new Instr(TAC::CALL, $1->place);
         scopeExpr($$->code);
-        $$->place = new Place("$esp");
+        auto retPtr = $$->type;
+        auto placePtr = new Place("");
+        $$->place = placePtr;
+        
+        while(retPtr != NULL) {
+            auto tmpPlace = new Place(retPtr);
+            placePtr->next = tmpPlace;
+            $$->code << new Instr(TAC::POP, tmpPlace);
+            retPtr = retPtr->next;
+            placePtr = placePtr->next;
+        }
+        $$->place = $$->place->next;
 
         Type *tmp = $$->type;
         Place *rtmp = $$->place;

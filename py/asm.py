@@ -130,10 +130,6 @@ class ASM:
         self.ins.append('\t.text')
         self.ins.append('')
 
-        self.tac_init_fxns()
-
-        self.ins.append('')
-
         self.tac_ins_convert(self.parsed.tac)
 
         self.ins.append('')
@@ -192,7 +188,7 @@ class ASM:
                 self.ins += self.registers.wb()
                 self.ins += list(reversed(arglist))
                 self.ins.append('\txor\t%eax,\t%eax')
-                self.ins.append('\tcall' + self.arg_parse(tac[1:]))
+                self.ins.append('\tcall' + self.arg_parse(["#"+tac[1]]))
                 arglist = []
             elif tac[0] == 'ADD':
                 self.ins.append('\tadd' + self.arg_parse(tac[1:]))
@@ -255,7 +251,17 @@ class ASM:
                 self.ins.append('\tmov %rbp, %rsp')
                 self.ins.append('\tpop %rbp')
                 self.ins.append('\tret' + self.arg_parse(tac[1:]))
-
+            elif tac[0] == 'RETSETUP':
+                self.ins += self.registers.wb()
+                self.ins.append('')
+                self.ins.append('\tmov %rbp, %rsp')
+                self.ins.append('\tpop %rbp')
+            elif tac[0] == 'PUSHRET':
+                self.ins.append('\tpush' + self.arg_parse(tac[1:]))
+            elif tac[0] == 'POP':
+                self.ins.append('\tpop' + self.arg_parse(tac[1:]))
+            elif tac[0] == 'RETEND':
+                self.ins.append('\tret' + self.arg_parse(tac[1:]))
             elif tac[0] == 'NEWFUNCEND':
                 print("GRIM REAPER IS COMING")
                 self.ins += self.registers.wb()
@@ -315,20 +321,22 @@ class ASM:
                 if need_rval:
                     self.ins.append('\tmov\t({0}), {0}'.format(basereg))
                 parsed_args.append(basereg)
-            elif '.' in arg:
-                # This is a struct selector object
-                tmp = arg.split('.')
-                struct = tmp[0]
-                select = tmp[1]
-                if struct == "ffi":
-                    parsed_args.append('\t' + select)
-                elif struct in self.parsed.tt:
-                    parsed_args.append(
-                        '\ts' + struct.upper() + 'f' + select.upper())
+            elif '#' in arg:
+                if '.' not in arg:
+                    parsed_args.append('\t' + arg[3:])
                 else:
-                    print("ERROR:")
-                    print("Unknown type used as struct")
-                    exit(1)
+                    arg = arg[1:]
+                    tmp = arg.split('.')
+                    struct = tmp[0]
+                    select = tmp[1]
+                    if struct == "ffi":
+                        parsed_args.append('\t' + select)
+                    elif struct in self.parsed.tt:
+                        parsed_args.append('\ts' + struct.upper() + 'f' + select.upper())
+                    else:
+                        print("ERROR:")
+                        print("Unknown type used as struct")
+                        exit(1)
             elif (arg[0].isdigit() or arg[0] == '*') and '-' in arg:
                 # Is a variable from symbol table
                 r, ins = self.registers.get_reg(arg)
@@ -341,20 +349,6 @@ class ASM:
                 # Immediate
                 parsed_args.append('\t' + arg)
         return ','.join(parsed_args)
-
-    def tac_init_fxns(self):
-        self.ins += """
-sFMTfPRINTF:
-\tpush %rbp
-\tmov %rsp, %rbp
-\tmov $1, %rax
-\tmov $1, %rdi
-\tmov 16(%rbp), %rsi
-\tmov $1024, %rdx
-\tsyscall
-\tmov %rbp, %rsp
-\tpop %rbp
-\tret""".split('\n')
 
     def print_asm(self):
         for asm in self.ins:
