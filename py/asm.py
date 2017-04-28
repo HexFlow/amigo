@@ -101,6 +101,8 @@ class Register:
                            for _ in range(8)])
 
         if var in self.locations and self.locations[var][0] != "":
+            self.count += 1
+            self.regs[self.locations[var][0]][1] = self.count
             return (self.locations[var][0], [])
 
         reg = self.get_lru()
@@ -113,6 +115,7 @@ class Register:
         if var in self.locations:
             # If it was not a temporary variable
             self.locations[var][0] = reg
+            ins.append('\t# Swapping out {} for {}'.format(reg, var))
             ins.append('\tmov\t{}, {}'.format(self.locations[var][1], reg))
         else:
             # This is temporary
