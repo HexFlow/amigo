@@ -156,6 +156,14 @@ run_test()
     fi
 }
 
+mkdir -p $BASEDIR/amigo_exec
+mkdir -p $BASEDIR/amigo_out
+mkdir -p $BASEDIR/go_codes
+mkdir -p $BASEDIR/go_exec
+mkdir -p $BASEDIR/go_out
+mkdir -p $BASEDIR/inputs
+mkdir -p $BASEDIR/tmp
+
 printf "Cleaning up dir ${Cyan}go_exec${Color_Off}..\n"
 $(rm -f $BASEDIR/go_exec/*)
 printf "Cleaning up dir ${Cyan}go_out${Color_Off}..\n"

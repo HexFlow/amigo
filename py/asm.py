@@ -179,11 +179,11 @@ class ASM:
                 if "[" in tac[1]:
                     where_mem_is = self.arg_parse([tac[1]]).strip()
                     where_to_write = self.arg_parse([tac[2]]).strip()
-                    self.ins.append('\tmov\t({}),\t{}'.format(
+                    self.ins.append('\tmov\t{},\t{}'.format(
                                     where_mem_is, where_to_write))
                 elif len(tac) > 2 and "[" in tac[2]:
                     what_to_write = self.arg_parse([tac[1]]).strip()
-                    where_to_write = self.arg_parse([tac[2]]).strip()
+                    where_to_write = self.arg_parse([tac[2]], False).strip()
                     self.ins.append('\tmovq\t{}, ({})'.
                                     format(what_to_write, where_to_write))
                 else:
@@ -284,7 +284,7 @@ class ASM:
         self.consts.append('\t.asciz\t' + op)
         return '$' + name
 
-    def arg_parse(self, args):
+    def arg_parse(self, args, need_rval=True):
         parsed_args = []
         for arg in args:
             if arg.startswith('"'):
@@ -309,6 +309,9 @@ class ASM:
                     # Now load index*scale into index
                     self.ins.append('\timulq\t${}, {}'.format(basetype.size, index))
                     self.ins.append('\taddq\t{}, {}'.format(index, basereg))
+
+                if need_rval:
+                    self.ins.append('\tmov\t({0}), {0}'.format(basereg))
                 parsed_args.append(basereg)
             elif '.' in arg:
                 # This is a struct selector object
