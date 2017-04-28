@@ -94,6 +94,8 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "ASN";
         case TAC::DECL:
             return "DECL";
+        case TAC::ADDR:
+            return "ADDR";
         case TAC::ARGDECL:
             return "ARGDECL";
         case TAC::PUSH:
@@ -110,6 +112,10 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "NEWFUNC";
         case TAC::NEWFUNCEND:
             return "NEWFUNCEND";
+        case TAC::NEG:
+            return "NEG";
+        case TAC::DEREF:
+            return "DEREF";
         default:
             return "UNKNOWN";
     }
@@ -164,8 +170,16 @@ TAC::INSTR_TYPE TAC::opToOpcode(string oper) {
         return OR;
     else if (oper == "=")
         return ASN;
-    else
-        return GOTO;
+    else if (oper == "&unary")
+        return ADDR;
+    else if (oper == "-unary")
+        return NEG;
+    else if (oper == "*unary")
+        return DEREF;
+    else {
+        printf("Wrong operator!! %s\n", oper.c_str());
+        exit(1);
+    }
 }
 
 vector<TAC::Instr *> &TAC::Init() {

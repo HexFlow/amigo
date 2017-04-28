@@ -1,7 +1,7 @@
 package main
 
 func main() {
-	a := 6
+	a := 4
 	if a <= 10 {
 		if a <= 5 {
 			ffi.printf("A is <= 5\n")

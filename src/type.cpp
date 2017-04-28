@@ -113,3 +113,14 @@ FunctionType::FunctionType(vector<Type *> _argTypes, vector<Type *> _retTypes)
     : argTypes(_argTypes), retTypes(_retTypes) {
     classType = FUNCTION_TYPE;
 }
+
+string PointerType::getType() {
+    string out = "*";
+    return out + BaseType->getType();
+}
+Type *PointerType::clone() {
+    return (new PointerType(*this));
+}
+PointerType::PointerType(Type *base) : BaseType(base) {
+    classType = POINTER_TYPE;
+}

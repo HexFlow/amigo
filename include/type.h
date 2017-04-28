@@ -66,7 +66,6 @@ struct MapType : Type {
     string getType();
     Type *clone();
     MapType(Type *, Type *);
-    ClassType classType = MAP_TYPE;
 };
 
 struct FunctionType : Type {
@@ -75,6 +74,14 @@ struct FunctionType : Type {
 
     string getType();
     FunctionType(vector<Type *> args, vector<Type *> rets);
+    Type *clone();
+};
+
+struct PointerType : Type {
+    Type *BaseType;
+
+    string getType();
+    PointerType(Type *base);
     Type *clone();
 };
 

@@ -76,6 +76,17 @@ class Register:
         print("Flush instructions: ", ins)
         return ins
 
+    def wb_without_flush(self, arr=None):
+        if arr == None:
+            arr = self.regs.keys()
+        ins = []
+        for k in arr:
+            if self.regs[k][0]:
+                loc = self.locations[self.regs[k][0]][1]
+                if loc != "---":
+                    ins.append("\tmov {},\t{}".format(k, loc))
+        return ins
+
     def get_reg(self, var):
         if var in self.locations and self.locations[var][0] != "":
             return (self.locations[var][0], [])
@@ -144,9 +155,9 @@ class ASM:
                 self.ins += self.registers.wb()
                 self.ins.append('\tje' + self.arg_parse(tac[1:]))
             elif tac[0] == 'JEQZ':
-                self.ins += self.registers.wb()
                 arg1 = self.arg_parse([tac[1]])
                 self.ins.append('\tcmp {}, {}'.format("$0", arg1))
+                self.ins += self.registers.wb()
                 self.ins.append('\tje' + self.arg_parse([tac[2]]))
             elif tac[0] == 'PUSHARG':
                 if int(tac[1]) < 6:
@@ -164,6 +175,11 @@ class ASM:
                 arglist = []
             elif tac[0] == 'ADD':
                 self.ins.append('\tadd' + self.arg_parse(tac[1:]))
+            elif tac[0] == 'ADDR':
+                self.ins.append('\tlea {}, '.format(self.registers.locations[tac[1]][1]) + self.arg_parse(tac[2:]))
+            elif tac[0] == 'DEREF':
+                self.ins += self.registers.wb_without_flush()
+                self.ins.append('\tmov ({}), '.format(self.arg_parse(tac[1:2])) + self.arg_parse(tac[2:]))
             elif tac[0] == 'EQ':
                 reg = self.arg_parse(tac[1:]).strip()
                 self.ins.append('\tmov $0,' + reg)
@@ -224,6 +240,13 @@ class ASM:
 \tmov $60, %rax
 \txor %rdi, %rdi
 \tsyscall""".split('\n')
+            elif tac[0] == 'DECL':
+                pass
+            elif tac[0] == 'NEG':
+                self.ins.append('\tneg' + self.arg_parse(tac[1:]))
+            else:
+                print("Unknown TAC ", tac[0])
+                exit(1)
 
             i = i + 1
 

@@ -177,8 +177,8 @@ FALSE  "false"
 \|                                     { yylval.sval = strdup(yytext); return B4; }
 \+|-|\^                                { yylval.sval = strdup(yytext); return D4; }
 \*                                     { yylval.sval = strdup(yytext); return STAR; }
-{MUL_OP}                               { yylval.sval = strdup(yytext); return B5; }
 &                                      { yylval.sval = strdup(yytext); return D5; }
+{MUL_OP}                               { yylval.sval = strdup(yytext); return B5; }
 \+|-|!|\^|\*|&|{LEFT}                  { yylval.sval = strdup(yytext); return UN_OP; }
 {ASN_OP}                               { yylval.sval = strdup(yytext); return ASN_OP; }
 

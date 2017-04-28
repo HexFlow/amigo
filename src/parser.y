@@ -1527,6 +1527,7 @@ Expression5:
     | UnaryExpr {
         $$ = &(init() << $1 >> "Expression5");
         COPS($$, $1);
+        fprintf(stdout, "EXPR OP HERE!! %x\n", $$->code);
     }
     ;
 
@@ -1539,11 +1540,28 @@ UnaryExpr:
         $$ = &(init() << $1 << $2 >> "UnaryExpr");
         $$->data = new Data($1->data->name + "unary");
         $$->data->child = $2->data;
-        $$->type = $2->type;
-
-        $$->place = new Place($2->type);
-        $$->code = TAC::Init() << $2->code <<
-            (new Instr(TAC::opToOpcode($1->data->name), $2->place));
+        $$->code = TAC::Init() << $2->code;
+        if($$->data->name == "&unary") {
+            $$->type = new PointerType($2->type);
+            auto tmpPlace = new Place($$->type);
+            $$->code << (new Instr(TAC::opToOpcode($$->data->name), $2->place, tmpPlace));
+            $$->place = tmpPlace;
+        } else if($$->data->name == "*unary") {
+            if($2->type->classType != POINTER_TYPE) {
+                ERROR_N("Attempting to dereference a non pointer: ", "", @2);
+            }
+            $$->type = dynamic_cast<PointerType*>($2->type)->BaseType->clone();
+            auto tmpPlace = new Place($$->type);
+            $$->code << (new Instr(TAC::DEREF, $2->place, tmpPlace));
+            $$->place = tmpPlace;
+            $$->type = new PointerType($2->type);
+        } else {
+            $$->type = $2->type;
+            auto tmpPlace = new Place($$->type);
+            $$->code << (new Instr(TAC::STOR, $2->place, tmpPlace));
+            $$->code << (new Instr(TAC::opToOpcode($$->data->name), tmpPlace));
+            $$->place = tmpPlace;
+        }
     }
     ;
 
@@ -1849,10 +1867,9 @@ FieldDecl:
     /* | AnonymousField { $$ = &(init() << $1 >> "FieldDecl"); } */
     ;
 
-PointerType:
-    STAR Operand {
+PointerType: 
+    STAR Operand { // This is WRONG as of now. I mistakenly put code for dereference expression here
         $$ = &(init() << $1 << $2 >> "PointerType");
-        /*$$->ast = new Object($2->ast, true);*/
     }
     ;
 
@@ -1929,6 +1946,10 @@ UnaryOp:
         $$->data = new Data{$1};
     }
     | D5      {
+        $$ = &(init() << $1 >> "UnaryOp");
+        $$->data = new Data{$1};
+    }
+    | STAR {
         $$ = &(init() << $1 >> "UnaryOp");
         $$->data = new Data{$1};
     }
