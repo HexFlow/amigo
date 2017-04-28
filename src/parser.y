@@ -364,7 +364,7 @@ IncDecStmt:
         $$ = &(init() << $1 << $2 << $3 >> "IncDecStmt");
         $$->data = new Data(string($2));
         $$->data->child = $1->data;
-        $$->code = TAC::Init() << $1->code << $3->code << 
+        $$->code = TAC::Init() << $1->code << $3->code <<
             new Instr(TAC::SUB, $3->place, $1->place);
         scopeExpr($$->code);
     }
@@ -379,7 +379,7 @@ Assignment:
         Place* rplace = $3->place;
         Data* rhsd = $3->data;
 
-        $$->code = TAC::Init() << $3->code;
+        $$->code = TAC::Init() << $3->code << $1->code;
 
         while(lhs != NULL || rhs != NULL) {
             if(lhs == NULL || rhs == NULL) {

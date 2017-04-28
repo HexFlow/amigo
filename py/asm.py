@@ -176,7 +176,7 @@ class ASM:
             elif tac[0] == 'STOR':
                 # Check if we need complex lvalue
                 # TODO ensure both are not memory locations
-                if "[" in tac[1]:
+                if "[" in tac[1] and "[" not in tac[2]:
                     where_mem_is = self.arg_parse([tac[1]]).strip()
                     where_to_write = self.arg_parse([tac[2]]).strip()
                     self.ins.append('\tmov\t{},\t{}'.format(
@@ -228,7 +228,7 @@ class ASM:
                 self.ins.append('\tmov $0,' + reg)
                 self.ins.append('\tsetne ' + self.registers.byteMap[reg])
             elif tac[0] == 'CMP':
-                self.ins.append('\tcmp' + self.arg_parse(tac[1:]))
+                self.ins.append('\tcmp ' + self.arg_parse(tac[1:]))
             elif tac[0] == 'NEWFUNC':
                 self.ins += self.registers.wb()
                 self.ins.append('\tpush %rbp')
