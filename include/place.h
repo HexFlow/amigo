@@ -13,10 +13,11 @@ private:
     string nameFromSize(Type *type);
 
 public:
-    string name;                /* To show while printing */
-    Type *type;                 /* Needed to allocate space */
+    string name; /* To show while printing */
+    Type *type;  /* Needed to allocate space */
     Place *next;
 
+    Place();
     Place(Type *_type);
     Place(Type *_type, string _name);
     Place(string name);

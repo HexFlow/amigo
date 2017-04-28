@@ -4,6 +4,12 @@
 
 int Place::_id = 0;
 
+Place::Place() {
+    type = NULL;
+    name = "*-tmp-" + to_std_string(_id++);
+    next = NULL;
+}
+
 Place::Place(Type *_type) {
     type = _type;
     name = "*-tmp-" + nameFromSize(type) + "-" + to_std_string(_id++);
@@ -27,9 +33,11 @@ string Place::nameFromSize(Type *_type) {
         case BASIC_TYPE:
             return _type->getType();
         case ARRAY_TYPE:
-            return "Array-" + nameFromSize(dynamic_cast<ArrayType *>(_type)->base);
+            return "Array-" +
+                   nameFromSize(dynamic_cast<ArrayType *>(_type)->base);
         case SLICE_TYPE:
-            return "Slice-" + nameFromSize(dynamic_cast<SliceType *>(_type)->base);
+            return "Slice-" +
+                   nameFromSize(dynamic_cast<SliceType *>(_type)->base);
         case STRUCT_TYPE:
             return "Struct-";
         case MAP_TYPE:

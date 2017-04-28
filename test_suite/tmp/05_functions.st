@@ -1,8 +1,10 @@
 Symbol table:
-0-getVal :: func () (int, )
 0-main :: func () ()
-ffi :: ffi
+0-getVal :: func () (int, )
 fmt :: fmt
+ffi :: ffi
+1-0-a :: int
+0-getVal2 :: func (int, ) (int, )
 
 Type table:
 ffi :: struct { }

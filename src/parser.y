@@ -653,14 +653,14 @@ Signature:
 
         Type*ptr = $1->type;
         Data*dptr = $1->data;
+        int i = 0;
         while(ptr != NULL) {
             Type* tmp = ptr->clone();
             tmp->next = NULL;
             args.push_back(tmp);
 
             // TODO We are assuming there are only primary idents here
-            $$->code << new Instr(TAC::ARGDECL,
-                                  scope_prefix + dptr->name);
+            $$->code << new Instr(TAC::ARGDECL, to_std_string(i++), scope_prefix + dptr->name);
 
             ptr = ptr->next;
             dptr = dptr->next;
@@ -681,13 +681,13 @@ Signature:
 
         Type*ptr = $1->type;
         Data*dptr = $1->data;
+        int i=0;
         while(ptr != NULL) {
             Type* tmp = ptr->clone();
             tmp->next = NULL;
 
             // TODO We are assuming there are only primary idents here
-            $$->code << new Instr(TAC::ARGDECL,
-                                  scope_prefix + dptr->name);
+            $$->code << new Instr(TAC::ARGDECL, to_std_string(i++), scope_prefix + dptr->name);
 
             args.push_back(tmp);
             ptr = ptr->next;
@@ -1058,12 +1058,18 @@ ReturnStmt:
         auto placeptr = $2->place;
 
         $$->code = TAC::Init();
+        $$->code << $2->code;
         if (curFxnType == NULL) {
             ERROR("Function has no return type provided", "");
             exit(1);
         }
         Type *rT = curFxnType, *eT = $2->type;
-        $$->code << new Instr(TAC::RETSETUP);
+        /*$$->code << new Instr(TAC::RETSETUP);*/
+
+        auto tmp = new Place();
+        auto tmp2 = new Place();
+        $$->code << new Instr(TAC::RETSETUP, tmp, tmp2);
+
         while (rT != NULL || eT != NULL) {
             if (rT == NULL || eT == NULL) {
                 ERROR("Different number of return values than expected", "");
@@ -1073,12 +1079,14 @@ ReturnStmt:
                 ERROR("Mismatching return types. Expected " + rT->getType() + " and got ", eT->getType());
                 exit(1);
             }
+
             $$->code << new Instr(TAC::PUSHRET, placeptr);
             rT = rT->next;
             eT = eT->next;
             placeptr = placeptr->next;
         }
-        $$->code << new Instr(TAC::RETEND);
+        $$->code << new Instr(TAC::RETEND, tmp, tmp2);
+        scopeExpr($$->code);
     }
     ;
 

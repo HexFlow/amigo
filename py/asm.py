@@ -19,6 +19,8 @@ class Register:
         '%r15': [None, 0]
     }
 
+    regEIP = None
+
     argRegister = {
         '0': '%rdi',
         '1': '%rsi',
@@ -60,7 +62,7 @@ class Register:
                 minval = self.regs[reg][1]
         return minreg
 
-    def wb(self, arr=None):
+    def wb(self, arr=None, memOnly=False):
         if arr:
             print('Requested wb of ', arr, self.regs[arr[0]][0])
         if arr is None:
@@ -70,11 +72,12 @@ class Register:
             if self.regs[k][0]:
                 loc = self.locations[self.regs[k][0]][1]
                 print("FREEING THE SOUL OF " + k + " " + loc)
-                if loc != "---":
-                    ins.append("\tmov {},\t{}".format(k, loc))
-                self.locations[self.regs[k][0]][0] = ''
-                self.regs[k][0] = None
-                self.regs[k][1] = 0
+                if not memOnly or loc != '---':
+                    if loc != "---":
+                        ins.append("\tmov {},\t{}".format(k, loc))
+                    self.locations[self.regs[k][0]][0] = ''
+                    self.regs[k][0] = None
+                    self.regs[k][1] = 0
         print("Flush instructions: ", ins)
         return ins
 
@@ -169,6 +172,16 @@ class ASM:
                     self.ins.append('\tmov ' + self.arg_parse([tac[2], tac[1]]))
                 else:
                     arglist.append('\tpush' + self.arg_parse([tac[2]]))
+            elif tac[0] == 'ARGDECL':
+                argNo = int(tac[1])
+                if argNo < 6:
+                    tac[1] = self.registers.argRegister[tac[1]]
+                    self.ins.append('\tmov {}, {}'.format(tac[1], self.arg_parse([tac[2]])))
+                else:
+                    argNo -= 6
+                    offs = argNo * 8
+                    self.ins.append('\tmov {}(%ebp), {}'.format(offs, self.arg_parse([tac[2]])))
+
             elif tac[0] == 'STOR':
                 # Check if we need complex lvalue
                 # TODO ensure both are not memory locations
@@ -237,11 +250,25 @@ class ASM:
                 while taclist[j][0] != 'NEWFUNCEND':
                     if taclist[j][0] == 'DECL':
                         offset += (self.st[taclist[j][1]].size)
-                        self.registers.locations[taclist[j][1]] = [
-                            "", str(-offset) + "(%rbp)"]
-                        self.ins.append('\t# Variable ' + taclist[j][1] +
-                                        ' will be at ' +
-                                        self.registers.locations[taclist[j][1]][1])
+                        self.registers.locations[taclist[j][1]] = ["",
+                                str(-offset) + "(%rbp)"]
+                        self.ins.append('\t# Variable ' + taclist[j][1] + 
+                                ' will be at ' + self.registers.locations[taclist[j][1]][1])
+                    elif taclist[j][0] == 'ARGDECL':
+                        offset += (self.st[taclist[j][2]].size)
+                        self.registers.locations[taclist[j][2]] = ["",
+                                str(-offset) + "(%rbp)"]
+                        self.ins.append('\t# Variable ' + taclist[j][2] +
+                                ' will be at ' + self.registers.locations[taclist[j][2]][1])
+                    else:
+                        _tac = taclist[j]
+                        for t in _tac:
+                            if t.startswith('*-tmp'):
+                                offset += 8
+                                self.registers.locations[t] = ["", str(-offset) + "(%rbp)"]
+                                self.ins.append('\t# Variable ' + t + 
+                                        ' will be at ' + self.registers.locations[t][1])
+
                     j += 1
                 self.ins.append('\tsub ${}, %rsp'.format(offset))
 
@@ -252,16 +279,32 @@ class ASM:
                 self.ins.append('\tpop %rbp')
                 self.ins.append('\tret' + self.arg_parse(tac[1:]))
             elif tac[0] == 'RETSETUP':
-                self.ins += self.registers.wb()
                 self.ins.append('')
+                self.ins += self.registers.wb()
                 self.ins.append('\tmov %rbp, %rsp')
-                self.ins.append('\tpop %rbp')
+                self.ins.append('\tmov %rbp, ' + self.arg_parse([tac[1]]))
+                self.ins.append('\tmov %rip, ' + self.arg_parse([tac[2]]))
+
+                # self.ins.append('')
+                # self.ins += self.registers.wb()
+                # self.ins.append('\tmov %rbp, %rsp')
+                # self.ins.append('\tpop %rbp')
+                # r, inst = self.registers.get_reg()
+                # self.ins += inst
+                # self.registers.regEIP = r
+                # self.ins.append('\tpop ' + r)
             elif tac[0] == 'PUSHRET':
-                self.ins.append('\tpush' + self.arg_parse(tac[1:]))
+                # self.ins.append('\tpush' + self.arg_parse(tac[1:]))
+                self.ins.append('\tmov' + self.arg_parse(tac[1:]) + '\t, -16(%rsp)')
+                self.ins.append('\tsub $8, %rsp')
             elif tac[0] == 'POP':
                 self.ins.append('\tpop' + self.arg_parse(tac[1:]))
             elif tac[0] == 'RETEND':
-                self.ins.append('\tret' + self.arg_parse(tac[1:]))
+                # r = self.registers.regEIP 
+                self.ins.append('\tmov\t, ' + self.arg_parse([1]) + '-16(%rsp)')
+                self.ins.append('\tmov\t, ' + self.arg_parse([2]) + '-8(%rsp)')
+                # self.ins.append('\tpush ' + r)
+                self.ins.append('\tret')
             elif tac[0] == 'NEWFUNCEND':
                 print("GRIM REAPER IS COMING")
                 self.ins += self.registers.wb()
