@@ -602,6 +602,7 @@ Declaration:
     TypeDecl {
         $$ = &(init() << $1 >> "Declaration");
         $$->data = $1->data;
+        COPS($$, $1);
     }
     | VarDecl  {
         $$ = &(init() << $1 >> "Declaration");
@@ -1015,7 +1016,7 @@ Element:
     ;
 
 TopLevelDecl:
-    Declaration    { $$ = &(init() << $1 >> "TopLevelDecl"); }
+    Declaration    { $$ = &(init() << $1 >> "TopLevelDecl"); COPS($$, $1); }
     | FunctionDecl {
         $$ = &(init() << $1 >> "TopLevelDecl");
         COPS($$, $1);
@@ -1783,11 +1784,16 @@ Slice:
     ;
 
 TypeDecl:
-    TYPE TypeSpec  { $$ = &(init() << $2 >> "TypeDecl"); }
+    TYPE TypeSpec  { $$ = &(init() << $2 >> "TypeDecl"); COPS($$, $2); }
     ;
 
 TypeSpec:
-    IDENT Type { $$ = &(init() << $1 << $2 >> "TypeSpec"); }
+    IDENT Type {
+        $$ = &(init() << $1 << $2 >> "TypeSpec");
+        typeInsert(string($1), $2->type);
+        $$->data = new Data("TypeSpec");
+        $$->code = TAC::Init();
+    }
     ;
 
 TypeAssertion:
