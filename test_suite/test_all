@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+
+set -e
+CURRPATH=$(pwd)
+SOURCE=$0
+
+# We need to resolve the path to the actual code directory
+# (Running executable could be a symlink)
+while [ -h "$SOURCE" ]; do
+    BASEDIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /* ]] && SOURCE="$BASEDIR/$SOURCE"
+done
+BASEDIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+abspath(){
+    cd "$(dirname "$1")"
+    printf "%s/%s\n" "$(pwd)" "$(basename "$1")"
+}
+
+ #Define xterm - supprted color codes
+
+# Reset
+Color_Off='\e[0m'
+
+# Regular Colors
+Black='\e[0;30m'
+Red='\e[0;31m'
+Green='\e[0;32m'
+Yellow='\e[0;33m'
+Blue='\e[0;34m'
+Purple='\e[0;35m'
+Cyan='\e[0;36m'
+White='\e[0;37m'
+
+# Bold
+BBlack='\e[1;30m'
+BRed='\e[1;31m'
+BGreen='\e[1;32m'
+BYellow='\e[1;33m'
+BBlue='\e[1;34m'
+BPurple='\e[1;35m'
+BCyan='\e[1;36m'
+BWhite='\e[1;37m'
+
+# Underline
+UBlack='\e[4;30m'
+URed='\e[4;31m'
+UGreen='\e[4;32m'
+UYellow='\e[4;33m'
+UBlue='\e[4;34m'
+UPurple='\e[4;35m'
+UCyan='\e[4;36m'
+UWhite='\e[4;37m'
+
+# Background
+On_Black='\e[40m'
+On_Red='\e[41m'
+On_Green='\e[42m'
+On_Yellow='\e[43m'
+On_Blue='\e[44m'
+On_Purple='\e[45m'
+On_Cyan='\e[46m'
+On_White='\e[47m'
+
+# High Intensity
+IBlack='\e[0;90m'
+IRed='\e[0;91m'
+IGreen='\e[0;92m'
+IYellow='\e[0;93m'
+IBlue='\e[0;94m'
+IPurple='\e[0;95m'
+ICyan='\e[0;96m'
+IWhite='\e[0;97m'
+
+# Bold High Intensity
+BIBlack='\e[1;90m'
+BIRed='\e[1;91m'
+BIGreen='\e[1;92m'
+BIYellow='\e[1;93m'
+BIBlue='\e[1;94m'
+BIPurple='\e[1;95m'
+BICyan='\e[1;96m'
+BIWhite='\e[1;97m'
+
+# High Intensity backgrounds
+On_IBlack='\e[0;100m'   # Black
+On_IRed='\e[0;101m'     # Red
+On_IGreen='\e[0;102m'   # Green
+On_IYellow='\e[0;103m'  # Yellow
+On_IBlue='\e[0;104m'    # Blue
+On_IPurple='\e[0;105m'  # Purple
+On_ICyan='\e[0;106m'    # Cyan
+On_IWhite='\e[0;107m'   # White
+
+multiPrint()
+{
+    local char=$1
+    local repeat=$2
+
+    while [ $repeat -gt 0 ]; do
+        printf "$char"
+        repeat=$((repeat - 1))
+    done
+}
+
+loading()
+{
+    local pid=$1
+    local delay=0.10
+    local num=1
+    printf ".%.0s" {1..$num}
+    sleep $delay
+    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+        multiPrint "\b" $num
+        multiPrint " " $num
+        multiPrint "\b" $num
+        local num=$(((num+1)%5))
+        multiPrint "." $num
+        sleep $delay
+    done
+    printf "  "
+}
+
+run_test()
+{
+    go build -o $BASEDIR/go_exec/$filename $BASEDIR/go_codes/$file
+    touch "$BASEDIR/inputs/$filename"
+    CMD="$BASEDIR/go_exec/$filename < $BASEDIR/inputs/$filename > $BASEDIR/go_out/$filename"
+    bash -c "$CMD; exit 0"
+    cp "$BASEDIR/go_codes/$file" "$BASEDIR/tmp/$file"
+    sed -i 's/fmt.Printf/ffi.printf/g' "$BASEDIR/tmp/$file"
+    sed -i 's/fmt.Scanf/ffi.scanf/g' "$BASEDIR/tmp/$file"
+    CMD="$BASEDIR/../bin/ast -tac $BASEDIR/tmp/${filename}.tac -st  $BASEDIR/tmp/${filename}.st $BASEDIR/tmp/${filename}.go > /dev/null 2>&1"
+    bash -c "$CMD; exit 0"
+
+    CMD="/usr/bin/env python3 $BASEDIR/../py/main.py $BASEDIR/tmp/${filename}.tac $BASEDIR/tmp/${filename}.st > /dev/null 2>&1"
+    bash -c "$CMD; exit 0"
+
+    if [ -f "out.s" ]; then
+      gcc -g out.s -o "$BASEDIR/amigo_exec/$filename"
+      rm -f out.s
+    else
+        printf "FAILURE\n"
+        return
+    fi
+    CMD="$BASEDIR/amigo_exec/$filename < $BASEDIR/inputs/$filename > $BASEDIR/amigo_out/$filename"
+    bash -c "$CMD; exit 0"
+
+    val1=$(cat $BASEDIR/go_out/$filename; printf "a")
+    val2=$(cat $BASEDIR/amigo_out/$filename; printf "a")
+    if [ "$val1" = "${val2}" ]; then
+        printf "SUCCESS\n"
+    else
+        printf "FAILURE\n"
+    fi
+}
+
+printf "Cleaning up dir ${Cyan}go_exec${Color_Off}..\n"
+$(rm -f $BASEDIR/go_exec/*)
+printf "Cleaning up dir ${Cyan}go_out${Color_Off}..\n"
+$(rm -f $BASEDIR/go_out/*)
+printf "Cleaning up dir ${Cyan}amigo_out${Color_Off}..\n"
+$(rm -f $BASEDIR/amigo_out/*)
+printf "Cleaning up dir ${Cyan}amigo_exec${Color_Off}..\n"
+$(rm -f $BASEDIR/amigo_exec/*)
+printf "Cleaning up dir ${Cyan}tmp${Color_Off}..\n"
+$(rm -f $BASEDIR/tmp/*)
+printf "Deleting stray .s files\n"
+$(rm -f $BASEDIR/*.s)
+
+fail_count=0
+total_count=0
+
+for file in $(ls "$BASEDIR/go_codes/");
+do
+    filename="${file%.*}"
+    printf "Running test for ${BIYellow}$filename${Color_Off}"
+    run_test > /tmp/amigoOutput &
+    loading $!
+    OUTPUT="$(cat /tmp/amigoOutput)"
+    if [ "$OUTPUT" = "SUCCESS" ];
+    then
+        printf " ${IGreen}PASSED${Color_Off}\n"
+        total_count=$((total_count+1))
+    else
+        printf " ${BIRed}FAILED${Color_Off}\n"
+        fail_count=$((fail_count+1))
+    fi
+done
+
+printf '\n'
+total_count=$((total_count+fail_count))
+
+if [ $fail_count -eq 0 ]; then
+    printf "${BGreen}ALL $total_count TESTS PASSED${Color_Off}\n"
+    exit 0
+else
+    printf "${IRed}$fail_count TESTS OUT OF $total_count FAILED.${Color_Off}\n"
+    exit 1
+fi
