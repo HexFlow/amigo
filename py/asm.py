@@ -285,10 +285,15 @@ class ASM:
                 offset = 0
                 while taclist[j][0] != 'NEWFUNCEND':
                     if taclist[j][0] == 'DECL':
-                        offset += (self.st[taclist[j][1]].size)
+                        curtype = self.st[taclist[j][1]]
+                        _size = curtype.size
+                        if curtype.__str__() in self.tt:
+                            _size = self.tt[curtype.__str__()].size
+
+                        offset += _size
                         self.registers.locations[taclist[j][1]] = [
                             "", str(-offset) + "(%rbp)"]
-                        self.ins.append('\t# Variable ' + taclist[j][1] +
+                        self.ins.append('\t# Variable of size ' + str(_size) + ' and name ' + taclist[j][1] +
                                         ' will be at ' + self.registers.locations[taclist[j][1]][1])
                     elif taclist[j][0] == 'ARGDECL':
                         offset += (self.st[taclist[j][2]].size)
@@ -447,6 +452,7 @@ class ASM:
                                 else:
                                     print(self.parsed.tt[key].__str__())
 
+                        self.ins += self.registers.wb_without_flush()
                         r, ins = self.registers.get_reg()
                         self.ins += ins
                         loc = self.registers.locations[tmp[0]][1]

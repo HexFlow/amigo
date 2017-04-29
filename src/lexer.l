@@ -96,6 +96,7 @@ VAR    (var)
 ECURLY (;)
 TRUE   "true"
 FALSE  "false"
+NIL    "nil"
 
 %x SEMIMODE
 
@@ -130,9 +131,11 @@ FALSE  "false"
 
 {TRUE}/[\n]                            { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return TRUE; }
 {FALSE}/[\n]                           { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return FALSE; }
+{NIL}/[\n]                             { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return NIL; }
 
 {TRUE}                                 { yylval.sval = strdup(yytext); return TRUE; }
 {FALSE}                                { yylval.sval = strdup(yytext); return FALSE; }
+{NIL}                                  { yylval.sval = strdup(yytext); return NIL; }
 
 {RETURN}/[\n]                          { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return RETURN; }
 {BREAK}/[\n]                           { yylval.sval = strdup(yytext); BEGIN(SEMIMODE); return BREAK; }

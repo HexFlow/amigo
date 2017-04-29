@@ -58,7 +58,7 @@ typedef TAC::Instr Instr;
         ERROR_N("Missing type info in node", D->data->name, aD);            \
         exit(1);                                                            \
     }                                                                       \
-    if(D->type->getType() != B->type->getType()) {                          \
+    if((D->type->getType() != B->type->getType()) && D->type->getType() != "nil") { \
         ERROR_N("Mismatched types : ", B->type->getType() +                 \
         " and " + D->type->getType(), aD);                                  \
         exit(1);                                                            \
@@ -138,7 +138,7 @@ umap<string, Type*> ttable; // types (due to typedef or predeclared)
     char *sval;
 }
 
-%token <sval> INT FLOAT TRUE FALSE IDENT B1 B2 B3 B4 B5 D4 D5 STAR ECURLY UN_OP
+%token <sval> INT FLOAT TRUE FALSE IDENT B1 B2 B3 B4 B5 D4 D5 STAR ECURLY UN_OP NIL
 %token <sval> RAW_ST INR_ST ASN_OP LEFT INC DEC DECL CONST DOTS FUNC MAP INCR DECR
 %token <sval> GO RETURN BREAK CONT GOTO FALL IF ELSE SWITCH CASE END MAKE NEW
 %token <sval> DEFLT SELECT TYPE ISOF FOR RANGE DEFER VAR IMPORT PACKGE STRUCT
@@ -410,7 +410,7 @@ Assignment:
                 exit(1);
             }
             if(getSymType(varLeft) != NULL) {
-                if(ltype->getType() != rhs->getType()) {
+                if((ltype->getType() != rhs->getType()) && rhs->getType() != "nil") {
                     ERROR_N(varLeft, " has a different type than RHS " + rhs->getType(), @1);
                     exit(1);
                 }
@@ -1999,6 +1999,12 @@ BasicLit:
         $$ = &(init() << $1 >> "BasicLit");
         $$->data = new Data{"$0"};
         $$->type = new BasicType("bool");
+        $$->place = new Place("$0");
+    }
+    | NIL {
+        $$ = &(init() << $1 >> "BasicLit");
+        $$->data = new Data{"$0"};
+        $$->type = new BasicType("nil");
         $$->place = new Place("$0");
     }
     ;

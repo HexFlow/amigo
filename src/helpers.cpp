@@ -105,24 +105,24 @@ Type *getSymType(string name) {
         id = cur_prefix + name;
         if (isSymbol(id)) {
             auto k = stable[id];
-            if (k->classType == BASIC_TYPE) {
-                auto b = (BasicType *)k;
-                return ttable[b->base]->clone();
-            } else {
+            // if (k->classType == BASIC_TYPE) {
+            //     auto b = (BasicType *)k;
+            //     return ttable[b->base]->clone();
+            // } else {
                 return k->clone();
-            }
+            // }
         }
         cur_prefix = cur_prefix.substr(cur_prefix.find("-") + 1);
     }
     id = cur_prefix + name;
     if (isSymbol(id)) {
         auto k = stable[id];
-        if (k->classType == BASIC_TYPE) {
-            auto b = (BasicType *)k;
-            return ttable[b->base]->clone();
-        } else {
+        // if (k->classType == BASIC_TYPE) {
+        //     auto b = (BasicType *)k;
+        //     return ttable[b->base]->clone();
+        // } else {
             return k->clone();
-        }
+        // }
     }
     return NULL;
 }
@@ -136,10 +136,22 @@ Type *isValidMemberOn(Data *base, Data *method) {
         cout << base->name << " is not declared in this scope" << endl;
         exit(1);
     }
+
+    if (symType->classType == POINTER_TYPE &&
+        (dynamic_cast<PointerType*>(symType))->BaseType->classType == BASIC_TYPE) {
+        symType = (dynamic_cast<PointerType*>(symType))->BaseType;
+    }
+
+    if (symType->classType == BASIC_TYPE) {
+        symType = ttable[symType->getType()]->clone();
+    }
+
     if (symType->classType != STRUCT_TYPE &&
         (symType->classType != POINTER_TYPE || (
             (dynamic_cast<PointerType*>(symType))->BaseType->classType !=
             STRUCT_TYPE ))) {
+
+
         cout << base->name << " is not a struct type or pointer to struct" << endl;
         cout << symType->getType() << endl;
         exit(1);
@@ -453,7 +465,7 @@ void printCode(vector<TAC::Instr *> v) {
 
 Type *operatorResult(Type *a, Type *b, string op) {
     if (op == "==" || op == "&&" || op == "||" || op == "<" || op == ">" ||
-        op == "<=" || op == ">=") {
+        op == "<=" || op == ">=" || op == "!=") {
         return ttable["bool"];
     }
     return a;

@@ -23,9 +23,13 @@ func main() {
 	var myvar kk
 	var my2var kk
 	my2var.a = 2
-	abcd := &my2var
-	//myvar.next = &my2var
-	//c := myvar.next
-	//d := c.a
-	ffi.printf("%d\n", abcd.a)
+
+	//ref := &my2var
+	//ffi.printf("%d\n", ref.a)
+
+	myvar.next = &my2var
+	c := myvar.next
+	//ffi.printf("%d %d %d\n", myvar.next, c, &my2var)
+	d := c.a
+	//ffi.printf("%d\n", d)
 }
