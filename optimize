@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+import sys
+
+fname = sys.argv[1]
+c = [k for k in open(fname).read().split('\n') if  len(k.strip())>0 and k.strip()[0] != '#']
+
+
+while True:
+    l = len(c)
+    flag = False
+    for i in range(0, l-1):
+        s1, s2 = c[i], c[i+1]
+        if s1.strip()[-1] == ':' and s2.strip().split()[0].lower() == 'jmp':
+            l1name = s1.strip()[:-1]
+            l2name = s2.strip().split()[1]
+            flag = True
+            break
+
+    if flag:
+        c = [k.replace(l1name, l2name) for k in c if k.strip().replace(' ', '') != l1name + ':']
+    else:
+        break
+
+open(fname, 'w').write('\n'.join(c) + "\n")

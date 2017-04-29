@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import os
+import subprocess as sp
 
 myArr = sys.argv[:]
 fname = None
@@ -34,5 +35,7 @@ open('/tmp/myout', 'w').write('\n'.join(arr))
 myArr[0] = myArr[0].replace('wrapper', 'bin/ast')
 myArr[index] = '/tmp/myout'
 
-os.execv(myArr[0], myArr)
+sp.call(myArr)
+
+print(open('out.s').read())
 
