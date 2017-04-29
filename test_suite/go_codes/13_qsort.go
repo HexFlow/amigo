@@ -6,21 +6,20 @@ var A [100]int
 
 func partition(p int, r int) int {
 	fmt.Printf("Partition %d %d\n", p, r)
-	tmp := 0
 	x := A[p]
 	i := p - 1
 	j := r + 1
 
-	for tmp = tmp; 1 == 1; {
+	for {
 		j--
 		kk := A[j]
-		for tmp = tmp; kk < x; {
+		for kk < x {
 			fmt.Printf("J loop yes %d %d\n", A[j], x)
 			j--
 			kk = A[j]
 		}
 		i++
-		for tmp = tmp; A[i] > x; {
+		for A[i] > x {
 			fmt.Printf("I loop yes %d %d\n", A[i], x)
 			i++
 		}

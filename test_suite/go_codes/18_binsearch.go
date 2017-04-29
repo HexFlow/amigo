@@ -15,7 +15,7 @@ func main() {
 	end := n - 1
 	key := 8
 
-	for c = 0; start <= end; {
+	for start <= end {
 		fmt.Printf("S %d, E %d\n", start, end)
 		m := start + (end-start)/2
 		fmt.Printf("m is %d\n", m)

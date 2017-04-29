@@ -26,7 +26,7 @@ func main() {
 	head := &a1
 
 	found := false
-	for found = false; 1 == 1; {
+	for {
 		if head == nil {
 			break
 		}

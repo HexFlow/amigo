@@ -1333,6 +1333,42 @@ ForStmt:
             $$->code << $10->code;
             $$->code << new Instr(TAC::LABL, new Place(lbl2));
        }
+       | FOR OPENB Expression BrkBlk Block BrkBlkEnd CLOSEB {
+            $$ = &(init() << $3 << $5 >> "ForStmt");
+            $$->data = new Data("For");
+            Data *ptr = $$->data;
+            ptr->child = new Data("Condition"); ptr = ptr->child;
+            ptr->child = $3->data;
+            ptr->next = new Data("Body"); ptr = ptr->next;
+            ptr->child = $5->data;
+
+            string lbl1 = newlabel(); label_id++;
+            string lbl2 = newlabel(); label_id++;
+
+            $$->code = TAC::Init();
+            $$->code << new Instr(TAC::LABL, new Place(lbl1));            // Label for next loop
+            $$->code << $3->code;
+            $$->code << new Instr(TAC::CMP, "0", $3->place->name);
+            $$->code << new Instr(TAC::JE, new Place(lbl2));
+            $$->code << $5->code;
+            $$->code << $4->code;
+            $$->code << new Instr(TAC::JMP, lbl1);
+            $$->code << $6->code;
+            $$->code << new Instr(TAC::LABL, new Place(lbl2));
+       }
+       | FOR BrkBlk Block BrkBlkEnd {
+            $$ = &(init() << $3 >> "ForStmt");
+            $$->data = new Data("For");
+            $$->data->child = new Data("Body");
+            $$->data->child->child = $3->data;
+            string lbl = newlabel(); label_id++;
+            $$->code = TAC::Init() <<
+                new Instr(TAC::LABL, new Place(lbl)) <<
+                $3->code <<
+                $2->code <<
+                new Instr(TAC::JMP, new Place(lbl)) <<
+                $4->code;
+       }
        | FOR OPENB SimpleStmt ';' BrkBlk EmptyExpr ';' SimpleStmt Block BrkBlkEnd CLOSEB {
             $$ = &(init() << $3 << $6 << $8 << $9 >> "ForStmt");
             $$->data = new Data("For");
