@@ -4,8 +4,10 @@ import string
 import re
 import amigo_types
 
+
 def genHash(a):
     return 'a' + md5(a.encode('utf-8')).hexdigest()[:8]
+
 
 class Register:
     regs = {
@@ -89,6 +91,7 @@ class Register:
         if arr is None:
             arr = self.regs.keys()
         ins = []
+        ins.append("#" + str(self.regs))
         for k in arr:
             if self.regs[k][0]:
                 loc = self.locations[self.regs[k][0]][1]
@@ -121,6 +124,7 @@ class Register:
         else:
             # This is temporary
             self.locations[var] = [reg, '---']
+            #TODO
         return (reg, ins)
 
 
@@ -146,7 +150,7 @@ class ASM:
                     continue
                 self.ins.append(p[1] + ":")
                 self.ins.append("\t.space {}".format(self.st[key].size))
-                self.registers.locations[key] = ["", "("+p[1]+")"]
+                self.registers.locations[key] = ["", "(" + p[1] + ")"]
         self.ins.append('')
         self.ins.append('.text')
         self.ins.append('')
@@ -190,17 +194,23 @@ class ASM:
                 self.ins.append('\tje' + self.arg_parse([tac[2]]))
             elif tac[0] == 'PUSHARG':
                 if int(tac[1]) < 6:
+                    if int(tac[1]) == 0:
+                        self.ins.append("# WB without flush")
+                        self.ins += self.registers.wb_without_flush()
                     tac[1] = self.registers.argRegister[tac[1]]
-                    self.ins.append('\tmov ' + self.arg_parse([tac[2], tac[1]]))
+                    self.ins.append(
+                        '\tmov ' + self.arg_parse([tac[2], tac[1]]))
                 else:
                     arglist.append('\tpush' + self.arg_parse([tac[2]]))
             elif tac[0] == 'ARGDECL':
                 argNo = int(tac[1])
                 if argNo < 6:
                     tac[1] = self.registers.argRegister[tac[1]]
-                    self.ins.append('\tmov {}, {}'.format(tac[1], self.arg_parse([tac[2]])))
+                    self.ins.append('\tmov {}, {}'.format(
+                        tac[1], self.arg_parse([tac[2]])))
                 else:
-                    self.ins.append('\tmov {}(%rbp), {}'.format(offs, self.arg_parse([tac[2]])))
+                    self.ins.append('\tmov {}(%rbp), {}'.format(
+                        offs, self.arg_parse([tac[2]])))
                     offs += self.st[tac[2]].size
 
             elif tac[0] == 'STOR':
@@ -222,7 +232,7 @@ class ASM:
                 self.ins += self.registers.wb()
                 self.ins += list(reversed(arglist))
                 self.ins.append('\txor\t%eax,\t%eax')
-                self.ins.append('\tcall' + self.arg_parse(["#"+tac[1]]))
+                self.ins.append('\tcall' + self.arg_parse(["#" + tac[1]]))
                 if tac[1].startswith("ffi"):
                     self.ins.append('\tpush %rax')
                 arglist = []
@@ -276,23 +286,25 @@ class ASM:
                 while taclist[j][0] != 'NEWFUNCEND':
                     if taclist[j][0] == 'DECL':
                         offset += (self.st[taclist[j][1]].size)
-                        self.registers.locations[taclist[j][1]] = ["", str(-offset) + "(%rbp)"]
+                        self.registers.locations[taclist[j][1]] = [
+                            "", str(-offset) + "(%rbp)"]
                         self.ins.append('\t# Variable ' + taclist[j][1] +
-                                ' will be at ' + self.registers.locations[taclist[j][1]][1])
+                                        ' will be at ' + self.registers.locations[taclist[j][1]][1])
                     elif taclist[j][0] == 'ARGDECL':
                         offset += (self.st[taclist[j][2]].size)
                         self.registers.locations[taclist[j][2]] = ["",
-                                str(-offset) + "(%rbp)"]
+                                                                   str(-offset) + "(%rbp)"]
                         self.ins.append('\t# Variable ' + taclist[j][2] +
-                                ' will be at ' + self.registers.locations[taclist[j][2]][1])
+                                        ' will be at ' + self.registers.locations[taclist[j][2]][1])
                     else:
                         _tac = taclist[j]
                         for t in _tac:
                             if t.startswith('*-tmp'):
                                 self.registers.allTmpList[t] = genHash(t)
-                                self.registers.locations[t] = ["", "(" + self.registers.allTmpList[t] + ")"]
+                                self.registers.locations[t] = [
+                                    "", "(" + self.registers.allTmpList[t] + ")"]
                                 self.ins.append('\t# Variable ' + t +
-                                        ' will be at ' + self.registers.locations[t][1])
+                                                ' will be at ' + self.registers.locations[t][1])
                     j += 1
                 self.ins.append('\tsub ${}, %rsp'.format(offset))
 
@@ -372,7 +384,8 @@ class ASM:
                     self.ins.append('\tmov\t{}, {}'.format(index, indexreg))
                     index = indexreg
                     # Now load index*scale into index
-                    self.ins.append('\timulq\t${}, {}'.format(basetype.size, index))
+                    self.ins.append(
+                        '\timulq\t${}, {}'.format(basetype.size, index))
                     self.ins.append('\taddq\t{}, {}'.format(index, basereg))
 
                 if need_rval:
@@ -389,7 +402,8 @@ class ASM:
                     if struct == "ffi":
                         parsed_args.append('\t' + select)
                     elif struct in self.parsed.tt:
-                        parsed_args.append('\ts' + struct.upper() + 'f' + select.upper())
+                        parsed_args.append(
+                            '\ts' + struct.upper() + 'f' + select.upper())
                     else:
                         print("ERROR:")
                         print("Unknown type used as struct")
@@ -418,10 +432,39 @@ class ASM:
                         self.ins.append('\tmov\t({0}), {0}'.format(r))
                     parsed_args.append(r)
                 else:
-                    print("ERROR:")
-                    print("Unknown type used as struct")
-                    print(struct)
-                    exit(1)
+                    # This may be a pointer to a struct
+                    struct = self.parsed.st[tmp[0]]
+                    if isinstance(struct, amigo_types.PointerType):
+                        name = struct.base.__str__().strip()
+                        if name in self.parsed.tt:
+                            struct = name
+                        else:
+                            print("Searching for ", name)
+                            for key in self.parsed.tt:
+                                if self.parsed.tt[key].__str__().strip() == name:
+                                    struct = key
+                                    break
+                                else:
+                                    print(self.parsed.tt[key].__str__())
+
+                        r, ins = self.registers.get_reg()
+                        self.ins += ins
+                        loc = self.registers.locations[tmp[0]][1]
+                        self.ins.append("# HERE" + loc)
+                        print(struct)
+                        self.ins.append('\tmov\t{},\t{}'.format(loc, r))
+                        # self.ins.append('\tmov\t({}),\t{}'.format(r, r))
+                        self.ins.append('\tlea\t{}({}),\t{}'.format(
+                                        self.parsed.tt[struct].get_offset(select),
+                                        r, r))
+                        if need_rval:
+                            self.ins.append('\tmov\t({0}), {0}'.format(r))
+                        parsed_args.append(r)
+                    else:
+                        print("ERROR:")
+                        print("Unknown type used as struct")
+                        print(struct)
+                        exit(1)
             elif (arg[0].isdigit() or arg[0] == '*') and '-' in arg:
                 # Is a variable from symbol table
                 print('Testing for argument', arg, '!!!!!', self.st)

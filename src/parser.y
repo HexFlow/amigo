@@ -1579,7 +1579,8 @@ UnaryExpr:
         if($$->data->name == "&unary") {
             $$->type = new PointerType($2->type);
             auto tmpPlace = new Place($$->type);
-            $$->code << (new Instr(TAC::opToOpcode($$->data->name), $2->place, tmpPlace));
+            $$->code << (new Instr(TAC::opToOpcode($$->data->name),
+                                   $2->place, tmpPlace));
             $$->place = tmpPlace;
         } else if($$->data->name == "*unary") {
             if($2->type->classType != POINTER_TYPE) {
@@ -1589,9 +1590,8 @@ UnaryExpr:
             auto tmpPlace = new Place($$->type);
             $$->code << (new Instr(TAC::DEREF, $2->place, tmpPlace));
             $$->place = tmpPlace;
-            $$->type = new PointerType($2->type);
         } else {
-            $$->type = $2->type;
+            $$->type = $2->type->clone();
             auto tmpPlace = new Place($$->type);
             $$->code << (new Instr(TAC::STOR, $2->place, tmpPlace));
             $$->code << (new Instr(TAC::opToOpcode($$->data->name), tmpPlace));
@@ -1930,8 +1930,13 @@ FieldDecl:
     ;
 
 PointerType:
-    STAR Operand { // This is WRONG as of now. I mistakenly put code for dereference expression here
+    STAR Operand {
         $$ = &(init() << $1 << $2 >> "PointerType");
+        COPS($$, $2);
+        if ($2->type->getType() == "undefined") {
+            $2->type = new BasicType($2->data->name);
+        }
+        $$->type = new PointerType($2->type->clone());
     }
     ;
 
@@ -1986,15 +1991,15 @@ BasicLit:
     }
     | TRUE {
         $$ = &(init() << $1 >> "BasicLit");
-        $$->data = new Data{$1};
+        $$->data = new Data{"$1"};
         $$->type = new BasicType("bool");
-        $$->place = new Place($$->type, $1);
+        $$->place = new Place("$1");
     }
     | FALSE {
         $$ = &(init() << $1 >> "BasicLit");
-        $$->data = new Data{$1};
+        $$->data = new Data{"$0"};
         $$->type = new BasicType("bool");
-        $$->place = new Place($$->type, $1);
+        $$->place = new Place("$0");
     }
     ;
 

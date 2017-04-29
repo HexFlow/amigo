@@ -136,13 +136,22 @@ Type *isValidMemberOn(Data *base, Data *method) {
         cout << base->name << " is not declared in this scope" << endl;
         exit(1);
     }
-    if (symType->classType != STRUCT_TYPE) {
-        cout << base->name << " is not a struct type" << endl;
+    if (symType->classType != STRUCT_TYPE &&
+        (symType->classType != POINTER_TYPE || (
+            (dynamic_cast<PointerType*>(symType))->BaseType->classType !=
+            STRUCT_TYPE ))) {
+        cout << base->name << " is not a struct type or pointer to struct" << endl;
+        cout << symType->getType() << endl;
         exit(1);
     }
 
-    StructType *baseStruct = dynamic_cast<StructType *>(symType);
-
+    StructType *baseStruct;
+    if (symType->classType == STRUCT_TYPE) {
+        baseStruct = dynamic_cast<StructType *>(symType);
+    } else {
+        baseStruct = dynamic_cast<StructType*>(
+            (dynamic_cast<PointerType*>(symType))->BaseType);
+    }
     auto memType = baseStruct->members.find(method->name);
     if (memType == baseStruct->members.end()) {
         cerr << method->name << " is not a member of type "

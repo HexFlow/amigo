@@ -31,6 +31,17 @@ class BasicType:
     def __repr__(self):
         return self.__str__()
 
+class PointerType:
+    def __init__(self, base):
+        self.base = base
+        self.size = 8
+
+    def __str__(self):
+        return "*" + self.base.__str__()
+
+    def __repr__(self):
+        return self.__str__()
+
 class ArrayType:
     """
     Fixed sized arrays. Allocated on stack if used without make/new.
@@ -163,6 +174,9 @@ def parse_type(s):
 
     elif s.startswith('('):
         return TupleType(s)
+
+    elif s.startswith('*'):
+        return PointerType(base=parse_type(s[1:]))
 
     elif s[:3] == 'map':
         counter, i, tp = 1, 0, ""
