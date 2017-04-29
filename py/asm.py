@@ -237,13 +237,8 @@ class ASM:
                                 tac[1]][1]) + self.arg_parse(tac[2:]))
             elif tac[0] == 'DEREF':
                 self.ins += self.registers.wb_without_flush()
-                self.ins.append('\tmov ({}), {}'.format(
-                    self.arg_parse(tac[1:2]), self.arg_parse(tac[2:])))
-                # if tac[2] in self.st and isinstance(self.st[tac[2]],
-                #                                     amigo_types.StructType):
-                #     self.registers.locations[tac[1]] = [
-                #         self.registers.locations[tac[1]]
-                #     ]
+                self.ins.append('\tmov ({}), '.format(
+                    self.arg_parse(tac[1:2])) + self.arg_parse(tac[2:]))
             elif tac[0] == 'EQ':
                 reg = self.arg_parse(tac[1:]).strip()
                 self.ins.append('\tmov $0,' + reg)
@@ -281,30 +276,24 @@ class ASM:
                 while taclist[j][0] != 'NEWFUNCEND':
                     if taclist[j][0] == 'DECL':
                         offset += (self.st[taclist[j][1]].size)
-                        self.registers.locations[taclist[j][1]] = [
-                            "", str(-offset) + "(%rbp)"]
+                        self.registers.locations[taclist[j][1]] = ["", str(-offset) + "(%rbp)"]
                         self.ins.append('\t# Variable ' + taclist[j][1] +
-                                        ' will be at ' +
-                                        self.registers.locations[taclist[j][1]][1])
+                                ' will be at ' + self.registers.locations[taclist[j][1]][1])
                     elif taclist[j][0] == 'ARGDECL':
                         offset += (self.st[taclist[j][2]].size)
-                        self.registers.locations[taclist[j][2]] = [
-                            "",
-                            str(-offset) + "(%rbp)"]
+                        self.registers.locations[taclist[j][2]] = ["",
+                                str(-offset) + "(%rbp)"]
                         self.ins.append('\t# Variable ' + taclist[j][2] +
-                                        ' will be at ' +
-                                        self.registers.locations[taclist[j][2]][1])
+                                ' will be at ' + self.registers.locations[taclist[j][2]][1])
                     else:
                         _tac = taclist[j]
                         for t in _tac:
                             if t.startswith('*-tmp'):
                                 self.registers.allTmpList[t] = genHash(t)
-                                self.registers.locations[t] = [
-                                    "", "(" + self.registers.allTmpList[t] + ")"]
+                                self.registers.locations[t] = ["", "(" + self.registers.allTmpList[t] + ")"]
                                 self.ins.append('\t# Variable ' + t +
-                                                ' will be at ' +
-                                                self.registers.locations[t][1])
-                                j += 1
+                                        ' will be at ' + self.registers.locations[t][1])
+                    j += 1
                 self.ins.append('\tsub ${}, %rsp'.format(offset))
 
             elif tac[0] == 'RET':
