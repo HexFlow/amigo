@@ -15,4 +15,4 @@ if [ -f "out.s" ]; then
   gcc -ggdb3 out.s
 fi
 
-#rm -f "${sfile}.tac" "${sfile}.st"
+rm -f "${sfile}.tac" "${sfile}.st"
