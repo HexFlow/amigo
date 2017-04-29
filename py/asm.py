@@ -166,6 +166,7 @@ class ASM:
     def tac_ins_convert(self, taclist):
         i = 0
         arglist = []
+        offs = 16
         while i < len(taclist):
             tac = taclist[i]
             self.ins.append('')
@@ -199,9 +200,8 @@ class ASM:
                     tac[1] = self.registers.argRegister[tac[1]]
                     self.ins.append('\tmov {}, {}'.format(tac[1], self.arg_parse([tac[2]])))
                 else:
-                    argNo -= 6
-                    offs = argNo * 8
-                    self.ins.append('\tmov {}(%ebp), {}'.format(offs, self.arg_parse([tac[2]])))
+                    self.ins.append('\tmov {}(%rbp), {}'.format(offs, self.arg_parse([tac[2]])))
+                    offs += self.st[tac[2]].size
 
             elif tac[0] == 'STOR':
                 # Check if we need complex lvalue
@@ -270,6 +270,7 @@ class ASM:
                 self.ins.append('\tpush %rbp')
                 self.ins.append('\tmov %rsp, %rbp')
                 self.ins.append('')
+                offs = 16
                 j = i
                 offset = 0
                 while taclist[j][0] != 'NEWFUNCEND':

@@ -8,7 +8,6 @@ func main() {
 		for j := 0; j < 20; j += 1 {
 			fmt.Printf("%d %d, ", i, j)
 		}
-		continue
 		fmt.Printf("\n")
 	}
 }

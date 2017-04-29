@@ -4,18 +4,42 @@ import "fmt"
 
 var A [100]int
 
-func partition(low int, high int) {
-	x := A[low]
+func partition(p int, r int) int {
+	fmt.Printf("Partition %d %d\n", p, r)
+	tmp := 0
+	x := A[p]
 	i := p - 1
 	j := r + 1
 
-	for true; true; {
-
+	for tmp = tmp; 1 == 1; {
+		j--
+		kk := A[j]
+		for tmp = tmp; kk < x; {
+			fmt.Printf("J loop yes %d %d\n", A[j], x)
+			j--
+			kk = A[j]
+		}
+		i++
+		for tmp = tmp; A[i] > x; {
+			fmt.Printf("I loop yes %d %d\n", A[i], x)
+			i++
+		}
+		if i < j {
+			tmp := A[i]
+			A[i] = A[j]
+			A[j] = tmp
+		} else {
+			fmt.Printf("Returning value: %d\n", j)
+			return j
+		}
 	}
+	fmt.Printf("Never reach here")
+	return -1
 }
-func qsort(low int, high int) {
-	if low < high {
+func qsort(p int, r int) {
+	if p < r {
 		q := partition(p, r)
+		fmt.Printf("Value returned: %d\n", q)
 		qsort(p, q)
 		qsort(q+1, r)
 	}
@@ -23,11 +47,19 @@ func qsort(low int, high int) {
 
 func main() {
 	for i := 0; i < 100; i++ {
-		i := 0
-		fmt.Scanf("%d", &i)
+		n := 0
+		fmt.Scanf("%d", &n)
+		A[i] = n
 	}
 
-	qsort(0, 100)
+	for i := 0; i < 10; i++ {
+		for j := 0; j < 10; j++ {
+			fmt.Printf("%d ", A[10*i+j])
+		}
+		fmt.Printf("\n")
+	}
+
+	qsort(0, 99)
 
 	for i := 0; i < 10; i++ {
 		for j := 0; j < 10; j++ {

@@ -25,7 +25,7 @@ for i, line in enumerate(contents):
 
 for j, line in enumerate(contents):
     if 'func' in line[:4]:
-        line = line.strip()[:-1]
+        line = line.strip()[:-1].strip()
         arr.append(line)
 
 arr += contents[i:]

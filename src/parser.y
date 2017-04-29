@@ -621,7 +621,7 @@ FunctionDecl:
     }
     | FUNC IDENT OPENB Signature { curFxnType = vectorToLinkedList(dynamic_cast<FunctionType*>($4->type)->retTypes); symInsert(scope_prefix+$2, $4->type); } Block CLOSEB {
         $$ = &(init() << $2 << $4 << $6 >> "FunctionDecl");
-        
+
         $$->data = new Data("Function " + string($2));
         $$->data->child = $6->data;
         $$->code = TAC::Init() << new Instr(TAC::LABL, $2);
@@ -1051,6 +1051,9 @@ ReturnStmt:
 
         auto placeptr = $2->place;
 
+        auto parallel = new Place();
+        auto parllptr = parallel;
+
         $$->code = TAC::Init();
         $$->code << $2->code;
         if (curFxnType == NULL) {
@@ -1058,7 +1061,6 @@ ReturnStmt:
             exit(1);
         }
         Type *rT = curFxnType, *eT = $2->type;
-        $$->code << new Instr(TAC::RETSETUP);
         while (rT != NULL || eT != NULL) {
             if (rT == NULL || eT == NULL) {
                 ERROR("Different number of return values than expected", "");
@@ -1068,6 +1070,19 @@ ReturnStmt:
                 ERROR("Mismatching return types. Expected " + rT->getType() + " and got ", eT->getType());
                 exit(1);
             }
+            parllptr->next = new Place(eT);
+            $$->code << new Instr(TAC::STOR, placeptr, parllptr->next);
+            rT = rT->next;
+            eT = eT->next;
+            placeptr = placeptr->next;
+            parllptr = parllptr->next;
+        }
+        rT = curFxnType;
+        $2->place = parallel->next;
+        eT = $2->type;
+        placeptr = $2->place;
+        $$->code << new Instr(TAC::RETSETUP);
+        while (rT != NULL || eT != NULL) {
             $$->code << new Instr(TAC::PUSHRET, placeptr);
             rT = rT->next;
             eT = eT->next;
@@ -1102,7 +1117,7 @@ ContinueStmt:
     CONT         {
         $$ = &(init() >> "ContinueStmt");
         $$->data = new Data(string($1));
-        $$->code = TAC::Init() << new Instr(TAC::JMP, new Place("___"));
+        $$->code = TAC::Init() << new Instr(TAC::JMP, new Place(nextlabels.top()));
     }
     | CONT IDENT {
         $$ = &(init() << $2 >> "ContinueStmt");
@@ -1296,15 +1311,15 @@ ForStmt:
 
             $$->code = TAC::Init();
             $$->code << $3->code;                                         // Prelude
-            $$->code << $5->code;                                         // Label for continue
             $$->code << new Instr(TAC::LABL, new Place(lbl1));            // Label for next loop
             $$->code << $6->code;                                         // Condition
             $$->code << new Instr(TAC::CMP, new Place("0"), $6->place);   // Compare condition
             $$->code << new Instr(TAC::JE, lbl2);                         // If false (=0) jump to label2
             $$->code << $9->code;                                         // Block code
+            $$->code << $5->code;
             $$->code << $8->code;                                         // Post statement
-            $$->code << new Instr(TAC::JMP, lbl1);                        // If false (=0) jump to label2
-            $$->code << $10->code;                                        // Break label
+            $$->code << new Instr(TAC::JMP, lbl1);
+            $$->code << $10->code;
             $$->code << new Instr(TAC::LABL, new Place(lbl2));
        }
        | FOR OPENB SimpleStmt ';' BrkBlk EmptyExpr ';' SimpleStmt Block BrkBlkEnd CLOSEB {
@@ -1669,7 +1684,7 @@ PrimaryExpr:
         auto retPtr = $$->type;
         auto placePtr = new Place("");
         $$->place = placePtr;
-        
+
         while(retPtr != NULL) {
             auto tmpPlace = new Place(retPtr);
             placePtr->next = tmpPlace;

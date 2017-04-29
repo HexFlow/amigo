@@ -8,9 +8,11 @@ fi
 
 sfile=$(echo "$1" | sed 's|/|-|g' | sed 's|.go||g')
 
-./bin/wrapper -tac "${sfile}.tac" -st "${sfile}.st" $@
+./wrapper -tac "${sfile}.tac" -st "${sfile}.st" $@
 /usr/bin/env python3 py/main.py "${sfile}.tac" "${sfile}.st"
 
 if [ -f "out.s" ]; then
   gcc -ggdb3 out.s
 fi
+
+rm -f "${sfile}.tac" "${sfile}.st"
