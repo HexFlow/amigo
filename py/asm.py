@@ -11,7 +11,7 @@ def genHash(a):
 
 class Register:
     regs = {
-        '%rax': [None, 0],
+        # '%rax': [None, 0],
         '%rbx': [None, 0],
         # '%rcx': [None, 0],
         # '%rdx': [None, 0],
@@ -124,7 +124,7 @@ class Register:
         else:
             # This is temporary
             self.locations[var] = [reg, '---']
-            #TODO
+            # TODO
         return (reg, ins)
 
 
@@ -248,6 +248,22 @@ class ASM:
                 self.ins.append('\tadd' + self.arg_parse(tac[1:]))
             elif tac[0] == 'MUL':
                 self.ins.append('\timul' + self.arg_parse(tac[1:]))
+            elif tac[0] == 'DIV':
+                self.ins.append('\tmov $0, %rdx')
+                # self.registers.regs["%rax"][1] = self.registers.count
+                source = self.arg_parse([tac[1]]).strip()
+                # self.ins += self.registers.wb(["%rax"])
+                if not source.startswith('$'):
+                    source = self.registers.byteMap[source]
+                else:
+                    r, ins = self.registers.get_reg()
+                    self.ins += ins
+                    self.ins.append('\tmov {}, {}'.format(source, r))
+                    source = r
+                dest = self.arg_parse([tac[2]]).strip()
+                self.ins.append('\tmov {}, %rax'.format(dest))
+                self.ins.append('\tidiv {}'.format(source))
+                self.ins.append('\tmov %rax, {}'.format(dest))
             elif tac[0] == 'SUB':
                 self.ins.append('\tsub' + self.arg_parse(tac[1:]))
             elif tac[0] == 'ADDR':
