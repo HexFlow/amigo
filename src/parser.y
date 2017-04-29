@@ -412,7 +412,7 @@ Assignment:
             }
             if(getSymType(varLeft) != NULL) {
                 if((ltype->getType() != rhs->getType()) && rhs->getType() != "nil") {
-                    ERROR_N(varLeft, " has a different type than RHS " + rhs->getType(), @1);
+                    ERROR_N(varLeft, " has a different type " + ltype->getType() + " than RHS " + rhs->getType(), @1);
                     exit(1);
                 }
             } else {
@@ -892,6 +892,16 @@ LiteralType:
         $$ = &(init() << $1 >> "LiteralType");
         COPS($$, $1);
     }
+    /* | PointerType        { */
+    /*     $$ = &(init() << $1 >> "Type"); */
+    /*     $$->data = $1->data; */
+    /*     $$->type = $1->type; */
+    /*     $$->data = new Data($$->type->getType()); */
+    /* } */
+    | PointerType              {
+        $$ = &(init() << $1 >> "LiteralType");
+        COPS($$, $1);
+    }
     | '[' DOTS ']' Operand     {
         $$ = &(init() << $2 << $4 >> "LiteralType");
     }
@@ -916,16 +926,10 @@ Type:
         $$ = &(init() << $1 >> "Type");
         $$->data = $1->data;
         $$->type = new BasicType($1->data->name);
-        if(!isType($1->data->name)) {
-            ERROR_N("Invalid Type: ", $1->data->name, @1);
-            exit(1);
-        }
-        $$->data = new Data($$->type->getType());
-    }
-    | PointerType        {
-        $$ = &(init() << $1 >> "Type");
-        $$->data = $1->data;
-        $$->type = $1->type;
+        /* if(!isType($1->data->name)) { */
+        /*     ERROR_N("Invalid Type: ", $1->data->name, @1); */
+        /*     exit(1); */
+        /* } */
         $$->data = new Data($$->type->getType());
     }
     ;
@@ -1630,25 +1634,30 @@ PrimaryExpr:
     | PrimaryExpr Index {
         $$ = &(init() << $1 << $2 >> "PrimaryExpr");
         Type*tp = $1->type;
+        if (tp->classType == POINTER_TYPE) {
+            tp = dynamic_cast<PointerType*>(tp)->BaseType;
+        }
+
         if(tp->classType == SLICE_TYPE) {
-            SliceType *tp = (SliceType*) $1->type;
-            $$->type = tp->base->clone();
+            SliceType *itp = (SliceType*) tp;
+            $$->type = itp->base->clone();
             if($2->type->getType() != "int") {
                 ERROR_N("Non integer index provided", "", @2);
                 exit(1);
             }
         } else if(tp->classType == ARRAY_TYPE) {
-            ArrayType *tp = (ArrayType*) $1->type;
-            $$->type = tp->base->clone();
+            ArrayType *itp = (ArrayType*) tp;
+            $$->type = itp->base->clone();
+            cout << "RESOLVED for " << $1->type->getType() << " to " << $$->type->getType() << endl;
             if($2->type->getType() != "int") {
                 ERROR_N("Non integer index provided", "", @2);
                 exit(1);
             }
         } else if(tp->classType == MAP_TYPE) {
-            MapType *tp = (MapType*) $1->type;
-            if($2->type->getType() != tp->key->getType()) {
+            MapType *itp = (MapType*) tp;
+            if($2->type->getType() != itp->key->getType()) {
                 ERROR_N("Index of type " + $2->type->getType() +
-                        " provided, when needed was: ", tp->key->getType(), @2);
+                        " provided, when needed was: ", itp->key->getType(), @2);
                 exit(1);
             }
             // No global type sent
@@ -1936,7 +1945,7 @@ FieldDecl:
     ;
 
 PointerType:
-    STAR Operand {
+    STAR Type {
         $$ = &(init() << $1 << $2 >> "PointerType");
         COPS($$, $2);
         if ($2->type->getType() == "undefined") {

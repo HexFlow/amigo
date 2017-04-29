@@ -399,13 +399,20 @@ class ASM:
                 tmp = re.findall(r'\[.*?\]', arg)
                 base = arg.split('[')[0]
                 basetype = self.st[base]
-
                 base = self.registers.locations[base][1]
                 basereg, ins = self.registers.get_reg()
                 self.ins += ins
                 indexreg, ins = self.registers.get_reg()
                 self.ins += ins
-                self.ins.append('\tlea\t{}, {}'.format(base, basereg))
+
+                self.ins += self.registers.wb_without_flush()
+
+                if isinstance(basetype, amigo_types.ArrayType):
+                    # Not a pointer
+                    self.ins.append('\tlea\t{}, {}'.format(base, basereg))
+                elif isinstance(basetype, amigo_types.PointerType):
+                    self.ins.append('\tmov\t{}, {}'.format(base, basereg))
+                    basetype = basetype.base
 
                 for index in tmp:
                     basetype = basetype.base
@@ -420,6 +427,7 @@ class ASM:
                 if need_rval:
                     self.ins.append('\tmov\t({0}), {0}'.format(basereg))
                 parsed_args.append(basereg)
+
             elif '#' in arg:
                 if '.' not in arg:
                     parsed_args.append('\t' + arg.split('-')[-1])
