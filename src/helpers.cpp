@@ -109,7 +109,7 @@ Type *getSymType(string name) {
             //     auto b = (BasicType *)k;
             //     return ttable[b->base]->clone();
             // } else {
-                return k->clone();
+            return k->clone();
             // }
         }
         cur_prefix = cur_prefix.substr(cur_prefix.find("-") + 1);
@@ -121,7 +121,7 @@ Type *getSymType(string name) {
         //     auto b = (BasicType *)k;
         //     return ttable[b->base]->clone();
         // } else {
-            return k->clone();
+        return k->clone();
         // }
     }
     return NULL;
@@ -138,8 +138,9 @@ Type *isValidMemberOn(Data *base, Data *method) {
     }
 
     if (symType->classType == POINTER_TYPE &&
-        (dynamic_cast<PointerType*>(symType))->BaseType->classType == BASIC_TYPE) {
-        symType = (dynamic_cast<PointerType*>(symType))->BaseType;
+        (dynamic_cast<PointerType *>(symType))->BaseType->classType ==
+            BASIC_TYPE) {
+        symType = (dynamic_cast<PointerType *>(symType))->BaseType;
     }
 
     if (symType->classType == BASIC_TYPE) {
@@ -147,12 +148,11 @@ Type *isValidMemberOn(Data *base, Data *method) {
     }
 
     if (symType->classType != STRUCT_TYPE &&
-        (symType->classType != POINTER_TYPE || (
-            (dynamic_cast<PointerType*>(symType))->BaseType->classType !=
-            STRUCT_TYPE ))) {
-
-
-        cout << base->name << " is not a struct type or pointer to struct" << endl;
+        (symType->classType != POINTER_TYPE ||
+         ((dynamic_cast<PointerType *>(symType))->BaseType->classType !=
+          STRUCT_TYPE))) {
+        cout << base->name << " is not a struct type or pointer to struct"
+             << endl;
         cout << symType->getType() << endl;
         exit(1);
     }
@@ -161,8 +161,8 @@ Type *isValidMemberOn(Data *base, Data *method) {
     if (symType->classType == STRUCT_TYPE) {
         baseStruct = dynamic_cast<StructType *>(symType);
     } else {
-        baseStruct = dynamic_cast<StructType*>(
-            (dynamic_cast<PointerType*>(symType))->BaseType);
+        baseStruct = dynamic_cast<StructType *>(
+            (dynamic_cast<PointerType *>(symType))->BaseType);
     }
     auto memType = baseStruct->members.find(method->name);
     if (memType == baseStruct->members.end()) {

@@ -7,6 +7,7 @@
 #include <vector>
 #include <stack>
 #include <string>
+#include <algorithm>
 #include <unordered_map>
 #include "node.h"
 #include "type.h"
@@ -1082,11 +1083,17 @@ ReturnStmt:
         eT = $2->type;
         placeptr = $2->place;
         $$->code << new Instr(TAC::RETSETUP);
+        vector<Instr*> insArr;
         while (rT != NULL || eT != NULL) {
-            $$->code << new Instr(TAC::PUSHRET, placeptr);
+            insArr.push_back(new Instr(TAC::PUSHRET, placeptr));
             rT = rT->next;
             eT = eT->next;
             placeptr = placeptr->next;
+        }
+        std::reverse(insArr.begin(), insArr.end());
+
+        for(auto it: insArr) {
+            $$->code << it;
         }
         $$->code << new Instr(TAC::RETEND);
         scopeExpr($$->code);
