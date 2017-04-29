@@ -1757,13 +1757,12 @@ MakeExpr:
     }
     | NEW '(' Type ')' {
         $$ = &(init() << $3 >> "NewExpr");
-        $$->type = $3->type;
+        $$->type = new PointerType($3->type);
         $$->data = new Data("New");
 
-        string lbl = newlabel(); label_id++;
+        $$->place = new Place($$->type);
         $$->code = TAC::Init() <<
-            new Instr(TAC::MAKE, lbl, $3->type->getType());
-        $$->place = new Place(lbl);
+            new Instr(TAC::NEW, $3->type->getType(), $$->place->name);
     }
     ;
 

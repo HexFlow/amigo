@@ -181,6 +181,14 @@ class ASM:
                 self.ins.append(tmp + ':')
             elif tac[0] == 'PUSH':
                 self.ins.append('\tpush' + self.arg_parse(tac[1:]))
+            elif tac[0] == 'NEW':
+                label = tac[2]
+                _type = tac[1]
+                _sz = self.tt[_type].size
+                self.ins.append("\tmov ${}, %rdi".format(_sz))
+                self.ins += self.registers.wb()
+                self.ins.append("\tcall malloc")
+                self.ins.append("\tmov %rax,{}".format(self.arg_parse([label])))
             elif tac[0] == 'JMP':
                 self.ins += self.registers.wb()
                 self.ins.append('\tjmp' + self.arg_parse(tac[1:]))

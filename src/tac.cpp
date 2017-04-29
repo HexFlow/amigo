@@ -112,6 +112,8 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "POP";
         case TAC::MAKE:
             return "MAKE";
+        case TAC::NEW:
+            return "NEW";
         case TAC::CALL:
             return "CALL";
         case TAC::NEWFUNC:

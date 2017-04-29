@@ -38,6 +38,7 @@ enum INSTR_TYPE {
     PUSH,
     POP,
     MAKE,
+    NEW,
     ASN,
     ADDR,
     NEG,
