@@ -11,8 +11,7 @@ func ackermann(m int, n int) int {
 		return ackermann(m-1, 1)
 	}
 
-	c := ackermann(m, n-1)
-	return ackermann(m-1, c)
+	return ackermann(m-1, ackermann(m, n-1))
 }
 
 func main() {

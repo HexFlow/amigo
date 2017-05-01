@@ -25,6 +25,7 @@ enum INSTR_TYPE {
     PUSHRET,
     JMP,
     JE,
+    JNE,
     CMP,
     NE,
     GE,

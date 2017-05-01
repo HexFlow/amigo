@@ -127,8 +127,8 @@ Type *getSymType(string name) {
     return NULL;
 }
 
-Type *isValidMemberOn(Data *base, Data *method) {
-    auto symType = getSymType(base->name);
+Type *isValidMemberOn(Type *type, Data *base, Data *method) {
+    auto symType = type;
     if (base->name == "ffi") {
         return new FunctionType(vector<Type *>(), vector<Type *>());
     }

@@ -37,5 +37,5 @@ myArr[index] = '/tmp/myout'
 
 sp.call(myArr)
 
-print(open('out.s').read())
+# print(open('out.s').read())
 

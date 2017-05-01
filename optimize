@@ -1,10 +1,25 @@
 #!/usr/bin/env python3
 import sys
+import re
+
+def isImmed(var):
+    if var[0] == '$':
+        return True
+    return False
+
+def toOpr(var):
+    if var == 'sub':
+        return -1
+    if var == 'add':
+        return 1
+    print('Unexpected value', var)
+    exit(1)
 
 fname = sys.argv[1]
 c = [k for k in open(fname).read().split('\n') if  len(k.strip())>0 and k.strip()[0] != '#']
+print("New code size: ", len(c))
 
-
+# Optimization pass 1; JUMP over JUMP
 while True:
     l = len(c)
     flag = False
@@ -20,5 +35,56 @@ while True:
         c = [k.replace(l1name, l2name) for k in c if k.strip().replace(' ', '') != l1name + ':']
     else:
         break
+
+print("New code size: ", len(c))
+
+# Optimization pass 2; WRITE before WRITE
+while True:
+    writeOp = ['mov', 'lea']
+    l = len(c)
+    flag = False
+    for i in range(0, l-1):
+        s1 = [k.strip() for k in re.findall(r"((?:-?\d+)?\(.*?\)|[^ ,]+)", c[i].strip().replace('\t', ' '))]
+        s2 = [k.strip() for k in re.findall(r"((?:-?\d+)?\(.*?\)|[^ ,]+)", c[i+1].strip().replace('\t', ' '))]
+        if s1[0] not in writeOp or s2[0] not in writeOp:
+            continue
+        dst1 = s1[2]
+        dst2 = s2[2]
+        if dst1 == dst2:
+            if s2[2] not in s2[1]:
+                c[i] = ''
+                flag = True
+                break
+    if flag:
+        c = [k for k in c if len(k.strip()) > 0]
+    else:
+        break
+
+# Optimization pass 3; CONSTANT FOLDING
+while True:
+    arithOp = ['add', 'sub']
+    l = len(c)
+    flag = False
+    for i in range(0, l-1):
+        s1 = [k.strip() for k in re.findall(r"((?:-?\d+)?\(.*?\)|[^ ,]+)", c[i].strip().replace('\t', ' '))]
+        s2 = [k.strip() for k in re.findall(r"((?:-?\d+)?\(.*?\)|[^ ,]+)", c[i+1].strip().replace('\t', ' '))]
+        if s1[0] not in arithOp or s2[0] not in arithOp:
+            continue
+        if not isImmed(s1[1]) or not isImmed(s2[1]):
+            continue
+        if not s1[2] == s2[2]:
+            continue
+        val1 = toOpr(s1[0]) * int(s1[1][1:])
+        val2 = toOpr(s2[0]) * int(s2[1][1:])
+        c[i+1] = ''
+        c[i] = '\tadd ${}, {}'.format(val1+val2, s1[2])
+        flag = True
+        break
+    if flag:
+        c = [k for k in c if len(k.strip()) > 0]
+    else:
+        break
+
+print("New code size: ", len(c))
 
 open(fname, 'w').write('\n'.join(c) + "\n")

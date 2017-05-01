@@ -25,7 +25,8 @@ class Register:
         '%r15': [None, 0]
     }
 
-    regEIP = None
+    regRIP = None
+    regRBP = None
     allTmpList = {}
 
     argRegister = {
@@ -195,6 +196,9 @@ class ASM:
             elif tac[0] == 'JE':
                 self.ins += self.registers.wb()
                 self.ins.append('\tje' + self.arg_parse(tac[1:]))
+            elif tac[0] == 'JNE':
+                self.ins += self.registers.wb()
+                self.ins.append('\tjne' + self.arg_parse(tac[1:]))
             elif tac[0] == 'JEQZ':
                 arg1 = self.arg_parse([tac[1]])
                 self.ins.append('\tcmp {}, {}'.format("$0", arg1))
@@ -330,10 +334,13 @@ class ASM:
                         for t in _tac:
                             if t.startswith('*-tmp'):
                                 self.registers.allTmpList[t] = genHash(t)
+                                _size= 8
+                                offset += _size
                                 self.registers.locations[t] = [
-                                    "", "(" + self.registers.allTmpList[t] + ")"]
+                                    "", str(-offset) + "(%rbp)"]
                                 self.ins.append('\t# Variable ' + t +
-                                                ' will be at ' + self.registers.locations[t][1])
+                                                ' will be at ' +
+                                                self.registers.locations[t][1])
                     j += 1
                 self.ins.append('\tsub ${}, %rsp'.format(offset))
 
@@ -346,22 +353,40 @@ class ASM:
             elif tac[0] == 'RETSETUP':
                 self.ins.append('')
                 self.ins += self.registers.wb()
+                r1, inst1 = self.registers.get_reg()
+                r2, inst2 = self.registers.get_reg()
+                self.ins += inst1
+                self.ins += inst2
+                self.ins.append('\tmov (%rbp), ' + r1)
+                self.ins.append('\tmov 8(%rbp), ' + r2)
                 self.ins.append('\tmov %rbp, %rsp')
-                self.ins.append('\tpop %rbp')
-                r, inst = self.registers.get_reg()
-                self.ins += inst
-                self.registers.regEIP = r
-                self.ins.append('\tpop ' + r)
+                self.ins.append('\tadd $8, %rsp')
+                self.registers.regRBP = r1
+                self.registers.regRIP = r2
+                self.registers.retOFF = 16
             elif tac[0] == 'PUSHRET':
+                # self.ins.append('\tmov' + self.arg_parse(tac[1:]) +
+                        # ', {}({})'.format(self.registers.retOFF, r1))
+                # self.registers.retOFF -= 8
                 self.ins.append('\tpush' + self.arg_parse(tac[1:]))
             elif tac[0] == 'POP':
                 self.ins.append('\tpop' + self.arg_parse(tac[1:]))
             elif tac[0] == 'RETEND':
-                r = self.registers.regEIP
-                self.ins.append('\tpush ' + r)
-                self.ins.append('\tret' + self.arg_parse(tac[1:]))
+                r1 = self.registers.regRBP
+                r2 = self.registers.regRIP
+                # self.registers.retOFF -= 8
+                # self.ins.append('\tmov ' + r1 +
+                        # ', {}({})'.format(self.registers.retOFF, r1))
+                # self.registers.retOFF -= 8
+                # self.ins.append('\tmov ' + r2 +
+                        # ', {}({})'.format(self.registers.retOFF, r2))
+                # self.registers.retOFF -= 8
+                # self.ins.append('\tmov ' + self.registers.regRBP + ', %rbp')
+                self.ins.append('\tpush ' + r2)
+                self.ins.append('\tpush ' + r1)
+                self.ins.append('\tpop %rbp')
+                self.ins.append('\tret')
             elif tac[0] == 'NEWFUNCEND':
-                print("GRIM REAPER IS COMING")
                 self.ins += self.registers.wb()
                 self.ins.append('')
                 self.ins.append('\tmov %rbp, %rsp')

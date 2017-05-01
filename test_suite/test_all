@@ -138,7 +138,7 @@ run_test()
     bash -c "$CMD; exit 0"
 
     if [ -f "out.s" ]; then
-      CMD="$BASEDIR/../optimize out.s" 
+      CMD="$BASEDIR/../optimize out.s >- 2>&-"
       bash -c "$CMD; exit 0"
       gcc -g out.s -o "$BASEDIR/amigo_exec/$filename"
       rm -f out.s

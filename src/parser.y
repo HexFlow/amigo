@@ -74,6 +74,40 @@ typedef TAC::Instr Instr;
     A->code << (new Instr(TAC::STOR, tmpPlace, A->place));                  \
     scopeExpr(A->code);
 
+#define HANDLE_AND_OR_OP(A, B, C, D, aA, aB, aC, aD)                        \
+    A->data = new Data(string(C) + "binary");                               \
+    A->data->child = B->data;                                               \
+    last(A->data->child)->next = D->data;                                   \
+    if(B->type == NULL) {                                                   \
+        ERROR_N("Missing type info in node", B->data->name, aB);            \
+        exit(1);                                                            \
+    }                                                                       \
+    if(D->type == NULL) {                                                   \
+        ERROR_N("Missing type info in node", D->data->name, aD);            \
+        exit(1);                                                            \
+    }                                                                       \
+    if((D->type->getType() != B->type->getType()) && D->type->getType() != "nil") { \
+        ERROR_N("Mismatched types : ", B->type->getType() +                 \
+        " and " + D->type->getType(), aD);                                  \
+        exit(1);                                                            \
+    }                                                                       \
+    A->type = operatorResult(B->type, D->type, C);                          \
+    A->place = new Place(A->type);                                          \
+    auto end = newlabel();                                                  \
+    label_id++;                                                             \
+    A->code = TAC::Init() << B->code;                                       \
+    A->code << (new Instr(TAC::CMP, new Place("$0"), B->place));            \
+    A->code << (new Instr(TAC::STOR, B->place, A->place));                  \
+    if(string(C) == "&&")                                                   \
+        A->code << (new Instr(TAC::JE, end));                               \
+    else                                                                    \
+        A->code << (new Instr(TAC::JNE, end));                              \
+    A->code << D->code;                                                     \
+    A->code << (new Instr(TAC::STOR, D->place, A->place));                  \
+    A->code << new Instr(TAC::LABL, end);                                   \
+    scopeExpr(A->code);
+
+
 /* (new Instr(TAC::opToOpcode(C), A->place, B->place, D->place)); */
 
 using namespace std;
@@ -1549,7 +1583,7 @@ Expression:
 Expression1:
     Expression1 B1 Expression2 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression1");
-        HANDLE_REL_OP($$, $1, $2, $3, @$, @1, @2, @3);
+        HANDLE_AND_OR_OP($$, $1, $2, $3, @$, @1, @2, @3);
     }
     | Expression2 {
         $$ = &(init() << $1 >> "Expression2");
@@ -1560,7 +1594,7 @@ Expression1:
 Expression2:
     Expression2 B2 Expression3 {
         $$ = &(init() << $1 << $2 << $3 >> "Expression2");
-        HANDLE_REL_OP($$, $1, $2, $3, @$, @1, @2, @3);
+        HANDLE_AND_OR_OP($$, $1, $2, $3, @$, @1, @2, @3);
     }
     | Expression3 {
         $$ = &(init() << $1 >> "Expression2");
@@ -1658,7 +1692,7 @@ PrimaryExpr:
     }
     | PrimaryExpr Selector {
         $$ = &(init() << $1 << $2 >> "PrimaryExpr");
-        $$->type = isValidMemberOn($1->data, $2->data);
+        $$->type = isValidMemberOn($1->type, $1->data, $2->data);
         $$->data = new Data("MemberAccess");
         $$->data->child = $1->data;
         $$->data->child->next = $2->data;
@@ -1666,6 +1700,7 @@ PrimaryExpr:
         $$->place =
             new Place($1->place->toString() + "." + $2->place->toString());
         $$->data->lval = $$->place->name;
+        $$->code = TAC::Init() << $1->code;
     }
     | PrimaryExpr Index {
         $$ = &(init() << $1 << $2 >> "PrimaryExpr");

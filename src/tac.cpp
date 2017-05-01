@@ -66,14 +66,16 @@ string TAC::opcodeToString(TAC::INSTR_TYPE op) {
             return "JEQZ";
         case TAC::JMP:
             return "JMP";
-        case TAC::JE:
-            return "JE";
         case TAC::CMP:
             return "CMP";
         case TAC::LABL:
             return "LABL";
         case TAC::RET:
             return "RET";
+        case TAC::JE:
+            return "JE";
+        case TAC::JNE:
+            return "JNE";
         case TAC::RETSETUP:
             return "RETSETUP";
         case TAC::RETEND:
