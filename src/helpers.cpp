@@ -296,9 +296,9 @@ int getIntValue(node *n) {
 
 string nameInScope(string name) {
     string suffix = "";
-    auto pos = name.find('.');
+    auto pos = min(name.find('.'), name.find('['));
     if (pos != string::npos) {
-        suffix = "." + name.substr(pos + 1);
+        suffix = name.substr(pos);
         name = name.substr(0, pos);
     }
 

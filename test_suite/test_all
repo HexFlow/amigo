@@ -138,10 +138,10 @@ run_test()
     bash -c "$CMD; exit 0"
 
     if [ -f "out.s" ]; then
-      CMD="$BASEDIR/../optimize out.s >- 2>&-"
+      CMD="$BASEDIR/../optimize out.s >/dev/null 2>&-"
       bash -c "$CMD; exit 0"
       gcc -g out.s -o "$BASEDIR/amigo_exec/$filename"
-      rm -f out.s
+      mv out.s "$BASEDIR/tmp/${filename}.s"
     else
         printf "FAILURE\n"
         return

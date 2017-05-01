@@ -7,7 +7,7 @@ type kk struct {
 
 func main() {
 	var b [10]*kk
-	b[0] = new(kk)
-	b[0].a = 10
-	ffi.printf("%d\n", b[0].a)
+	b[2] = new(kk)
+	b[2].a = 10 + 2
+	ffi.printf("%d\n", b[2].a)
 }

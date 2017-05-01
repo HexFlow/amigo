@@ -454,9 +454,7 @@ Assignment:
                 exit(1);
             }
 
-            $$->code << new Instr(TAC::STOR,
-                                  rplace,
-                                  new Place(rhs, lhs->lval));
+            $$->code << new Instr(TAC::STOR, rplace, new Place(rhs, lhs->lval));
 
             lhs = lhs->next;
             ltype = ltype->next;
