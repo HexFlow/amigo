@@ -13,7 +13,7 @@ func bst(head *node) {
 		return
 	}
 	bst(head.l)
-	ffi.printf("%d\n", head.val)
+	fmt.Printf("%d\n", head.val)
 	bst(head.r)
 }
 

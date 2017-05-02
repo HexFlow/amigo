@@ -10,8 +10,9 @@ func main() {
 	var a [10]int
 	var b *[10]int
 	b = &a
-	ffi.printf("%d\n", a[2])
+	a[2] = 0
+	fmt.Printf("%d\n", a[2])
 	mutate(b)
 	//b[2] = 3
-	ffi.printf("%d\n", a[2])
+	fmt.Printf("%d\n", a[2])
 }
