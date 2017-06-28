@@ -1,4 +1,4 @@
-# Gust
+# AMIGO (A Memory Inefficient GO compiler)
 Go Compiler written for CS335 course, 2017 Spring semester.
 
 # Running
